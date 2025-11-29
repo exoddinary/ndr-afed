@@ -1,0 +1,137 @@
+table_name,best_geojson,score,alt1,alt1_score,alt2,alt2_score
+Keta Basin,Akita Basin,0.818,Hetao Basin,0.818,Mesta Basin,0.818
+Kwanza,Kwanza Basin,0.500,Kwae Noi Basin,0.357,Kerman Basin,0.333
+Douala,Douala Basin,0.500,Doukkala Basin,0.429,Houma Basin,0.364
+Niger Delta,Niger Delta,1.000,Baram Delta,0.545,Indus Delta,0.545
+Salt Pond,Saltpond Basin,0.500,Salt Basin,0.500,Salton Trough,0.462
+Sierra Leone-Liberia,Sierra Leone-Liberia Basin,0.769,Sierra Grande Arch,0.500,Sierra Blanca Basin,0.500
+Tano-Ivorian,Tajo-Jucar Basin,0.438,Wind River Basin,0.438,Parsnip River Basin,0.421
+Campos Pre Salt,Campos Basin,0.533,Campbellpore Basin,0.500,Zagros Province,0.400
+Gulf of Guayaquil/ Progreso,Gulf of Thailand Basin,0.423,Gulf of Suez Basin,0.385,Gulf of Sirte Basin,0.346
+Camamu Almada,Camamu-Almada Basin,0.684,Ayamaru Plateau,0.467,Tamarugal Basin,0.467
+Santos Post Salt,Santos Basin,0.500,Pater Noster Shelf,0.444,North Coast Belt,0.438
+Sergipe Alagoas,Sergipe-Alagoas Basin,0.714,Spermonde-Salayar Basin,0.435,Strait of Langres,0.412
+Baram Delta,Baram Delta,1.000,Indus Delta,0.545,Niger Delta,0.545
+East Java,East Java Shelf,0.600,East Java Basin,0.600,Eastern Plateau,0.467
+Greater Tarakan,Greater Tarakan Basin,0.714,Great Bear Plain,0.500,Worcester Graben,0.500
+Kutei,Kutei Basin,0.455,Kutch Basin,0.364,Kup Basin,0.333
+Malay,Malay Basin,0.455,Acoma Sag,0.333,Middle Atlas,0.333
+Nam Con Son,Nam Con Son Basin,0.647,Amazon Fan,0.545,Falcon Basin,0.500
+Offshore Sabah,Oudtshoorn Basin,0.438,Cheshire Basin,0.429,Lord Howe Basin,0.400
+Phu Khanh,Phu Khanh Basin,0.600,Phu Quoc Basin,0.357,Paus-Ranai High,0.333
+S Sumatra,South Sumatra Basin,0.474,North Sumatra Basin,0.421,Struma Basin,0.417
+West Java,West Java Basin,0.600,East Java Shelf,0.467,East Java Basin,0.467
+Penyu-West Natuna,Penyu Basin,0.471,Pingyue Basin,0.412,Prince Regent Basin,0.368
+Barents Sea,Barents Sea Platform,0.550,East Barents Sea Basin,0.500,Barito Shelf,0.500
+Fahud-Ghaba,Mahanadi Graben,0.467,Zaghouan Graben,0.467,Balhaf Graben,0.462
+Ghadames,Ghadames Basin,0.571,Graham Basin,0.417,Chad Basin,0.400
+Illizi,Illizi Basin,0.500,Illinois Basin,0.357,Belize Basin,0.333
+Ionian-Crete,Ionian Zone,0.667,Ionian Foreland,0.600,Jiaoxian Basin,0.429
+North Sakhalin,North Sakhalin Basin,0.700,North Shan Basin,0.688,North Park Basin,0.688
+Pelagian,Pelagian Basin,0.571,Peel Basin,0.500,Melawi Basin,0.500
+Precaspian,Precaspian Basin,0.625,Parecis Basin,0.538,Ruecas Basin,0.500
+Rub' Al Khali,Rub' Al Khali Province,0.571,Jabal Akhdar Uplift,0.421,Aruba Gap,0.417
+S Caspian,South Caspian Basin,0.474,East Coast Basin,0.438,Precaspian Basin,0.438
+West Siberian,West Siberian Basin,0.684,West Weber Basin,0.625,West Coiba Basin,0.563
+Zagros,Zagros Province,0.400,Zaire Basin,0.364,Gjoa Rise,0.333
+Chad,Chad Basin,0.400,Chadron Arch,0.333,Aceh Basin,0.300
+Congo Fan,Congo Fan,1.000,Gongjo Basin,0.583,Avon Fan,0.556
+Essaouira,Essaouira Basin,0.600,Tessa Graben,0.417,Hassi Messaoud (El Biod) High,0.368
+Lower Congo,Lower Congo Basin,0.647,Lander Trough,0.462,Gower Basin,0.455
+Melut,Melut Basin,0.455,More Platform,0.308,Melrhir Trough,0.286
+Morondava,Morondava Basin,0.600,Borbon Basin,0.417,Horton Plain,0.417
+Muglad,Muglad Basin,0.500,Muhos Graben,0.333,Mut Basin,0.333
+North Gabon,Norton Basin,0.583,North Mona Basin,0.563,North Shan Basin,0.563
+Walvis,Whale Basin,0.364,Malvinas Basin,0.357,Valdivia Basin,0.357
+Orange (SW Af Coastal),Oren Graben,0.455,Oki Ridge,0.444,Makran Range,0.417
+South Gabon,Sofia Graben,0.583,South Sula Basin,0.563,South Rewa Basin,0.563
+Para - Maranhao,Para-Maranhao Basin,0.684,Santa Maria Basin,0.471,Paraguana Basin,0.467
+Barreirinhas,Barreirinhas Basin,0.667,Barmer Basin,0.417,Carpentaria Basin,0.412
+Campeche Deep Sea,Campeche Deep Sea Basin,0.739,Catoche Deep Sea Basin,0.591,Campeche Escarpment Basin,0.480
+Campos Post Salt,Campos Basin,0.500,Campbellpore Basin,0.444,Catemaco Fold Belt,0.444
+Ceara,Ceara Basin,0.455,Clare Basin,0.364,Cobar Basin,0.364
+DW US Gulf of Mexico,Deep Water Gulf of Mexico Basin,0.548,Beibu Gulf Basin,0.350,Bohai Gulf Basin,0.350
+East Venezuela,East Venezuela Basin,0.700,East Aegean Shelf,0.529,East Java Shelf,0.467
+Espirito Santos,Espirito Santo Basin,0.750,East Irish Sea Basin,0.450,Strait of Langres,0.412
+Flemish Pass,Flemish Pass Basin,0.667,Flemish Cap Basin,0.647,Frobisher Basin,0.467
+Foz do Amazonas,Foz do Amazonas Basin,0.714,Moroto-Kadam Basin,0.389,Fore Balkan Zone,0.375
+Greater Guyana,Greater Tarakan Basin,0.524,Great Bear Plain,0.500,Great Lakes Basins,0.444
+Jeanne D'Arc,Jeanne d'Arc Basin,0.667,South Jeanne D'Arc Basin,0.500,Wrangel-Herald Arch,0.474
+Limon,Limon Basin,0.455,Lima Basin,0.400,Timor Basin,0.364
+North Cuban,North Obi Basin,0.600,North Luzon Basin,0.588,North Chukchi Basin,0.579
+North Slope,North Slope Basin,0.647,North Coast Belt,0.500,Mogollon Slope,0.500
+Nova Scotia,Korea Plateau,0.385,North-South Axis,0.375,Doba Trough,0.364
+Perdido,Pontides,0.375,Porcupine Dome,0.357,Bowdoin Dome,0.333
+Potiguar,Potiguar Basin,0.571,Pontides,0.375,Dongting Basin,0.357
+Santos Pre Salt,Santos Basin,0.533,Sabunchi Depression,0.421,Baltic Depression,0.412
+Sureste,Sureste Basin,0.538,Sirte Basin,0.364,Shule Basin,0.364
+San Jorge,San Jorge Basin,0.600,Swan Trough,0.545,Gensan Trough,0.462
+Tampico Misantla,Tampico-Misantla Basin,0.727,Temuco Basin,0.438,Taiping Basin,0.438
+C Sumatra,Central Sumatra Basin,0.429,North Sumatra Basin,0.421,South Sumatra Basin,0.421
+Cuu Long,Cuu Long Basin,0.571,Kruja Zone,0.400,Cutucu Uplift,0.385
+Gulf of Thailand,Gulf of Thailand Basin,0.727,Gulf of Suez Basin,0.500,Gulf of Sirte Basin,0.474
+Salawati (West Papua),Salawati Basin,0.571,Kalaw Basin,0.545,Salar Basin,0.545
+Timor,Timor Basin,0.455,Timan Ridge,0.364,Tokmov Arch,0.364
+Mesopotamia,Mae Sot Basin,0.462,Mesta Basin,0.455,Mesaoria Basin,0.429
+Murzuq,Murzuq Basin,0.500,Muertos Trough,0.286,Amguid Spur,0.273
+Dibdibah,Gindi Basin,0.455,Demirci Basin,0.385,Cibao Basin,0.364
+Sirte,Sirte Basin,0.455,Oki Ridge,0.333,Sofia Graben,0.333
+W. Shetland/Faroe,West Shetland Basin,0.632,Westland Basin,0.563,East Shetland Platform,0.545
+Angoche,Anglo-Dutch Basin,0.353,Congo Fan,0.333,Disang Flysch Belt,0.333
+Majunga,Majunga Basin,0.538,Manjiang Basin,0.429,Mayang Basin,0.417
+Namibe,Namibe Basin,0.500,Gonam Graben,0.417,Nato Ridge,0.400
+Durban,Duero Basin,0.545,Buru Basin,0.500,Tura Basin,0.500
+Luderitz,Lander Trough,0.385,Blake Ridge,0.364,Alay Depression,0.333
+Zambezi Delta,Zambezi Delta,1.000,Mackenzie Delta,0.667,Baram Delta,0.538
+Colorado,Colorado Basin,0.571,Bolgrad Foredeep,0.375,Cobar Basin,0.364
+Greater Pelotas,Great Bear Plain,0.500,Greater Tarakan Basin,0.476,Eastern Plateau,0.467
+Orphan,Orphan Basin,0.500,Ord Basin,0.444,Horton Plain,0.417
+Punta del Este(Rio Salado Main),Puna Basin,0.429,Pantanal Basin,0.429,Pontides,0.429
+Pedro Bank (including Walton),Cedro Basin,0.636,Pedro Bank Basin,0.625,Pedregosa Basin,0.533
+Banda Forearc,Banda Forearc Basin,0.684,Manila Forearc Basin,0.550,Ionian Foreland,0.533
+Kerala-Konkan,Kerala-Konkan Basin,0.684,Karama Basin,0.462,Kruja Zone,0.462
+Mentawai-Bengkulu,Mentawai-Bengkulu Basin,0.739,Monawai Basin,0.471,Montanas de Patuca,0.444
+Herodotus,Herodotus Basin,0.600,Herong Basin,0.417,Benoud Trough,0.385
+Mogadishu,Mogani Trough,0.462,Muglad Basin,0.417,Mouydir Basin,0.385
+Mozambique,Mozambique Basin,0.625,Mozambique Ridge,0.625,Tonga Ridge,0.364
+Lamu,Lamu Basin,0.400,Panama Gulf,0.273,Sambu (Garachine) Basin,0.273
+Outeniqua,Outeniqua Basin,0.600,Taoudeni Basin,0.429,Southern Alps,0.385
+Rovuma,Rovuma Basin,0.500,Outer Rovuma Fan,0.375,Karakorum Basin,0.333
+Senegal (MSGBC),Senegal (M.S.G.B.C.) Basin,0.538,Resende Basin,0.385,Kasserine Graben,0.375
+Tanzania,Tanzania Basin,0.571,Nan Basin,0.444,Manzanillo Basin,0.438
+Columbus Basin,Colombian Basin,0.733,Celebes Basin,0.714,Solimoes (Upper Amazon) Basin,0.714
+Gulf Coast,Gulf Coast Basin,0.625,Guli Basin,0.500,Golfo Dulce Basin,0.412
+Lower Guajira,Lower Guajira Basin,0.684,Gower Basin,0.538,Upper Guajira Basin,0.526
+Lower Magdalena,Lower Magdalena Basin,0.714,Upper Magdalena Basin,0.571,Lower Amur Basin,0.500
+Malvinas,Malvinas Basin,0.571,Maoming Basin,0.462,Manui Basin,0.455
+Maritimes,Maritimes Basin,0.600,Pontides,0.444,Barito Shelf,0.417
+Tobago Trough,Doba Trough,0.769,Toyama Trough,0.769,Doseo Trough,0.692
+Andaman Sea,Andaman Sea Basin,0.647,Mid-Cayman Swell,0.500,San Juan Sag,0.500
+Bengal Bay,Bengal Basin,0.750,Senegal (M.S.G.B.C.) Basin,0.615,Bananal Basin,0.538
+Bonaparte,Bonaparte Basin,0.600,Contaya Arch,0.417,Gonam Graben,0.417
+Browse,Browse Basin,0.500,Barito Shelf,0.417,Ebro Basin,0.400
+East Natuna,East Natuna Basin,0.647,West Natuna Basin,0.529,East Coast Basin,0.500
+Krishna Godavari (KG),Krishna-Godavari Basin,0.727,Pranhita-Godavari Graben,0.500,Diyin'gou Basin,0.375
+Mahanadi,Mahanadi Basin,0.571,Mahanadi Graben,0.533,Mashad Basin,0.500
+Mannar,Mannar Basin,0.500,Amazon Fan,0.400,Oman Basin,0.400
+Moattama,Moattama Basin,0.571,Morant Basin,0.417,Morant Trough,0.385
+N Sumatra,North Sumatra Basin,0.474,Central Sumatra Basin,0.429,South Sumatra Basin,0.421
+North Carnarvon,North Carnarvon Basin,0.714,South Carnarvon Basin,0.619,North Park Basin,0.563
+North Seram,North Seram Basin,0.647,North Slope Basin,0.529,South Seram Basin,0.529
+Northwest Palawan,Northwest Palawan Basin,0.739,Southwest Palawan Basin,0.652,Northwest German Basin,0.591
+Offshore Sarawak,Cheshire Basin,0.375,Horn Graben,0.375,Southwest Sarawak Province,0.346
+Papuan,Papuan Basin,0.500,Pageu Basin,0.455,Pai Basin,0.444
+Perth,Perth Basin,0.455,Casper Arch,0.364,Vaupes Arch,0.364
+Rakhine,Rakhine Basin,0.538,Arak Basin,0.400,Kruja Zone,0.400
+Reed Bank,Reed Bank Basin,0.600,Lebed Basin,0.545,Resende Basin,0.538
+Song Hong,Song Hong Basin,0.600,Bongor Trough,0.462,Ionian Zone,0.455
+SW Palawan,East Palawan Basin,0.500,Sao Paulo Basin,0.467,East Padan Basin,0.438
+Sulu Sea,Sulu Sea Basin,0.571,Sula Basin,0.500,Shule Basin,0.455
+Tsushima (Ulleung),Tsushima Basin,0.571,West Tsushima Graben,0.400,Lushi Basin,0.364
+Vung May,Vung May Basin,0.571,Congo Fan,0.444,Vung May-Dalat High,0.421
+Black Sea,Black Sea Basin,0.600,Black Mesa Basin,0.500,Blake Plateau,0.462
+Eratosthenes,Meratus High,0.417,Great South Basin,0.412,Strait of Langres,0.412
+Levantine,Levantine Basin,0.600,La Salle Anticline,0.444,Lincoln Anticline,0.412
+Nile Delta,Niger Delta,0.818,Indus Delta,0.636,Nile Delta Basin,0.625
+Red Sea,Red Sea Basin,0.538,Red River Arch,0.429,Torres Shelf,0.417
+Rharb-Prerif,Rharb-Prerif Basin,0.667,Chara Trough,0.417,Tachira Depression,0.389

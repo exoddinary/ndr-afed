@@ -1,0 +1,26 @@
+{
+  "source": "Basin_shp_wgs84.geojson",
+  "parts": [
+    {
+      "file": "Basin_shp_wgs84_part1.geojson",
+      "count": 551,
+      "sizeMB": 16.29
+    },
+    {
+      "file": "Basin_shp_wgs84_part2.geojson",
+      "count": 404,
+      "sizeMB": 8.37
+    },
+    {
+      "file": "Basin_shp_wgs84_part3.geojson",
+      "count": 542,
+      "sizeMB": 15.48
+    },
+    {
+      "file": "Basin_shp_wgs84_part4.geojson",
+      "count": 562,
+      "sizeMB": 13.21
+    }
+  ],
+  "generatedAt": "2025-10-08T04:47:35.010Z"
+}
