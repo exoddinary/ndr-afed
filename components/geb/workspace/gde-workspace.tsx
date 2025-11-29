@@ -3,7 +3,7 @@
 import { BasinHeader } from "./basin-header"
 import { ProjectTree } from "./project-tree"
 import dynamic from "next/dynamic"
-import { SummarySheet } from "./summary-sheet"
+// import { SummarySheet } from "./summary-sheet"
 import { ContextualPanel, type ContextualData, type PanelContext } from "./contextual-panel"
 // import { TimelineScrubber } from "./timeline-scrubber"
 // import { ComparatorStrip } from "./comparator-strip"
@@ -22,6 +22,7 @@ export function GDEWorkspace() {
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([])
   const [activeLayers, setActiveLayers] = useState<string[]>(['active-blocks', 'sedimentary-basins', 'pipeline-infrastructure', 'platform-migas'])
+  const [is3DMode, setIs3DMode] = useState(false)
 
   const handleElementClick = (type: PanelContext, data: any) => {
     setPanelData({ type, data })
@@ -52,6 +53,10 @@ export function GDEWorkspace() {
     )
   }
 
+  const handleToggle3D = () => {
+    setIs3DMode(prev => !prev)
+  }
+
   return (
     <div className="flex flex-col h-full w-full bg-gray-50 text-slate-900 overflow-hidden font-sans selection:bg-teal-100 selection:text-teal-900">
       {/* Top Fixed Bar */}
@@ -73,10 +78,14 @@ export function GDEWorkspace() {
           {/* Main Map Window with overlays */}
           <div className="flex-1 relative z-0 flex flex-col min-h-0">
             <div className="flex-1 relative">
-              <MapArea onElementClick={handleElementClick} activeLayers={activeLayers} />
+              <MapArea 
+                onElementClick={handleElementClick} 
+                activeLayers={activeLayers} 
+                is3D={is3DMode}
+                onToggle3D={handleToggle3D}
+              />
 
-              {/* Summary Sheet Overlay */}
-              <SummarySheet />
+              {/* Summary Sheet Overlay - Removed and merged into ContextualPanel */}
             </div>
 
             {/* Block Comparator Strip */}
@@ -89,19 +98,19 @@ export function GDEWorkspace() {
         </div>
 
         {/* Right Side - Contextual Panel (slides in on demand) - NO MORE FIXED COCKPIT */}
+        {/* Right Side - Contextual Panel (Push) */}
+        <ContextualPanel
+          isOpen={isPanelOpen}
+          context={panelData}
+          onClose={handlePanelClose}
+          onNavigate={handleElementClick}
+          onAddToCompare={handleAddToCompare}
+          onToggle3D={handleToggle3D}
+        />
       </div>
 
       {/* Global Overlays */}
       <ExplanationRibbon />
-
-      {/* Contextual Panel - Only appears when user clicks an element */}
-      <ContextualPanel
-        isOpen={isPanelOpen}
-        context={panelData}
-        onClose={handlePanelClose}
-        onNavigate={handleElementClick}
-        onAddToCompare={handleAddToCompare}
-      />
     </div>
   )
 }
