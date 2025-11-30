@@ -14,14 +14,52 @@ export function LoginPage() {
     const router = useRouter()
     const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
+    const [error, setError] = useState("")
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault()
+        setError("")
         setIsLoading(true)
-        // Simulate login delay
+
+        const allowedUsers = [
+            {
+                email: process.env.NEXT_PUBLIC_AUTH_USER1_EMAIL,
+                password: process.env.NEXT_PUBLIC_AUTH_USER1_PASSWORD,
+                token: "user1",
+            },
+            {
+                email: process.env.NEXT_PUBLIC_AUTH_USER2_EMAIL,
+                password: process.env.NEXT_PUBLIC_AUTH_USER2_PASSWORD,
+                token: "user2",
+            },
+        ]
+
+        const match = allowedUsers.find(
+            (user) => user.email === email && user.password === password
+        )
+
+        if (!match) {
+            setError("Invalid email or password")
+            setIsLoading(false)
+            return
+        }
+
+        // Persist a simple token so the app can distinguish between the two users
+        if (typeof window !== "undefined") {
+            try {
+                window.localStorage.setItem("afed_vdr_auth_token", match.token)
+                window.localStorage.setItem("afed_vdr_auth_email", email)
+            } catch (e) {
+                console.warn("Failed to persist auth token", e)
+            }
+        }
+
+        // Simulate login delay then navigate to workspace
         setTimeout(() => {
             router.push("/geb/workspace/gde-play-fairway")
-        }, 800)
+        }, 400)
     }
 
     return (
@@ -58,6 +96,8 @@ export function LoginPage() {
                                     type="email"
                                     placeholder="name@company.com"
                                     className="bg-slate-50 border-slate-200 focus-visible:ring-teal-600 focus-visible:border-teal-600 h-10"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                 />
                             </div>
 
@@ -74,6 +114,8 @@ export function LoginPage() {
                                         type={showPassword ? "text" : "password"}
                                         placeholder="Enter your password"
                                         className="bg-slate-50 border-slate-200 pr-10 focus-visible:ring-teal-600 focus-visible:border-teal-600 h-10"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
                                     />
                                     <button
                                         type="button"
@@ -111,6 +153,12 @@ export function LoginPage() {
                                     </span>
                                 )}
                             </Button>
+
+                            {error && (
+                                <p className="mt-3 text-xs text-red-500 font-medium">
+                                    {error}
+                                </p>
+                            )}
                         </form>
 
                         <div className="mt-8 text-center text-xs text-slate-400">
