@@ -71,6 +71,16 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                     {context.type === "play" && <PlayContent data={context.data} onNavigate={onNavigate} />}
                     {context.type === "basin" && <BasinContent data={context.data} onNavigate={onNavigate} />}
                 </div>
+
+                {/* Panel footer - Powered by attribution */}
+                <div className="flex-none px-3 pb-3 pt-2 bg-white border-t border-gray-100">
+                    <div className="w-full flex justify-end">
+                        <div className="bg-white/90 text-[10px] text-slate-500 px-2.5 py-1 rounded shadow-sm border border-slate-200">
+                            <span className="font-normal">Powered by </span>
+                            <span className="font-semibold text-slate-800">AFED Digital Sdn. Bhd.</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     )

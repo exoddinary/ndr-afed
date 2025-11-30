@@ -13,6 +13,11 @@ import Extent from "@arcgis/core/geometry/Extent"
 import LabelClass from "@arcgis/core/layers/support/LabelClass"
 import TextSymbol from "@arcgis/core/symbols/TextSymbol"
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils"
+import FeatureLayer from "@arcgis/core/layers/FeatureLayer"
+import Graphic from "@arcgis/core/Graphic"
+import Point from "@arcgis/core/geometry/Point"
+// @ts-ignore - shpjs doesn't have type declarations
+import shp from "shpjs"
 import "@arcgis/core/assets/esri/themes/light/main.css"
 
 // Props to allow parent to listen to map clicks
@@ -41,10 +46,10 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       const suffix = day % 10 === 1 && day !== 11
          ? "st"
          : day % 10 === 2 && day !== 12
-         ? "nd"
-         : day % 10 === 3 && day !== 13
-         ? "rd"
-         : "th"
+            ? "nd"
+            : day % 10 === 3 && day !== 13
+               ? "rd"
+               : "th"
 
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
       return `${day}${suffix} ${months[monthIndex]} ${year}`
@@ -57,17 +62,19 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
    // Combined Effect: Handle View Switching and Layer Initialization
    useEffect(() => {
       if (!mounted || !mapDiv.current) return
+      
+      console.log('🗺️ MAP EFFECT RUNNING - mounted:', mounted, 'is3D:', is3D)
 
       // 1. Save current extent/center from previous view if available
       let currentCenter = [117.5, 2.5]
       let currentZoom = 6
-      
+
       if (viewRef.current) {
          if (viewRef.current.center) {
-             currentCenter = [viewRef.current.center.longitude ?? 117.5, viewRef.current.center.latitude ?? 2.5]
+            currentCenter = [viewRef.current.center.longitude ?? 117.5, viewRef.current.center.latitude ?? 2.5]
          }
          if (viewRef.current.zoom) {
-             currentZoom = viewRef.current.zoom ?? 6
+            currentZoom = viewRef.current.zoom ?? 6
          }
          viewRef.current.destroy()
          viewRef.current = null
@@ -113,9 +120,9 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                   { fieldName: "oprblk", label: "Operator" },
                   { fieldName: "status", label: "Status" },
                   {
-                    fieldName: "expdat",
-                    label: "Expiry Date",
-                    format: { dateFormat: "short-date" }
+                     fieldName: "expdat",
+                     label: "Expiry Date",
+                     format: { dateFormat: "short-date" }
                   }
                ]
             }]
@@ -153,55 +160,143 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       map.add(pipelineLayer)
       layersRef.current['pipeline-infrastructure'] = pipelineLayer
 
-      // Manually load and render platforms as graphics (bypasses GeoJSONLayer issues)
-      if (activeLayers.includes('platform-migas')) {
-         fetch('/data/platform/platforms_migas.geojson')
-            .then(res => res.json())
-            .then(data => {
-               console.log('Loaded platform GeoJSON, feature count:', data.features.length)
-               // Store in a ref for later
-               (window as any).__platformData = data
-               
-               // If view is already ready, add them now
-               if (viewRef.current) {
-                  addPlatformGraphics(viewRef.current, data)
+      // Wells layer - ArcGIS service (points)
+      const wellsLayer = new FeatureLayer({
+         url: "https://datamigas.esdm.go.id/arcgis/rest/services/MDR2/well/MapServer/0",
+         title: "Wells",
+         outFields: ["*"],
+         renderer: {
+            type: "simple",
+            symbol: {
+               type: "simple-marker",
+               style: "circle",
+               color: [0, 255, 255, 0.9], // cyan
+               size: 3, // smaller dots
+               outline: {
+                  color: [0, 128, 128, 1],
+                  width: 0.5
                }
-            })
-            .catch(err => console.error('Failed to load platform GeoJSON:', err))
-      }
+            }
+         } as any,
+         popupTemplate: {
+            title: "Well: {WELLNAME}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "WELLNAME", label: "Name" },
+                  { fieldName: "FIELD", label: "Field" },
+                  { fieldName: "OPERATOR", label: "Operator" },
+                  { fieldName: "STATUS", label: "Status" }
+               ]
+            }]
+         },
+         visible: activeLayers.includes('wells'),
+         effect: "bloom(1.3, 1px, 0.1)",
+         elevationInfo: { mode: "on-the-ground" }
+      })
+      map.add(wellsLayer)
+      layersRef.current['wells'] = wellsLayer
 
-      // Helper function to add graphics
-      const addPlatformGraphics = (view: MapView | SceneView, data: any) => {
-         import("@arcgis/core/Graphic").then(({ default: Graphic }) => {
-            import("@arcgis/core/geometry/Point").then(({ default: Point }) => {
-               import("@arcgis/core/symbols/SimpleMarkerSymbol").then(({ default: SimpleMarkerSymbol }) => {
-                  
-                  const graphics = data.features.map((feature: any) => {
-                     const [lon, lat] = feature.geometry.coordinates
-                     return new Graphic({
-                        geometry: new Point({
-                           longitude: lon,
-                           latitude: lat
-                        }),
-                        symbol: new SimpleMarkerSymbol({
-                           style: "square",
-                           color: [255, 255, 0, 1], // Bright Yellow
-                           size: 20,
-                           outline: {
-                              color: [255, 0, 0, 1], // Red outline
-                              width: 3
-                           }
-                        }),
-                        attributes: feature.properties
-                     })
+      // Platform layer - load from shapefile using shpjs
+
+      // Load shapefile and create FeatureLayer
+      fetch('/data/platform/platforms_migas.zip')
+         .then(response => response.arrayBuffer())
+         .then(buffer => shp(buffer))
+         .then((geojson: any) => {
+            console.log('📍 Shapefile parsed via shpjs')
+            
+            // Handle both single and multiple layer results
+            const features = Array.isArray(geojson) ? geojson[0].features : geojson.features
+            console.log('📍 Features count:', features?.length)
+
+            if (!features || features.length === 0) {
+               console.error('No features found in shapefile')
+               return
+            }
+
+            // Convert GeoJSON features to ArcGIS Graphics (filter out null geometries)
+            const graphics = features
+               .filter((feature: any) => feature.geometry && feature.geometry.coordinates)
+               .map((feature: any, index: number) => {
+                  const coords = feature.geometry.coordinates
+                  return new Graphic({
+                     geometry: new Point({
+                        x: coords[0],
+                        y: coords[1],
+                        spatialReference: { wkid: 4326 }
+                     }),
+                     attributes: {
+                        OBJECTID: index + 1,
+                        ...feature.properties
+                     }
                   })
-                  
-                  view.graphics.addMany(graphics)
-                  console.log(`Added ${graphics.length} platform graphics to view`)
                })
+            
+            console.log('📍 Valid graphics (after filtering null geometries):', graphics.length)
+
+            // Create FeatureLayer from graphics with diamond symbols and bloom effect
+            const platformLayer = new FeatureLayer({
+               source: graphics,
+               objectIdField: "OBJECTID",
+               geometryType: "point",
+               spatialReference: { wkid: 4326 },
+               fields: [
+                  { name: "OBJECTID", type: "oid" },
+                  { name: "nama_platf", type: "string" },
+                  { name: "kkks", type: "string" },
+                  { name: "status", type: "string" },
+                  { name: "lokasi", type: "string" },
+                  { name: "jenis_plat", type: "string" }
+               ],
+               renderer: {
+                  type: "simple",
+                  symbol: {
+                     type: "simple-marker",
+                     style: "diamond",           // diamond shape
+                     color: [255, 255, 255, 1],   // pure white fill
+                     size: 10,                    // slightly smaller
+                     outline: null                // no outline
+                  }
+               } as any,
+               effect: "bloom(1.5, 1.5px, 0.1)",
+               popupTemplate: {
+                  title: "Platform: {nama_platf}",
+                  content: [{
+                     type: "fields",
+                     fieldInfos: [
+                        { fieldName: "nama_platf", label: "Name" },
+                        { fieldName: "kkks", label: "Operator" },
+                        { fieldName: "status", label: "Status" },
+                        { fieldName: "lokasi", label: "Location" },
+                        { fieldName: "jenis_plat", label: "Platform Type" }
+                     ]
+                  }]
+               },
+               visible: activeLayers.includes('platform-migas')
             })
+
+            // Debug: Check layer status after creation
+            platformLayer.when(() => {
+               console.log('✅ Platform FeatureLayer ready')
+               console.log('📍 Renderer type:', platformLayer.renderer?.type)
+               console.log('📍 Geometry type:', platformLayer.geometryType)
+               console.log('📍 Visible:', platformLayer.visible)
+               console.log('📍 Full extent:', platformLayer.fullExtent)
+               
+               // Query to verify features are accessible
+               platformLayer.queryFeatureCount().then(count => {
+                  console.log('📍 Queryable feature count:', count)
+               })
+            }).catch((err: any) => {
+               console.error('❌ Platform layer error:', err)
+            })
+
+            map.add(platformLayer)
+            layersRef.current['platform-migas'] = platformLayer
+            console.log('✅ Platform layer added from shapefile with', graphics.length, 'features')
          })
-      }
+         .catch(err => console.error('❌ Failed to load platform shapefile:', err))
 
       // 4. Create View
       let view: MapView | SceneView
@@ -211,19 +306,19 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             container: mapDiv.current,
             map: map,
             camera: {
-                position: {
-                    longitude: currentCenter[0],
-                    latitude: currentCenter[1] - 0.5, // Offset slightly south to look at target
-                    z: 150000 // Closer zoom (150km)
-                },
-                tilt: 60, // Steeper angle
-                heading: 0
+               position: {
+                  longitude: currentCenter[0],
+                  latitude: currentCenter[1] - 0.5, // Offset slightly south to look at target
+                  z: 150000 // Closer zoom (150km)
+               },
+               tilt: 60, // Steeper angle
+               heading: 0
             },
             environment: {
-                lighting: {
-                    type: "virtual"
-                },
-                atmosphereEnabled: true
+               lighting: {
+                  type: "virtual"
+               },
+               atmosphereEnabled: true
             },
             ui: {
                components: ["zoom", "attribution", "navigation-toggle", "compass"]
@@ -241,20 +336,20 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                let heading = 0
                const rotate = () => {
                   if (!viewRef.current || viewRef.current.type !== "3d") return
-                  
+
                   // Increment heading
                   heading = (heading + 0.05) % 360
 
                   // Rotate camera around the current center
                   const currentView = viewRef.current as SceneView
                   currentView.goTo({
-                      target: currentCenter,
-                      heading: heading,
-                      tilt: 60
-                  }, { 
-                      animate: false 
+                     target: currentCenter,
+                     heading: heading,
+                     tilt: 60
+                  }, {
+                     animate: false
                   })
-                  
+
                   requestAnimationFrame(rotate)
                }
                requestAnimationFrame(rotate)
@@ -271,7 +366,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                components: ["zoom", "attribution"]
             }
          })
-        
+
          // Keep 2D zoom in the default top-left position for consistency with 3D controls
       }
 
@@ -288,47 +383,43 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             breakpoint: false
          }
       }
-      
+
       // Setup handlers (including safe hitTest)
       view.on("click", async (event: any) => {
-            const response = await view.hitTest(event)
-            const results = response.results.filter((result: any) =>
-               result.type === "graphic" && 
-               (result.graphic?.layer === blocksLayer) // Check against current layer instance
-            )
-   
-            if (results.length > 0) {
-               const graphic = (results[0] as any).graphic
-               const attr = graphic.attributes
-   
-               if (graphic.geometry && graphic.geometry.type === "polygon") {
-                  const polygon = graphic.geometry as __esri.Polygon
-                  const extent = polygon.extent
-   
-                  if (extent) {
-                     view.goTo({
-                        target: extent.expand(1.67),
-                        tilt: is3D ? 45 : 0
-                     }, {
-                        duration: 400,
-                        easing: "ease-in-out"
-                     })
-                  }
+         const response = await view.hitTest(event)
+         const results = response.results.filter((result: any) =>
+            result.type === "graphic" &&
+            (result.graphic?.layer === blocksLayer) // Check against current layer instance
+         )
+
+         if (results.length > 0) {
+            const graphic = (results[0] as any).graphic
+            const attr = graphic.attributes
+
+            if (graphic.geometry && graphic.geometry.type === "polygon") {
+               const polygon = graphic.geometry as __esri.Polygon
+               const extent = polygon.extent
+
+               if (extent) {
+                  view.goTo({
+                     target: extent.expand(1.67),
+                     tilt: is3D ? 45 : 0
+                  }, {
+                     duration: 400,
+                     easing: "ease-in-out"
+                  })
                }
-   
-               onElementClick?.("polygon", {
-                  name: attr.namobj,
-                  operator: attr.oprblk,
-                  status: attr.status,
-                  expiry: formatExpiryDate(attr.expdat)
-               })
             }
+
+            onElementClick?.("polygon", {
+               name: attr.namobj,
+               operator: attr.oprblk,
+               status: attr.status,
+               expiry: formatExpiryDate(attr.expdat)
+            })
+         }
       })
 
-      // Add platform graphics manually if data was loaded
-      if ((window as any).__platformData && activeLayers.includes('platform-migas')) {
-         addPlatformGraphics(view, (window as any).__platformData)
-      }
 
       // Expose globally
       if (typeof window !== 'undefined') {
@@ -341,18 +432,18 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
    useEffect(() => {
       Object.entries(layersRef.current).forEach(([key, layer]) => {
          if (layer) {
-             if (activeLayers.includes(key)) layer.visible = true
-             else layer.visible = false
+            if (activeLayers.includes(key)) layer.visible = true
+            else layer.visible = false
          }
       })
    }, [activeLayers])
 
    if (!mounted) return <div className="w-full h-full bg-gray-100 animate-pulse" />
 
-    return (
+   return (
       <div className="w-full h-full relative group">
-        <div ref={mapDiv} className="w-full h-full" />
-         
+         <div ref={mapDiv} className="w-full h-full" />
+
          {/* Return to 2D Mode Overlay (top-left, offset to the right of ArcGIS controls) */}
          {is3D && (
             <div className="absolute top-4 left-20 z-10">
@@ -360,29 +451,12 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                   onClick={() => onToggle3D?.()}
                   className="bg-white/90 backdrop-blur text-slate-700 px-3 py-1.5 rounded shadow-md text-xs font-bold uppercase tracking-wider border border-slate-200 hover:bg-white transition-colors flex items-center gap-2"
                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
                   Return to 2D
                </button>
             </div>
          )}
 
-         {/* Test button to zoom to a known platform location */}
-         <div className="absolute bottom-4 right-4 z-10">
-            <button
-               onClick={() => {
-                  if (viewRef.current) {
-                     viewRef.current.goTo({
-                        center: [133.21, -2.29],
-                        zoom: 12
-                     })
-                     console.log('Zooming to platform location: 133.21, -2.29')
-                  }
-               }}
-               className="bg-yellow-500 text-slate-900 px-3 py-2 rounded shadow-lg text-xs font-bold uppercase tracking-wider border-2 border-yellow-600 hover:bg-yellow-400 transition-colors"
-            >
-               🔍 Test: Zoom to Platform
-            </button>
-         </div>
       </div>
    )
 }

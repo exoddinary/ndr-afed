@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 export function BasinHeader() {
   const [isExpanded, setIsExpanded] = useState(true)
@@ -12,13 +13,18 @@ export function BasinHeader() {
       {/* Top Bar - Always visible */}
       <div className="h-12 px-4 flex items-center justify-between text-sm">
         <div className="flex items-center gap-6">
-          <span className="font-bold text-lg tracking-tight text-slate-900">North Sumatra Basin</span>
-          <div className="h-4 w-px bg-gray-300" />
-          <div className="flex items-center gap-4 text-slate-600">
-            <span>25,000 km²</span>
-            <span>Pertamina 60%</span>
-            <span>120 kbopd</span>
+          {/* SKK Migas Logo */}
+          <div className="flex items-center">
+            <Image
+              src="/images/skkmigas-logo.png"
+              alt="SKK Migas"
+              width={80}
+              height={40}
+              className="h-8 w-auto object-contain"
+            />
           </div>
+          <div className="h-6 w-px bg-gray-300" />
+          <span className="font-bold text-lg tracking-tight text-slate-900">Virtual Data Room</span>
         </div>
 
         <button

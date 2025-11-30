@@ -47,6 +47,7 @@ const INITIAL_TREE: TreeNode[] = [
     children: [
       { id: 'pipeline-infrastructure', label: 'Pipeline Infrastructure', type: 'layer', isActive: true },
       { id: 'platform-migas', label: 'Platform Migas', type: 'layer', isActive: true },
+      { id: 'wells', label: 'Wells', type: 'layer' },
       { id: 'facilities', label: 'Facilities', type: 'layer' },
     ]
   }

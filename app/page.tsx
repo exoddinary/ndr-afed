@@ -1,9 +1,5 @@
-import { Landing3DMap } from "@/components/landing/landing-3d-map"
+import { LoginPage } from "@/components/auth/login-page"
 
-export default function DataLinkPage() {
-  return (
-    <div className="h-screen w-full overflow-hidden bg-black">
-      <Landing3DMap />
-    </div>
-  )
+export default function Page() {
+  return <LoginPage />
 }

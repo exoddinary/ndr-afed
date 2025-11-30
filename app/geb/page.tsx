@@ -10,9 +10,10 @@ import { useTheme } from "next-themes"
 // Use ArcGIS JS API viewer just for GEB
 import dynamic from "next/dynamic"
 const ArcGISViewer = dynamic(() => import("@/components/map/arcgis-viewer"), { ssr: false })
-import { TernaryChart } from "../dashboard-echarts/components/ternary-chart"
-import { ScatterChart } from "../dashboard-echarts/components/scatter-chart"
-import { FilterSidebar } from "../dashboard-echarts/components/filter-sidebar"
+// TODO: Re-enable these components when dashboard-echarts is created
+// import { TernaryChart } from "../dashboard-echarts/components/ternary-chart"
+// import { ScatterChart } from "../dashboard-echarts/components/scatter-chart"
+// import { FilterSidebar } from "../dashboard-echarts/components/filter-sidebar"
 
 export function GEBPageInner() {
   const [leftWidth, setLeftWidth] = useState(35)
@@ -598,19 +599,10 @@ export function GEBPageInner() {
               style={{ height: isTableFullscreen ? 0 : `calc(100% - ${tableHeight}px - 8px)` }}
             >
               <div className="h-full">
-                {activeTab === 'combined' ? (
-                  <TernaryChart
-                    onBasinSelect={handleBasinSelectFromChart}
-                    highlightedBasinName={selectedBasinName}
-                    onResetSelection={handleResetSelection}
-                  />
-                ) : (
-                  <ScatterChart
-                    onBasinSelect={handleBasinSelectFromChart}
-                    highlightedBasinName={selectedBasinName}
-                    onResetSelection={handleResetSelection}
-                  />
-                )}
+                {/* TODO: Re-enable charts when dashboard-echarts components are created */}
+                <div className="flex items-center justify-center h-full bg-card text-muted-foreground">
+                  <p>Chart components pending implementation</p>
+                </div>
               </div>
             </div>
 
@@ -855,7 +847,8 @@ export function GEBPageInner() {
               </div>
             ) : (
               <div className="h-full overflow-y-auto">
-                <FilterSidebar onToggleCollapse={() => setIsFilterCollapsed(true)} />
+                {/* TODO: Re-enable FilterSidebar when component is created */}
+                <div className="p-4 text-muted-foreground">Filter sidebar pending implementation</div>
               </div>
             )}
           </div>
@@ -945,19 +938,9 @@ export function GEBPageInner() {
             <div style={{ flexBasis: isTabletTableExpanded ? '35%' : '50%' }} className="min-h-0">
               <div className="h-full">
                 {topPanelMode === 'chart' ? (
-                  activeTab === 'combined' ? (
-                    <TernaryChart
-                      onBasinSelect={handleBasinSelectFromChart}
-                      highlightedBasinName={selectedBasinName}
-                      onResetSelection={handleResetSelection}
-                    />
-                  ) : (
-                    <ScatterChart
-                      onBasinSelect={handleBasinSelectFromChart}
-                      highlightedBasinName={selectedBasinName}
-                      onResetSelection={handleResetSelection}
-                    />
-                  )
+                  <div className="flex items-center justify-center h-full bg-card text-muted-foreground">
+                    <p>Chart components pending implementation</p>
+                  </div>
                 ) : (
                   <ArcGISViewer
                     basemap={basemap}
