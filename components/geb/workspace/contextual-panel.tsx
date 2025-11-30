@@ -104,8 +104,37 @@ function SeismicViewer() {
 }
 
 import { MOCK_BLOCKS, type BlockCommercialData } from "@/data/investor-data"
-import { Plus, Box, Phone, Mail, Building2, LayoutDashboard, Layers, DollarSign } from "lucide-react"
+import { Plus, Box, Phone, Mail, Building2, LayoutDashboard, Layers, DollarSign, Lock, ExternalLink } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, ReferenceLine } from "recharts"
+
+// Locked Content component for non-premium users
+function LockedContentPrompt({ tabName }: { tabName: string }) {
+    return (
+        <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                <Lock className="w-8 h-8 text-slate-400" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 mb-2">
+                {tabName} Data Locked
+            </h3>
+            <p className="text-sm text-slate-500 mb-6 max-w-xs leading-relaxed">
+                Access to {tabName.toLowerCase()} analysis requires a premium subscription. Subscribe through the ESDM portal to unlock all features.
+            </p>
+            <a
+                href="https://www.esdm.go.id"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-amber-500/25 hover:from-amber-600 hover:to-yellow-600 transition-all"
+            >
+                Subscribe on ESDM Portal
+                <ExternalLink className="w-4 h-4" />
+            </a>
+            <p className="text-[10px] text-slate-400 mt-4">
+                Already subscribed? Try logging out and back in.
+            </p>
+        </div>
+    )
+}
 
 // Block-specific content (formerly PolygonContent)
 function BlockDetailsContent({ 
@@ -138,11 +167,19 @@ function BlockDetailsContent({
     }
 
     const [activeTab, setActiveTab] = useState<"overview" | "technical" | "commercial">("overview")
+    const [isPremium, setIsPremium] = useState(true) // default to true, will check on mount
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const token = window.localStorage.getItem("afed_vdr_auth_token")
+            setIsPremium(token === 'user1')
+        }
+    }, [])
 
     const tabs = [
-        { id: "overview", label: "Overview", icon: LayoutDashboard },
-        { id: "technical", label: "Technical", icon: Layers },
-        { id: "commercial", label: "Commercial", icon: DollarSign },
+        { id: "overview", label: "Overview", icon: LayoutDashboard, locked: false },
+        { id: "technical", label: "Technical", icon: Layers, locked: !isPremium },
+        { id: "commercial", label: "Commercial", icon: DollarSign, locked: !isPremium },
     ]
 
     return (
@@ -192,7 +229,11 @@ function BlockDetailsContent({
                                     : "bg-white border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                             }`}
                         >
-                            <tab.icon className="w-3.5 h-3.5" />
+                            {tab.locked ? (
+                                <Lock className="w-3 h-3 text-slate-400" />
+                            ) : (
+                                <tab.icon className="w-3.5 h-3.5" />
+                            )}
                             {tab.label}
                         </button>
                     ))}
@@ -264,6 +305,9 @@ function BlockDetailsContent({
 
                 {/* --- TECHNICAL TAB --- */}
                 {activeTab === "technical" && (
+                    !isPremium ? (
+                        <LockedContentPrompt tabName="Technical" />
+                    ) : (
                     <div className="space-y-6">
                         {/* Resources Table */}
                         <div>
@@ -386,10 +430,14 @@ function BlockDetailsContent({
                             </div>
                         )}
                     </div>
+                    )
                 )}
 
                 {/* --- COMMERCIAL TAB --- */}
                 {activeTab === "commercial" && (
+                    !isPremium ? (
+                        <LockedContentPrompt tabName="Commercial" />
+                    ) : (
                     <div className="space-y-6">
                          {blockData.economics && (
                             <div>
@@ -485,6 +533,7 @@ function BlockDetailsContent({
                             </div>
                         </div>
                     </div>
+                    )
                 )}
             </div>
         </div>

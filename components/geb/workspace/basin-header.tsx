@@ -1,12 +1,30 @@
 "use client"
 
-import { useState } from "react"
-import { ChevronDown, ChevronUp } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ChevronDown, ChevronUp, LogOut, Crown } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 
 export function BasinHeader() {
   const [isExpanded, setIsExpanded] = useState(true)
+  const [isPremium, setIsPremium] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = window.localStorage.getItem("afed_vdr_auth_token")
+      setIsPremium(token === 'user1')
+    }
+  }, [])
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem("afed_vdr_auth_token")
+      window.localStorage.removeItem("afed_vdr_auth_email")
+    }
+    router.push("/auth/login")
+  }
 
   return (
     <div className="bg-white border-b border-gray-200 text-slate-900 select-none">
@@ -25,15 +43,34 @@ export function BasinHeader() {
           </div>
           <div className="h-6 w-px bg-gray-300" />
           <span className="font-bold text-lg tracking-tight text-slate-900">Virtual Data Room</span>
+          
+          {isPremium && (
+            <div className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-200 to-yellow-400 rounded text-[10px] font-black text-amber-900 uppercase tracking-wider shadow-sm border border-yellow-500/50">
+              <Crown className="w-3 h-3" />
+              Premium
+            </div>
+          )}
         </div>
 
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2 hover:text-white transition-colors"
-        >
-          <span className="text-xs uppercase tracking-wider text-slate-500">Basin Card</span>
-          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors"
+          >
+            <span className="text-xs uppercase tracking-wider">Basin Card</span>
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          
+          <div className="h-4 w-px bg-gray-300" />
+          
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-slate-400 hover:text-red-600 transition-colors"
+            title="Log Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Collapsible Details */}
