@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 
-export function BasinHeader() {
+interface BasinHeaderProps {
+  activeTab?: 'map' | 'subsurface'
+  onTabChange?: (tab: 'map' | 'subsurface') => void
+}
+
+export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [isPremium, setIsPremium] = useState(false)
   const router = useRouter()
@@ -29,8 +34,9 @@ export function BasinHeader() {
   return (
     <div className="bg-white border-b border-gray-200 text-slate-900 select-none">
       {/* Top Bar - Always visible */}
-      <div className="h-12 px-4 flex items-center justify-between text-sm">
-        <div className="flex items-center gap-6">
+      <div className="h-12 px-4 flex items-center text-sm relative">
+        {/* Left Section */}
+        <div className="flex-1 flex items-center justify-start gap-6">
           {/* SKK Migas Logo */}
           <div className="flex items-center">
             <Image
@@ -43,7 +49,7 @@ export function BasinHeader() {
           </div>
           <div className="h-6 w-px bg-gray-300" />
           <span className="font-bold text-lg tracking-tight text-slate-900">Virtual Data Room</span>
-          
+
           {isPremium && (
             <div className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-200 to-yellow-400 rounded text-[10px] font-black text-amber-900 uppercase tracking-wider shadow-sm border border-yellow-500/50">
               <Crown className="w-3 h-3" />
@@ -52,7 +58,36 @@ export function BasinHeader() {
           )}
         </div>
 
-        <div className="flex items-center gap-4">
+        {/* Center Tabs */}
+        <div className="flex-none flex items-center justify-center h-full">
+          <div className="flex items-center p-1 bg-slate-100 rounded-lg border border-slate-200">
+            <button
+              onClick={() => onTabChange?.('map')}
+              className={cn(
+                "px-4 py-1.5 text-xs font-semibold rounded-md transition-all",
+                activeTab === 'map'
+                  ? "bg-white text-teal-700 shadow-sm ring-1 ring-black/5"
+                  : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
+              )}
+            >
+              Map Data
+            </button>
+            <button
+              onClick={() => onTabChange?.('subsurface')}
+              className={cn(
+                "px-4 py-1.5 text-xs font-semibold rounded-md transition-all",
+                activeTab === 'subsurface'
+                  ? "bg-white text-teal-700 shadow-sm ring-1 ring-black/5"
+                  : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
+              )}
+            >
+              Subsurface
+            </button>
+          </div>
+        </div>
+
+        {/* Right Section */}
+        <div className="flex-1 flex items-center justify-end gap-4">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors"
@@ -60,9 +95,9 @@ export function BasinHeader() {
             <span className="text-xs uppercase tracking-wider">Basin Card</span>
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
-          
+
           <div className="h-4 w-px bg-gray-300" />
-          
+
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 text-slate-400 hover:text-red-600 transition-colors"

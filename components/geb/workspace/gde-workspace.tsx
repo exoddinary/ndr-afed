@@ -17,12 +17,15 @@ const MapArea = dynamic(() => import("./map-area").then(mod => ({ default: mod.M
   loading: () => <div className="w-full h-full bg-gray-100 animate-pulse" />
 })
 
+import { SubsurfaceViewer } from "./subsurface-viewer"
+
 export function GDEWorkspace() {
   const [panelData, setPanelData] = useState<ContextualData | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([])
   const [activeLayers, setActiveLayers] = useState<string[]>(['active-blocks', 'sedimentary-basins', 'pipeline-infrastructure', 'platform-migas'])
   const [is3DMode, setIs3DMode] = useState(false)
+  const [activeTab, setActiveTab] = useState<'map' | 'subsurface'>('map')
 
   const handleElementClick = (type: PanelContext, data: any) => {
     setPanelData({ type, data })
@@ -61,15 +64,19 @@ export function GDEWorkspace() {
     <div className="flex flex-col h-full w-full bg-gray-50 text-slate-900 overflow-hidden font-sans selection:bg-teal-100 selection:text-teal-900">
       {/* Top Fixed Bar */}
       <div className="flex-none z-50 relative">
-        <BasinHeader />
+        <BasinHeader activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden relative">
 
         {/* Left Panel - Project Tree */}
-        <div className="flex-none z-30 relative">
-          <ProjectTree activeLayers={activeLayers} onToggleLayer={handleToggleLayer} />
+        <div className="flex-none z-30 relative self-stretch">
+          <ProjectTree
+            activeLayers={activeLayers}
+            onToggleLayer={handleToggleLayer}
+            activeTab={activeTab}
+          />
         </div>
 
         {/* Center Column - Map + Timeline + Comparator */}
@@ -77,23 +84,31 @@ export function GDEWorkspace() {
 
           {/* Main Map Window with overlays */}
           <div className="flex-1 relative z-0 flex flex-col min-h-0">
-            <div className="flex-1 relative">
-              <MapArea 
-                onElementClick={handleElementClick} 
-                activeLayers={activeLayers} 
-                is3D={is3DMode}
-                onToggle3D={handleToggle3D}
-              />
+            {activeTab === 'map' ? (
+              <div className="absolute inset-0">
+                <MapArea
+                  onElementClick={handleElementClick}
+                  activeLayers={activeLayers}
+                  is3D={is3DMode}
+                  onToggle3D={handleToggle3D}
+                />
+              </div>
+            ) : (
+              <div className="absolute inset-0">
+                <SubsurfaceViewer />
+              </div>
+            )}
 
-              {/* Summary Sheet Overlay - Removed and merged into ContextualPanel */}
-            </div>
+            {/* Summary Sheet Overlay - Removed and merged into ContextualPanel */}
+          </div>
 
-            {/* Block Comparator Strip */}
+          {/* Block Comparator Strip - Only show on Map tab */}
+          {activeTab === 'map' && (
             <BlockComparatorStrip
               selectedBlockIds={selectedBlockIds}
               onRemoveBlock={handleRemoveFromCompare}
             />
-          </div>
+          )}
 
         </div>
 
@@ -107,6 +122,7 @@ export function GDEWorkspace() {
           onAddToCompare={handleAddToCompare}
           onToggle3D={handleToggle3D}
         />
+
       </div>
 
       {/* Global Overlays */}

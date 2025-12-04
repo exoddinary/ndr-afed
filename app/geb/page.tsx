@@ -998,10 +998,5 @@ export function GEBPageInner() {
   )
 }
 
-export default function GEBPage() {
-  return (
-    <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading…</div>}>
-      <GEBPageInner />
-    </Suspense>
-  )
-}
+
+export default GEBPageInner

@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { ChevronRight, ChevronDown, Folder, Layers, FileText, Activity, Database, Map, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
 type TreeNode = {
   id: string
@@ -56,9 +55,12 @@ const INITIAL_TREE: TreeNode[] = [
 interface ProjectTreeProps {
   activeLayers?: string[]
   onToggleLayer?: (layerId: string) => void
+  activeTab?: 'map' | 'subsurface'
 }
 
-export function ProjectTree({ activeLayers = [], onToggleLayer }: ProjectTreeProps) {
+import { EXPLORATION_BLOCKS } from "@/data/exploration-blocks"
+
+export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map' }: ProjectTreeProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     'blocks': true,
     'basins': true,
@@ -141,16 +143,51 @@ export function ProjectTree({ activeLayers = [], onToggleLayer }: ProjectTreePro
     )
   }
 
+  if (activeTab === 'subsurface') {
+    return (
+      <div className="w-[240px] flex flex-col border-r border-gray-200 bg-white h-full overflow-hidden">
+        <div className="h-8 flex items-center px-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Blocks</span>
+        </div>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="py-2">
+            {Object.values(EXPLORATION_BLOCKS).map(block => (
+              <div
+                key={block.id}
+                className="flex items-center h-10 px-3 hover:bg-gray-50 cursor-pointer select-none group border-b border-gray-100 last:border-0"
+              >
+                <div className="flex items-center flex-1 min-w-0 gap-3">
+                  <div className="flex-none p-1.5 bg-slate-100 rounded text-slate-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-colors">
+                    <Database className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-xs font-semibold text-slate-700 truncate group-hover:text-slate-900">{block.name}</span>
+                    <span className="text-[10px] text-slate-500 truncate">{block.operator}</span>
+                  </div>
+                </div>
+
+                {/* Arrow on hover */}
+                <div className="flex-none w-6 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity -mr-1">
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-[240px] flex flex-col border-r border-gray-200 bg-white h-full">
       <div className="h-8 flex items-center px-3 border-b border-gray-200 bg-gray-50">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Project Tree</span>
       </div>
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         <div className="py-2">
           {INITIAL_TREE.map(node => renderNode(node))}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }
