@@ -998,5 +998,11 @@ export function GEBPageInner() {
   )
 }
 
+export default function GEBPage() {
+  return (
+    <Suspense fallback={null}>
+      <GEBPageInner />
+    </Suspense>
+  )
+}
 
-export default GEBPageInner
