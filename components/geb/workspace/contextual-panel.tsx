@@ -18,9 +18,10 @@ type ContextualPanelProps = {
     onNavigate: (type: PanelContext, data: any) => void
     onAddToCompare?: (blockId: string) => void
     onToggle3D?: () => void
+    onViewSubsurface?: (blockId: string) => void
 }
 
-export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToCompare, onToggle3D }: ContextualPanelProps) {
+export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToCompare, onToggle3D, onViewSubsurface }: ContextualPanelProps) {
     const [isAnimating, setIsAnimating] = useState(false)
 
     useEffect(() => {
@@ -65,6 +66,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                             data={context.data}
                             onAddToCompare={onAddToCompare}
                             onToggle3D={onToggle3D}
+                            onViewSubsurface={onViewSubsurface}
                         />
                     )}
                     {context.type === "play" && <PlayContent data={context.data} onNavigate={onNavigate} />}
@@ -139,11 +141,13 @@ function LockedContentPrompt({ tabName }: { tabName: string }) {
 function BlockDetailsContent({
     data,
     onAddToCompare,
-    onToggle3D
+    onToggle3D,
+    onViewSubsurface
 }: {
     data: any,
     onAddToCompare?: (id: string) => void,
-    onToggle3D?: () => void
+    onToggle3D?: () => void,
+    onViewSubsurface?: (blockName: string) => void
 }) {
     // Try to find mock data matching the clicked block name
     const blockName = data.name || "Mahakam Delta"
@@ -185,34 +189,42 @@ function BlockDetailsContent({
         <div className="flex flex-col h-full">
             {/* Fixed Header Section inside Content */}
             <div className="mb-6">
-                <div className="flex items-start justify-between mb-4">
-                    <div>
-                        <h3 className="text-2xl font-bold text-slate-900 leading-tight mb-2">{blockData.name}</h3>
-                        <div className="flex items-center gap-3">
-                            <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-sm ${blockData.status === 'Production' ? 'bg-green-100 text-green-700' :
-                                blockData.status === 'Active Exploration' ? 'bg-amber-100 text-amber-700' :
-                                    'bg-slate-100 text-slate-600'
-                                }`}>
-                                {blockData.status}
-                            </span>
-                            <span className="text-xs text-slate-500 font-medium">Op: {blockData.operator}</span>
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => onToggle3D?.()}
-                            className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-sm border border-indigo-200 transition-colors"
-                            title="View Platform in 3D"
-                        >
-                            <Box className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={() => onAddToCompare?.(blockData.id)}
-                            className="p-2 text-teal-600 bg-teal-50 hover:bg-teal-100 rounded-sm border border-teal-200 transition-colors"
-                            title="Add to Compare"
-                        >
-                            <Plus className="w-4 h-4" />
-                        </button>
+                {/* Action Buttons - Moved to Top */}
+                <div className="flex justify-end gap-2 mb-3">
+                    <button
+                        onClick={() => onToggle3D?.()}
+                        className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-sm border border-indigo-200 transition-colors"
+                        title="View Platform in 3D"
+                    >
+                        <Box className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => onAddToCompare?.(blockData.id)}
+                        className="p-2 text-teal-600 bg-teal-50 hover:bg-teal-100 rounded-sm border border-teal-200 transition-colors"
+                        title="Add to Compare"
+                    >
+                        <Plus className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => onViewSubsurface?.(blockName)}
+                        className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-sm border border-amber-200 transition-colors flex items-center gap-2"
+                        title="View in Subsurface"
+                    >
+                        <Layers className="w-4 h-4" />
+                        <span className="text-[10px] font-bold uppercase">View Subsurface</span>
+                    </button>
+                </div>
+
+                <div className="mb-4">
+                    <h3 className="text-2xl font-bold text-slate-900 leading-tight mb-2">{blockData.name}</h3>
+                    <div className="flex items-center gap-3">
+                        <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-sm ${blockData.status === 'Production' ? 'bg-green-100 text-green-700' :
+                            blockData.status === 'Active Exploration' ? 'bg-amber-100 text-amber-700' :
+                                'bg-slate-100 text-slate-600'
+                            }`}>
+                            {blockData.status}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">Op: {blockData.operator}</span>
                     </div>
                 </div>
 

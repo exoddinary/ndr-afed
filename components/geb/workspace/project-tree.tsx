@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronRight, ChevronDown, Folder, Layers, FileText, Activity, Database, Map, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -56,17 +56,38 @@ interface ProjectTreeProps {
   activeLayers?: string[]
   onToggleLayer?: (layerId: string) => void
   activeTab?: 'map' | 'subsurface'
+  filteredBlockName?: string | null
+  onClearFilter?: () => void
 }
 
-import { EXPLORATION_BLOCKS } from "@/data/exploration-blocks"
+type BlockData = {
+  id: string
+  name: string
+  operator: string
+}
 
-export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map' }: ProjectTreeProps) {
+export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map', filteredBlockName, onClearFilter }: ProjectTreeProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     'blocks': true,
     'basins': true,
     'seismic': true,
     'infrastructure': true,
   })
+  const [blocks, setBlocks] = useState<BlockData[]>([])
+
+  useEffect(() => {
+    fetch('/data/exploration-blocks.json')
+      .then(res => res.json())
+      .then(data => {
+        const parsedBlocks = data.features.map((f: any) => ({
+          id: f.properties.objectid.toString(),
+          name: f.properties.namobj,
+          operator: f.properties.oprblk
+        })).sort((a: any, b: any) => a.name.localeCompare(b.name))
+        setBlocks(parsedBlocks)
+      })
+      .catch(err => console.error("Failed to load blocks", err))
+  }, [])
 
   const toggleExpand = (id: string) => {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
@@ -144,14 +165,28 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
   }
 
   if (activeTab === 'subsurface') {
+    const displayedBlocks = filteredBlockName 
+      ? blocks.filter(b => b.name === filteredBlockName)
+      : blocks
+
     return (
       <div className="w-[240px] flex flex-col border-r border-gray-200 bg-white h-full overflow-hidden">
-        <div className="h-8 flex items-center px-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Blocks</span>
+        <div className="h-8 flex items-center justify-between px-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            {filteredBlockName ? 'Selected Block' : 'Blocks'}
+          </span>
+          {filteredBlockName && (
+            <button 
+              onClick={onClearFilter}
+              className="text-[10px] text-teal-600 hover:text-teal-700 font-semibold hover:underline"
+            >
+              View All
+            </button>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="py-2">
-            {Object.values(EXPLORATION_BLOCKS).map(block => (
+            {displayedBlocks.map(block => (
               <div
                 key={block.id}
                 className="flex items-center h-10 px-3 hover:bg-gray-50 cursor-pointer select-none group border-b border-gray-100 last:border-0"
@@ -172,6 +207,12 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
                 </div>
               </div>
             ))}
+            
+            {displayedBlocks.length === 0 && (
+               <div className="p-4 text-center text-xs text-slate-400">
+                  {blocks.length === 0 ? "Loading..." : "No blocks found"}
+               </div>
+            )}
           </div>
         </div>
       </div>

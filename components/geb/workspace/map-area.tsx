@@ -106,10 +106,11 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                   color: "white",
                   haloColor: [50, 50, 50, 0.9],
                   haloSize: 2,
-                  font: { size: 11, weight: "bold", family: "Arial" }
+                  font: { size: 10, weight: "bold", family: "Arial" }
                }),
-               minScale: 3000000,
-               maxScale: 0
+               minScale: 0, // Always show labels
+               maxScale: 0,
+               labelPlacement: "always-horizontal"
             })
          ],
          popupTemplate: {

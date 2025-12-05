@@ -26,6 +26,7 @@ export function GDEWorkspace() {
   const [activeLayers, setActiveLayers] = useState<string[]>(['active-blocks', 'sedimentary-basins', 'pipeline-infrastructure', 'platform-migas'])
   const [is3DMode, setIs3DMode] = useState(false)
   const [activeTab, setActiveTab] = useState<'map' | 'subsurface'>('map')
+  const [filteredBlockName, setFilteredBlockName] = useState<string | null>(null)
 
   const handleElementClick = (type: PanelContext, data: any) => {
     setPanelData({ type, data })
@@ -60,6 +61,16 @@ export function GDEWorkspace() {
     setIs3DMode(prev => !prev)
   }
 
+  const handleViewSubsurface = (blockName: string) => {
+    setActiveTab('subsurface')
+    setFilteredBlockName(blockName)
+    console.log("Viewing block in subsurface:", blockName)
+  }
+
+  const handleClearFilter = () => {
+    setFilteredBlockName(null)
+  }
+
   return (
     <div className="flex flex-col h-full w-full bg-gray-50 text-slate-900 overflow-hidden font-sans selection:bg-teal-100 selection:text-teal-900">
       {/* Top Fixed Bar */}
@@ -76,6 +87,8 @@ export function GDEWorkspace() {
             activeLayers={activeLayers}
             onToggleLayer={handleToggleLayer}
             activeTab={activeTab}
+            filteredBlockName={filteredBlockName}
+            onClearFilter={handleClearFilter}
           />
         </div>
 
@@ -121,6 +134,7 @@ export function GDEWorkspace() {
           onNavigate={handleElementClick}
           onAddToCompare={handleAddToCompare}
           onToggle3D={handleToggle3D}
+          onViewSubsurface={handleViewSubsurface}
         />
 
       </div>
