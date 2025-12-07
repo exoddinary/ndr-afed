@@ -81,13 +81,14 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
                   : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
               )}
             >
-              Subsurface
+              3D Viewer
             </button>
           </div>
         </div>
 
         {/* Right Section */}
         <div className="flex-1 flex items-center justify-end gap-4">
+          {/* Basin Card Toggle Hidden
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors"
@@ -97,6 +98,7 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
           </button>
 
           <div className="h-4 w-px bg-gray-300" />
+          */}
 
           <button
             onClick={handleLogout}
@@ -108,7 +110,7 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
         </div>
       </div>
 
-      {/* Collapsible Details */}
+      {/* Collapsible Details Hidden
       {isExpanded && (
         <div className="px-4 pb-3 grid grid-cols-4 gap-8 text-xs border-t border-gray-200 bg-gray-50 pt-3">
           <div>
@@ -129,6 +131,7 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
           </div>
         </div>
       )}
+      */}
     </div>
   )
 }

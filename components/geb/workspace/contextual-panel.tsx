@@ -1,6 +1,6 @@
 "use client"
 
-import { X, ChevronRight, FileDown } from "lucide-react"
+import { X, ChevronRight, FileDown, Database, GitCompare } from "lucide-react"
 import { useState, useEffect } from "react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -18,7 +18,7 @@ type ContextualPanelProps = {
     context: ContextualData | null
     onClose: () => void
     onNavigate: (type: PanelContext, data: any) => void
-    onAddToCompare?: (blockId: string) => void
+    onAddToCompare?: (block: any) => void
     onToggle3D?: () => void
     onViewSubsurface?: (blockId: string) => void
 }
@@ -197,25 +197,33 @@ function BlockDetailsContent({
                 <div className="flex justify-end gap-2 mb-3">
                     <button
                         onClick={() => onToggle3D?.()}
-                        className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-sm border border-indigo-200 transition-colors"
+                        className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-sm border border-slate-200 transition-colors"
                         title="View Platform in 3D"
                     >
                         <Box className="w-4 h-4" />
                     </button>
                     <button
-                        onClick={() => onAddToCompare?.(blockData.id)}
-                        className="p-2 text-teal-600 bg-teal-50 hover:bg-teal-100 rounded-sm border border-teal-200 transition-colors"
+                        onClick={() => onAddToCompare?.(blockData)}
+                        className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-sm border border-slate-200 transition-colors"
                         title="Add to Compare"
                     >
-                        <Plus className="w-4 h-4" />
+                        <GitCompare className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => console.log('VDR Subsurface clicked for:', blockName)}
+                        className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-sm border border-slate-200 transition-colors flex items-center gap-2"
+                        title="VDR Subsurface"
+                    >
+                        <Database className="w-4 h-4" />
+                        <span className="text-[10px] font-bold uppercase">VDR Subsurface</span>
                     </button>
                     <button
                         onClick={() => onViewSubsurface?.(blockName)}
-                        className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-sm border border-amber-200 transition-colors flex items-center gap-2"
-                        title="View in Subsurface"
+                        className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-sm border border-slate-200 transition-colors flex items-center gap-2"
+                        title="3D Visualisation"
                     >
                         <Layers className="w-4 h-4" />
-                        <span className="text-[10px] font-bold uppercase">View Subsurface</span>
+                        <span className="text-[10px] font-bold uppercase">3D Visualisation</span>
                     </button>
                 </div>
 
@@ -886,8 +894,8 @@ function WellDetailsContent({ data }: { data: any }) {
                 </div>
                 <div className="flex items-center gap-3">
                     <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-sm ${wellData.status === 'Active' ? 'bg-green-100 text-green-700' :
-                            wellData.status === 'Suspended' ? 'bg-amber-100 text-amber-700' :
-                                'bg-slate-100 text-slate-600'
+                        wellData.status === 'Suspended' ? 'bg-amber-100 text-amber-700' :
+                            'bg-slate-100 text-slate-600'
                         }`}>
                         {wellData.status}
                     </span>

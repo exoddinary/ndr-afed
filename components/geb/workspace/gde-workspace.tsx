@@ -22,10 +22,12 @@ const MapArea = dynamic(() => import("./map-area").then(mod => ({ default: mod.M
 
 import { SubsurfaceViewer } from "./subsurface-viewer"
 
+import { MOCK_BLOCKS, type BlockCommercialData } from "@/data/investor-data"
+
 export function GDEWorkspace() {
   const [panelData, setPanelData] = useState<ContextualData | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
-  const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([])
+  const [selectedBlocks, setSelectedBlocks] = useState<BlockCommercialData[]>([])
   const [activeLayers, setActiveLayers] = useState<string[]>(['active-blocks', 'sedimentary-basins', 'pipeline-infrastructure', 'platform-migas'])
   const [is3DMode, setIs3DMode] = useState(false)
   const [activeTab, setActiveTab] = useState<'map' | 'subsurface'>('map')
@@ -48,14 +50,24 @@ export function GDEWorkspace() {
     setTimeout(() => setPanelData(null), 300)
   }
 
-  const handleAddToCompare = (blockId: string) => {
-    if (!selectedBlockIds.includes(blockId)) {
-      setSelectedBlockIds(prev => [...prev, blockId])
+  const handleAddToCompare = (blockOrId: string | BlockCommercialData) => {
+    let blockToAdd: BlockCommercialData | undefined
+
+    if (typeof blockOrId === 'string') {
+      // If it's a string ID, try to find it in MOCK_BLOCKS
+      blockToAdd = Object.values(MOCK_BLOCKS).find(b => b.id === blockOrId)
+    } else {
+      // It's already a block object
+      blockToAdd = blockOrId
+    }
+
+    if (blockToAdd && !selectedBlocks.some(b => b.id === blockToAdd!.id)) {
+      setSelectedBlocks(prev => [...prev, blockToAdd!])
     }
   }
 
   const handleRemoveFromCompare = (blockId: string) => {
-    setSelectedBlockIds(prev => prev.filter(id => id !== blockId))
+    setSelectedBlocks(prev => prev.filter(b => b.id !== blockId))
   }
 
   const handleToggleLayer = (layerId: string) => {
@@ -146,8 +158,9 @@ export function GDEWorkspace() {
           {/* Block Comparator Strip - Only show on Map tab */}
           {activeTab === 'map' && (
             <BlockComparatorStrip
-              selectedBlockIds={selectedBlockIds}
+              selectedBlocks={selectedBlocks}
               onRemoveBlock={handleRemoveFromCompare}
+              onAddBlock={handleAddToCompare}
             />
           )}
 
@@ -177,7 +190,7 @@ export function GDEWorkspace() {
       <AIChatTrigger onClick={handleOpenAIChat} isOpen={isAIChatOpen} isPanelOpen={isPanelOpen} />
 
       {/* Global Overlays */}
-      <ExplanationRibbon />
+      {/* <ExplanationRibbon /> */}
     </div>
   )
 }

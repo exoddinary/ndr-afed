@@ -429,5 +429,210 @@ export const MOCK_BLOCKS: Record<string, BlockCommercialData> = {
         },
         description: "Abadi LNG project. One of the largest gas developments in the region including CCS.",
         recentActivity: "Revised Plan of Development approved including Carbon Capture."
+    },
+    "Paus": {
+        id: "blk-006",
+        name: "Paus",
+        operator: "Blue Sky Resources",
+        partners: [
+            { name: "Blue Sky Resources", equity: 100 }
+        ],
+        status: "Active Exploration",
+        expiryDate: "2027-08-20",
+        acreageSqKm: 850,
+        fiscalTerms: {
+            pscType: "Gross Split",
+            royaltyRate: 0,
+            taxRate: 25,
+            domesticMarketObligation: 25,
+            signatureBonus: 2.5,
+            localContentObligation: 35
+        },
+        economics: {
+            npv10: 180,
+            irr: 15,
+            breakEvenPrice: 58,
+            priceScenarios: [
+                { price: 60, npv: 50 },
+                { price: 75, npv: 180 },
+                { price: 90, npv: 310 }
+            ]
+        },
+        developmentPlan: {
+            capex: 350,
+            opex: 25,
+            fidDate: "2026 Q2",
+            firstOilDate: "2028 Q1",
+            milestones: [
+                { year: 2024, event: "Appraisal Well", status: "planned" },
+                { year: 2026, event: "FID", status: "planned" }
+            ]
+        },
+        contact: {
+            agency: "SKK Migas",
+            role: "Exploration Division",
+            email: "exploration@skkmigas.go.id",
+            phone: "+62 21 2924 1608"
+        },
+        resources: {
+            contingentGas: 500,
+            prospectiveGasMean: 800
+        },
+        production: [
+            { year: 2028, oilRate: 0, gasRate: 30 },
+            { year: 2029, oilRate: 0, gasRate: 60 },
+            { year: 2030, oilRate: 0, gasRate: 55 },
+            { year: 2031, oilRate: 0, gasRate: 45 },
+        ],
+        infrastructure: {
+            nearestPipelineKm: 45,
+            nearestRigKm: 120,
+            nearestPortKm: 180,
+            waterDepth: 65
+        },
+        risks: {
+            technical: 4,
+            commercial: 5,
+            political: 2,
+            regulatory: 3
+        },
+        description: "Promising gas discovery in East Natuna basin. Nearby infrastructure available.",
+        recentActivity: "Preparing for appraisal drilling campaign."
+    },
+    "Rokan": {
+        id: "blk-007",
+        name: "Rokan",
+        operator: "Pertamina Hulu Rokan",
+        partners: [
+            { name: "Pertamina", equity: 100 }
+        ],
+        status: "Production",
+        expiryDate: "2041-08-08",
+        acreageSqKm: 6200,
+        fiscalTerms: {
+            pscType: "Gross Split",
+            royaltyRate: 0,
+            taxRate: 35,
+            domesticMarketObligation: 25,
+            signatureBonus: 0,
+            localContentObligation: 60
+        },
+        economics: {
+            npv10: 3500,
+            irr: 28,
+            breakEvenPrice: 35,
+            priceScenarios: [
+                { price: 60, npv: 2800 },
+                { price: 75, npv: 3500 },
+                { price: 90, npv: 4200 }
+            ]
+        },
+        developmentPlan: {
+            capex: 2500,
+            opex: 1200,
+            milestones: [
+                { year: 2023, event: "Massive Infill Drilling", status: "completed" },
+                { year: 2024, event: "EOR Pilot", status: "planned" }
+            ]
+        },
+        contact: {
+            agency: "SKK Migas",
+            role: "Operations Division",
+            email: "ops@skkmigas.go.id",
+            phone: "+62 21 2924 1630"
+        },
+        resources: {
+            oilReserves2P: 1500,
+            contingentOil: 800
+        },
+        production: [
+            { year: 2024, oilRate: 160000, gasRate: 40 },
+            { year: 2025, oilRate: 155000, gasRate: 38 },
+            { year: 2026, oilRate: 150000, gasRate: 35 },
+            { year: 2027, oilRate: 145000, gasRate: 32 },
+        ],
+        infrastructure: {
+            nearestPipelineKm: 0,
+            nearestRigKm: 10,
+            nearestPortKm: 50,
+            waterDepth: 0 // Onshore
+        },
+        risks: {
+            technical: 2,
+            commercial: 1,
+            political: 1,
+            regulatory: 2
+        },
+        description: "Indonesia's largest oil producing block. Mature onshore field with EOR potential.",
+        recentActivity: "Aggressive drilling campaign to maintain production baseline."
+    },
+    "Corridor": {
+        id: "blk-008",
+        name: "Corridor",
+        operator: "Medco Energi",
+        partners: [
+            { name: "Medco Energi", equity: 46 },
+            { name: "Pertamina", equity: 30 },
+            { name: "Repsol", equity: 24 }
+        ],
+        status: "Production",
+        expiryDate: "2043-12-19",
+        acreageSqKm: 2100,
+        fiscalTerms: {
+            pscType: "Gross Split",
+            royaltyRate: 0,
+            taxRate: 30,
+            domesticMarketObligation: 25,
+            signatureBonus: 0,
+            localContentObligation: 40
+        },
+        economics: {
+            npv10: 1200,
+            irr: 19,
+            breakEvenPrice: 42,
+            priceScenarios: [
+                { price: 60, npv: 900 },
+                { price: 75, npv: 1200 },
+                { price: 90, npv: 1500 }
+            ]
+        },
+        developmentPlan: {
+            capex: 450,
+            opex: 150,
+            milestones: [
+                { year: 2024, event: "Compression Project", status: "planned" },
+                { year: 2025, event: "New Gas Sales Agreement", status: "planned" }
+            ]
+        },
+        contact: {
+            agency: "SKK Migas",
+            role: "Gas Division",
+            email: "gas@skkmigas.go.id",
+            phone: "+62 21 2924 1640"
+        },
+        resources: {
+            gasReserves2P: 2800,
+            contingentGas: 500
+        },
+        production: [
+            { year: 2024, oilRate: 5000, gasRate: 800 },
+            { year: 2025, oilRate: 4500, gasRate: 750 },
+            { year: 2026, oilRate: 4000, gasRate: 700 },
+            { year: 2027, oilRate: 3500, gasRate: 650 },
+        ],
+        infrastructure: {
+            nearestPipelineKm: 0,
+            nearestRigKm: 30,
+            nearestPortKm: 80,
+            waterDepth: 0 // Onshore
+        },
+        risks: {
+            technical: 3,
+            commercial: 2,
+            political: 2,
+            regulatory: 3
+        },
+        description: "Major gas supplier to Singapore and West Java. Strategic onshore asset.",
+        recentActivity: "Negotiating contract extension for gas sales to Singapore."
     }
 }
