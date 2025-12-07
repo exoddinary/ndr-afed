@@ -22,7 +22,7 @@ import "@arcgis/core/assets/esri/themes/light/main.css"
 
 // Props to allow parent to listen to map clicks
 type MapAreaProps = {
-   onElementClick?: (type: "polygon" | "play" | "basin", data: any) => void
+   onElementClick?: (type: "polygon" | "play" | "basin" | "well", data: any) => void
    activeLayers?: string[]
    is3D?: boolean
    onToggle3D?: () => void
@@ -411,6 +411,29 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       // Setup handlers (including safe hitTest)
       view.on("click", async (event: any) => {
          const response = await view.hitTest(event)
+
+         // 1. Check for Wells first (points usually on top)
+         const wellResults = response.results.filter((result: any) =>
+            result.type === "graphic" &&
+            result.graphic?.layer === layersRef.current['wells']
+         )
+
+         if (wellResults.length > 0) {
+            const graphic = (wellResults[0] as any).graphic
+            const attr = graphic.attributes
+
+            console.log("井 Well Clicked:", attr)
+
+            onElementClick?.("well", {
+               name: attr.WELLNAME,
+               field: attr.FIELD,
+               operator: attr.OPERATOR,
+               status: attr.STATUS
+            })
+            return // Stop propagation so we don't click the block underneath
+         }
+
+         // 2. Check for Blocks
          const results = response.results.filter((result: any) =>
             result.type === "graphic" &&
             (result.graphic?.layer === blocksLayer) // Check against current layer instance

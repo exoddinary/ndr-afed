@@ -1,10 +1,12 @@
 "use client"
 
-import { X, ChevronRight } from "lucide-react"
+import { X, ChevronRight, FileDown } from "lucide-react"
 import { useState, useEffect } from "react"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 // Define types for different panel contexts
-export type PanelContext = "polygon" | "play" | "basin" | null
+export type PanelContext = "polygon" | "play" | "basin" | "well" | null
 
 export type ContextualData = {
     type: PanelContext
@@ -49,6 +51,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                         {context.type === "polygon" && "Block Investment Details"}
                         {context.type === "play" && "Play Analysis"}
                         {context.type === "basin" && "Basin Overview"}
+                        {context.type === "well" && "Well Information"}
                     </span>
                     <button
                         onClick={handleClose}
@@ -71,6 +74,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                     )}
                     {context.type === "play" && <PlayContent data={context.data} onNavigate={onNavigate} />}
                     {context.type === "basin" && <BasinContent data={context.data} onNavigate={onNavigate} />}
+                    {context.type === "well" && <WellDetailsContent data={context.data} />}
                 </div>
 
                 {/* Panel footer - Powered by attribution */}
@@ -798,30 +802,164 @@ function BasinContent({ data, onNavigate }: { data: any, onNavigate: (type: Pane
             </div>
 
             <div className="h-px bg-gray-200" />
+        </div>
+    )
+}
 
-            {/* Active Plays - Chips */}
+// Well-specific content
+function WellDetailsContent({ data }: { data: any }) {
+    // Placeholder data mixed with real data
+    const wellData = {
+        name: data.name || "Unknown Well",
+        field: data.field || "Unknown Field",
+        operator: data.operator || "Unknown Operator",
+        status: data.status || "Unknown",
+        spudDate: "2023-05-15",
+        completionDate: "2023-08-20",
+        wellType: "Exploration",
+        totalDepth: "3,450 m",
+        waterDepth: "120 m",
+        rigName: "Deepsea Challenger",
+        result: "Oil & Gas Discovery",
+        coordinates: "2° 15' 30\" N, 117° 45' 10\" E"
+    }
+
+    const handleExportPDF = () => {
+        const doc = new jsPDF()
+
+        // Header
+        doc.setFontSize(20)
+        doc.setTextColor(40, 40, 40)
+        doc.text("Well Report", 14, 22)
+
+        doc.setFontSize(12)
+        doc.setTextColor(100, 100, 100)
+        doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 30)
+
+        // Well Details Table
+        autoTable(doc, {
+            startY: 40,
+            head: [['Attribute', 'Value']],
+            body: [
+                ['Well Name', wellData.name],
+                ['Field', wellData.field],
+                ['Operator', wellData.operator],
+                ['Status', wellData.status],
+                ['Well Type', wellData.wellType],
+                ['Spud Date', wellData.spudDate],
+                ['Completion Date', wellData.completionDate],
+                ['Total Depth', wellData.totalDepth],
+                ['Water Depth', wellData.waterDepth],
+                ['Rig Name', wellData.rigName],
+                ['Result', wellData.result],
+                ['Coordinates', wellData.coordinates],
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [13, 148, 136] }, // Teal-600
+            styles: { fontSize: 10, cellPadding: 4 },
+        })
+
+        // Footer
+        const pageCount = (doc as any).internal.getNumberOfPages()
+        doc.setFontSize(8)
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i)
+            doc.text('Indonesia VDR - Confidential', 14, doc.internal.pageSize.height - 10)
+        }
+
+        doc.save(`${wellData.name.replace(/\s+/g, '_')}_Report.pdf`)
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
             <div>
-                <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-3 tracking-wider">Active Plays</h4>
-                <div className="flex flex-wrap gap-2">
-                    {["Turbidite", "Carbonate", "Reef", "Deltaic", "Channel"].map((play) => (
-                        <button
-                            key={play}
-                            onClick={() => onNavigate("play", samplePlay)}
-                            className="px-2 py-1 bg-white text-slate-600 text-[10px] font-medium uppercase tracking-wide border border-slate-200 hover:border-teal-500 hover:text-teal-700 transition-colors"
-                        >
-                            {play}
-                        </button>
-                    ))}
+                <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-xl font-bold text-slate-900">{wellData.name}</h3>
+                    <button
+                        onClick={handleExportPDF}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-teal-50 text-teal-700 text-[10px] font-bold uppercase tracking-wider rounded border border-teal-200 hover:bg-teal-100 transition-colors"
+                    >
+                        <FileDown className="w-3.5 h-3.5" />
+                        Export Report
+                    </button>
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-sm ${wellData.status === 'Active' ? 'bg-green-100 text-green-700' :
+                            wellData.status === 'Suspended' ? 'bg-amber-100 text-amber-700' :
+                                'bg-slate-100 text-slate-600'
+                        }`}>
+                        {wellData.status}
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">{wellData.field} Field</span>
                 </div>
             </div>
 
             <div className="h-px bg-gray-200" />
 
-            {/* Seismic Viewer */}
-            <SeismicViewer />
+            {/* Key Information Grid */}
+            <div>
+                <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-3 tracking-wider">General Information</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-xs">
+                    <div>
+                        <span className="block text-slate-500 mb-1">Operator</span>
+                        <span className="font-medium text-slate-900">{wellData.operator}</span>
+                    </div>
+                    <div>
+                        <span className="block text-slate-500 mb-1">Well Type</span>
+                        <span className="font-medium text-slate-900">{wellData.wellType}</span>
+                    </div>
+                    <div>
+                        <span className="block text-slate-500 mb-1">Spud Date</span>
+                        <span className="font-medium text-slate-900">{wellData.spudDate}</span>
+                    </div>
+                    <div>
+                        <span className="block text-slate-500 mb-1">Completion Date</span>
+                        <span className="font-medium text-slate-900">{wellData.completionDate}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="h-px bg-gray-200" />
+
+            {/* Technical Data */}
+            <div>
+                <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-3 tracking-wider">Technical Data</h4>
+                <div className="bg-slate-50 rounded border border-slate-100 p-3 space-y-3 text-xs">
+                    <div className="flex justify-between">
+                        <span className="text-slate-600">Total Depth (MD)</span>
+                        <span className="font-mono font-medium text-slate-900">{wellData.totalDepth}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-slate-600">Water Depth</span>
+                        <span className="font-mono font-medium text-slate-900">{wellData.waterDepth}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-slate-600">Rig Name</span>
+                        <span className="font-medium text-slate-900">{wellData.rigName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-slate-600">Result</span>
+                        <span className="font-medium text-teal-700">{wellData.result}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="h-px bg-gray-200" />
+
+            {/* Location */}
+            <div>
+                <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-3 tracking-wider">Location</h4>
+                <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
+                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                    <span className="font-mono">{wellData.coordinates}</span>
+                </div>
+            </div>
+
+            {/* Seismic Viewer Reuse */}
+            <div className="pt-2">
+                <SeismicViewer />
+            </div>
         </div>
     )
 }
-
-// Helper components - Removed unused MetricCard, RiskItem, VolumeBar
-

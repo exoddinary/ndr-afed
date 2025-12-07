@@ -59,6 +59,8 @@
     "framer-motion": "^10.18.0",
     "geist": "latest",
     "input-otp": "1.4.1",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",
     "leva": "^0.10.1",
     "lucide-react": "^0.454.0",
