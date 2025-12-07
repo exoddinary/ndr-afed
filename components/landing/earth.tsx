@@ -1,21 +1,36 @@
 'use client'
 
-import React, { useRef } from 'react'
-import { useFrame, useLoader } from '@react-three/fiber'
+import React, { useRef, useMemo } from 'react'
+import { useFrame, useLoader, useThree } from '@react-three/fiber'
 import { TextureLoader } from 'three'
 import * as THREE from 'three'
 
 const Earth = ({ radius = 6.371, rotationSpeed = 0.001 }) => {
     const earthRef = useRef<THREE.Mesh>(null)
     const cloudsRef = useRef<THREE.Mesh>(null)
+    const { gl } = useThree()
 
-    // Load realistic textures - using day map for better visibility
+    // Load high-resolution textures
     const [colorMap, normalMap, specularMap, cloudsMap] = useLoader(TextureLoader, [
-        'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
+        'https://eoimages.gsfc.nasa.gov/images/imagerecords/74000/74393/world.200412.3x5400x2700.jpg',
         '/textures/earth-topology.png',
         '/textures/earth-water.png',
         '/textures/earth-clouds.png'
     ])
+
+    // Apply high-quality texture settings
+    useMemo(() => {
+        const maxAnisotropy = gl.capabilities.getMaxAnisotropy()
+        ;[colorMap, normalMap, specularMap, cloudsMap].forEach(texture => {
+            if (texture) {
+                texture.anisotropy = maxAnisotropy
+                texture.minFilter = THREE.LinearMipmapLinearFilter
+                texture.magFilter = THREE.LinearFilter
+                texture.generateMipmaps = true
+                texture.needsUpdate = true
+            }
+        })
+    }, [colorMap, normalMap, specularMap, cloudsMap, gl])
 
     useFrame(() => {
         if (cloudsRef.current) {
@@ -25,9 +40,9 @@ const Earth = ({ radius = 6.371, rotationSpeed = 0.001 }) => {
 
     return (
         <group>
-            {/* Realistic Earth Sphere */}
+            {/* Realistic Earth Sphere - High resolution geometry */}
             <mesh ref={earthRef} castShadow receiveShadow>
-                <sphereGeometry args={[radius, 128, 128]} />
+                <sphereGeometry args={[radius, 256, 256]} />
                 <meshPhongMaterial
                     map={colorMap}
                     normalMap={normalMap}
@@ -37,8 +52,8 @@ const Earth = ({ radius = 6.371, rotationSpeed = 0.001 }) => {
                 />
             </mesh>
 
-            {/* Tech Wireframe Overlay (Takram Style) */}
-            <mesh scale={[1.001, 1.001, 1.001]}>
+            {/* Tech Wireframe Overlay - Hidden */}
+            {/* <mesh scale={[1.001, 1.001, 1.001]}>
                 <sphereGeometry args={[radius, 24, 24]} />
                 <meshBasicMaterial
                     color="#00f3ff"
@@ -46,7 +61,7 @@ const Earth = ({ radius = 6.371, rotationSpeed = 0.001 }) => {
                     transparent
                     opacity={0.12}
                 />
-            </mesh>
+            </mesh> */}
 
             {/* Cloud Layer */}
             <mesh ref={cloudsRef} scale={[1.01, 1.01, 1.01]}>

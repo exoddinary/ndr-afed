@@ -1,0 +1,24 @@
+{
+    "blockName": "East Natuna",
+    "operator": "PT Pertamina East Natuna",
+    "developmentOperator": "Harbour Energy",
+    "status": "Exploration",
+    "expiryDate": "18 June 2053",
+    "note": "Strategic cross-border development near Vietnam maritime boundary.",
+    "metrics": {
+        "reserves_2p_mmbbl": 0,
+        "reserves_2p_bcf": 0,
+        "valuation_npv10": "$650M",
+        "irr": "16%"
+    },
+    "risk": {
+        "technical": 4,
+        "commercial": 6,
+        "political": 7,
+        "regulatory": 3
+    },
+    "contact": {
+        "entity": "SKK Migas",
+        "email": "dev@skkmigas.go.id"
+    }
+}

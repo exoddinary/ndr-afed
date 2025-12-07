@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import blockData from '@/data/exploration-blocks.json'
 
-// Dynamically import Globe3D to avoid SSR issues with Three.js
-const Globe3D = dynamic(() => import('@/components/landing/globe-3d'), {
+// Dynamically import 3D Tiles Globe with atmospheric effects
+const Globe3D = dynamic(() => import('@/components/landing/globe-3d-tiles'), {
     ssr: false,
     loading: () => (
         <div className="w-full h-full bg-black flex items-center justify-center">

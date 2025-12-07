@@ -358,16 +358,8 @@ const Globe3D = ({ onBlockSelect = () => { }, selectedBlock, blockData }: Globe3
 
     return (
         <div className="w-full h-full bg-black relative">
-            <Leva
-                collapsed={false}
-                theme={{
-                    colors: {
-                        accent1: '#3A6FF8',
-                        elevation1: '#1a1a1a',
-                        highlight1: '#ffffff',
-                    }
-                }}
-            />
+            {/* Leva controls hidden for production */}
+            <Leva hidden />
             <Canvas
                 camera={{
                     position: [8, 2, 8],
