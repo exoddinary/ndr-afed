@@ -193,7 +193,7 @@ export function Sidebar({ isOpen = true, onCollapseChange }: SidebarProps) {
   const searchParams = useSearchParams()
   const { currentRole } = useRole()
   const sidebarSections = getSidebarSections(currentRole)
-  const isGEB = pathname.startsWith("/geb")
+  const isWorkspace = pathname.startsWith("/workspace")
   const [isCollapsed, setIsCollapsed] = useState(true)
   const [rankOpen, setRankOpen] = useState(true)
   const [showCollapsedRankMenu, setShowCollapsedRankMenu] = useState(false)
@@ -207,7 +207,7 @@ export function Sidebar({ isOpen = true, onCollapseChange }: SidebarProps) {
     onCollapseChange?.(next)
     // close floating menu on route change
     setShowCollapsedRankMenu(false)
-  }, [isGEB, onCollapseChange])
+  }, [isWorkspace, onCollapseChange])
 
   // close floating menu when clicking outside
   React.useEffect(() => {
@@ -241,7 +241,7 @@ export function Sidebar({ isOpen = true, onCollapseChange }: SidebarProps) {
           <div className="flex flex-col h-full">
             <div className="px-3 py-4 border-b border-sidebar-border flex items-center justify-center w-full relative">
               {!isCollapsed && (
-                <h1 className="text-sidebar-foreground font-semibold text-lg tracking-wide absolute left-3">{isGEB ? "SEEK-GEB" : "SEEK"}</h1>
+                <h1 className="text-sidebar-foreground font-semibold text-lg tracking-wide absolute left-3">{isWorkspace ? "SEEK-WORKSPACE" : "SEEK"}</h1>
               )}
               <button onClick={handleCollapseToggle} className="text-sidebar-foreground/60 hover:text-sidebar-foreground p-1 rounded">
                 <i className={cn("bi text-sm", isCollapsed ? "bi-chevron-right" : "bi-chevron-left")} />
@@ -249,7 +249,7 @@ export function Sidebar({ isOpen = true, onCollapseChange }: SidebarProps) {
             </div>
 
             <nav className="flex-1 py-4 overflow-y-auto custom-scrollbar">
-              {isGEB ? (
+              {isWorkspace ? (
                 <div className="space-y-6">
                   {/* RANKING section */}
                   <div>
@@ -393,11 +393,11 @@ export function Sidebar({ isOpen = true, onCollapseChange }: SidebarProps) {
                         )}
                       </Link>
                       <Link
-                        href="/geb/workspace/gde-play-fairway"
+                        href="/workspace"
                         className={cn(
                           "flex items-center rounded-lg transition-all duration-200 text-sm relative group",
                           isCollapsed ? "size-9 justify-center p-0 mx-auto" : "gap-2.5 px-2.5 py-2",
-                          pathname === "/geb/workspace/gde-play-fairway" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+                          pathname === "/workspace" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent",
                         )}
                         title={isCollapsed ? "GDE & Play Fairway" : undefined}
                       >

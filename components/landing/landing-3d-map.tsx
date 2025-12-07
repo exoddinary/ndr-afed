@@ -188,7 +188,7 @@ export function Landing3DMap() {
 
             // 3. Navigate after whiteout fills screen
             setTimeout(() => {
-                router.push("/geb/workspace/gde-play-fairway")
+                router.push("/workspace")
             }, 1000)
         })
     }

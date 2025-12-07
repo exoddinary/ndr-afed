@@ -62,7 +62,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
    // Combined Effect: Handle View Switching and Layer Initialization
    useEffect(() => {
       if (!mounted || !mapDiv.current) return
-      
+
       console.log('🗺️ MAP EFFECT RUNNING - mounted:', mounted, 'is3D:', is3D)
 
       // 1. Save current extent/center from previous view if available
@@ -206,7 +206,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
          .then(buffer => shp(buffer))
          .then((geojson: any) => {
             console.log('📍 Shapefile parsed via shpjs')
-            
+
             // Handle both single and multiple layer results
             const features = Array.isArray(geojson) ? geojson[0].features : geojson.features
             console.log('📍 Features count:', features?.length)
@@ -233,7 +233,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                      }
                   })
                })
-            
+
             console.log('📍 Valid graphics (after filtering null geometries):', graphics.length)
 
             // Create FeatureLayer from graphics with diamond symbols and bloom effect
@@ -251,14 +251,35 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                   { name: "jenis_plat", type: "string" }
                ],
                renderer: {
-                  type: "simple",
-                  symbol: {
+                  type: "unique-value",
+                  field: "lokasi",
+                  defaultSymbol: {
                      type: "simple-marker",
-                     style: "diamond",           // diamond shape
-                     color: [255, 255, 255, 1],   // pure white fill
-                     size: 10,                    // slightly smaller
-                     outline: null                // no outline
-                  }
+                     style: "diamond",
+                     color: [255, 255, 255, 1],
+                     size: 10,
+                     outline: null
+                  },
+                  uniqueValueInfos: [
+                     {
+                        value: "OFFSHORE",
+                        symbol: {
+                           type: "picture-marker",
+                           url: "/icons/offshore_icon.png",
+                           width: "24px",
+                           height: "24px"
+                        }
+                     },
+                     {
+                        value: "ONSHORE",
+                        symbol: {
+                           type: "picture-marker",
+                           url: "/icons/onshore_icon.png",
+                           width: "24px",
+                           height: "24px"
+                        }
+                     }
+                  ]
                } as any,
                effect: "bloom(1.5, 1.5px, 0.1)",
                popupTemplate: {
@@ -284,7 +305,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                console.log('📍 Geometry type:', platformLayer.geometryType)
                console.log('📍 Visible:', platformLayer.visible)
                console.log('📍 Full extent:', platformLayer.fullExtent)
-               
+
                // Query to verify features are accessible
                platformLayer.queryFeatureCount().then(count => {
                   console.log('📍 Queryable feature count:', count)

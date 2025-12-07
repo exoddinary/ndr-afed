@@ -56,9 +56,9 @@ export function LoginPage() {
             }
         }
 
-        // Simulate login delay then navigate to workspace
+        // Simulate login delay then navigate to dashboard landing page
         setTimeout(() => {
-            router.push("/geb/workspace/gde-play-fairway")
+            router.push("/dashboard")
         }, 400)
     }
 
