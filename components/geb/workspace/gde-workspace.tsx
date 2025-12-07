@@ -9,7 +9,10 @@ import { ContextualPanel, type ContextualData, type PanelContext } from "./conte
 // import { ComparatorStrip } from "./comparator-strip"
 import { BlockComparatorStrip } from "./block-comparator-strip"
 import { ExplanationRibbon } from "./explanation-ribbon"
-import { useState } from "react"
+import { useState, useCallback } from "react"
+import { MapTools } from "./map-tools"
+import { AIChatPanel } from "./ai-chat-panel"
+import { AIChatTrigger } from "./ai-chat-trigger"
 
 // Dynamically import MapArea to avoid SSR issues with ArcGIS SDK
 const MapArea = dynamic(() => import("./map-area").then(mod => ({ default: mod.MapArea })), {
@@ -28,9 +31,15 @@ export function GDEWorkspace() {
   const [activeTab, setActiveTab] = useState<'map' | 'subsurface'>('map')
   const [filteredBlockName, setFilteredBlockName] = useState<string | null>(null)
 
+  // New state for AI Chat and Map View
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false)
+  const [mapView, setMapView] = useState<__esri.MapView | __esri.SceneView | null>(null)
+
   const handleElementClick = (type: PanelContext, data: any) => {
     setPanelData({ type, data })
     setIsPanelOpen(true)
+    // Close AI chat when opening contextual panel
+    setIsAIChatOpen(false)
   }
 
   const handlePanelClose = () => {
@@ -71,6 +80,22 @@ export function GDEWorkspace() {
     setFilteredBlockName(null)
   }
 
+  // Handle map view ready callback
+  const handleViewReady = useCallback((view: __esri.MapView | __esri.SceneView) => {
+    setMapView(view)
+  }, [])
+
+  // Handle AI Chat toggle
+  const handleOpenAIChat = () => {
+    setIsAIChatOpen(true)
+    // Close contextual panel when opening AI chat
+    setIsPanelOpen(false)
+  }
+
+  const handleCloseAIChat = () => {
+    setIsAIChatOpen(false)
+  }
+
   return (
     <div className="flex flex-col h-full w-full bg-gray-50 text-slate-900 overflow-hidden font-sans selection:bg-teal-100 selection:text-teal-900">
       {/* Top Fixed Bar */}
@@ -104,7 +129,10 @@ export function GDEWorkspace() {
                   activeLayers={activeLayers}
                   is3D={is3DMode}
                   onToggle3D={handleToggle3D}
+                  onViewReady={handleViewReady}
                 />
+                {/* Map Tools Overlay */}
+                <MapTools view={mapView} />
               </div>
             ) : (
               <div className="absolute inset-0">
@@ -125,19 +153,28 @@ export function GDEWorkspace() {
 
         </div>
 
-        {/* Right Side - Contextual Panel (slides in on demand) - NO MORE FIXED COCKPIT */}
-        {/* Right Side - Contextual Panel (Push) */}
-        <ContextualPanel
-          isOpen={isPanelOpen}
-          context={panelData}
-          onClose={handlePanelClose}
-          onNavigate={handleElementClick}
-          onAddToCompare={handleAddToCompare}
-          onToggle3D={handleToggle3D}
-          onViewSubsurface={handleViewSubsurface}
-        />
+        {/* Right Side - Contextual Panel or AI Chat */}
+        {isAIChatOpen ? (
+          <AIChatPanel
+            isOpen={isAIChatOpen}
+            onClose={handleCloseAIChat}
+          />
+        ) : (
+          <ContextualPanel
+            isOpen={isPanelOpen}
+            context={panelData}
+            onClose={handlePanelClose}
+            onNavigate={handleElementClick}
+            onAddToCompare={handleAddToCompare}
+            onToggle3D={handleToggle3D}
+            onViewSubsurface={handleViewSubsurface}
+          />
+        )}
 
       </div>
+
+      {/* AI Chat Floating Trigger */}
+      <AIChatTrigger onClick={handleOpenAIChat} isOpen={isAIChatOpen} isPanelOpen={isPanelOpen} />
 
       {/* Global Overlays */}
       <ExplanationRibbon />

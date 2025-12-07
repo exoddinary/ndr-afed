@@ -7,6 +7,7 @@ import { DrawerProvider } from "@/components/drawer-context"
 import { RoleProvider } from "@/components/role-context"
 import "./globals.css"
 import "mapbox-gl/dist/mapbox-gl.css"
+import Script from "next/script"
 
 export const metadata: Metadata = {
   title: "Indonesia VDR",
@@ -38,6 +39,10 @@ export default function RootLayout({
             </RoleProvider>
           </ModalProvider>
         </ThemeProvider>
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
+          strategy="beforeInteractive"
+        />
       </body>
     </html>
   )

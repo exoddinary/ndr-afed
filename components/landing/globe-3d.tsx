@@ -6,9 +6,17 @@ import { OrbitControls, Stars, Html, Environment } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { Play, Pause } from 'lucide-react'
+import { useControls, Leva } from 'leva'
 import Earth from './earth'
 import BlockMarkers from './block-markers'
 import Satellite from './satellite'
+
+// Import Takram atmosphere components for realistic lighting
+import {
+    Atmosphere,
+    Sky,
+    SunLight as TakramSunLight
+} from '@takram/three-atmosphere/r3f'
 
 // Calculate sun position based on date/time (like Takram's approach)
 const getSunPosition = (dayOfYear: number, timeOfDay: number) => {
@@ -81,16 +89,8 @@ const Sun = ({ position }: { position: THREE.Vector3 }) => {
 }
 
 // Enhanced Sun Light with date-based positioning
-const SunLight = () => {
+const SunLight = ({ dayOfYear, timeOfDay }: { dayOfYear: number, timeOfDay: number }) => {
     const lightRef = useRef<THREE.DirectionalLight>(null)
-    const sunRef = useRef<THREE.Group>(null)
-
-    // Get current date for sun position
-    const now = new Date()
-    const startOfYear = new Date(now.getFullYear(), 0, 0)
-    const diff = now.getTime() - startOfYear.getTime()
-    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24))
-    const timeOfDay = now.getHours() + now.getMinutes() / 60
 
     const sunPosition = useMemo(() => getSunPosition(dayOfYear, timeOfDay), [dayOfYear, timeOfDay])
 
@@ -175,8 +175,8 @@ const RealisticAtmosphereShader = {
     `
 }
 
-const RealisticAtmosphere = ({ radius = 6.371 }) => {
-    const sunPosition = useMemo(() => new THREE.Vector3(30, 20, 30), [])
+const RealisticAtmosphere = ({ radius = 6.371, dayOfYear, timeOfDay }: { radius?: number, dayOfYear: number, timeOfDay: number }) => {
+    const sunPosition = useMemo(() => getSunPosition(dayOfYear, timeOfDay), [dayOfYear, timeOfDay])
 
     return (
         <mesh scale={[1.02, 1.02, 1.02]}>
@@ -202,15 +202,26 @@ interface GlobeSceneProps {
     isFocused: boolean
     isAutoRotating: boolean
     blockData: any
+    dayOfYear: number
+    timeOfDay: number
+    useTakramAtmosphere: boolean
 }
 
 // Scene Content
-const GlobeScene = ({ onBlockSelect, selectedBlock, isFocused, isAutoRotating, blockData }: GlobeSceneProps) => {
+const GlobeScene = ({ onBlockSelect, selectedBlock, isFocused, isAutoRotating, blockData, dayOfYear, timeOfDay, useTakramAtmosphere }: GlobeSceneProps) => {
     const earthRadius = 6.371
     const controlsRef = useRef<any>()
     const { camera } = useThree()
     const [satellitePosition, setSatellitePosition] = useState<[number, number, number]>([0, 0, 0])
     const groupRef = useRef<THREE.Group>(null)
+
+    // Calculate date from dayOfYear and timeOfDay for Takram
+    const date = useMemo(() => {
+        const d = new Date(2024, 0, 1) // Start of 2024
+        d.setDate(dayOfYear)
+        d.setHours(Math.floor(timeOfDay), (timeOfDay % 1) * 60, 0, 0)
+        return d
+    }, [dayOfYear, timeOfDay])
 
     useFrame((state, delta) => {
         if (isFocused && controlsRef.current) {
@@ -244,11 +255,27 @@ const GlobeScene = ({ onBlockSelect, selectedBlock, isFocused, isAutoRotating, b
 
     return (
         <>
-            {/* Enhanced Lighting - Increased for better visibility */}
-            <ambientLight intensity={2.5} color="#ffffff" />
-            <SunLight />
-            <pointLight position={[-15, -10, -15]} intensity={2.0} color="#ffffff" />
-            <pointLight position={[15, 10, 15]} intensity={2.0} color="#ffffff" />
+            {/* Takram Atmosphere with precomputed LUT */}
+            {useTakramAtmosphere ? (
+                <Atmosphere date={date}>
+                    {/* Takram Sky - renders the atmospheric sky dome */}
+                    <Sky />
+
+                    {/* Takram SunLight - physically correct sun lighting */}
+                    <TakramSunLight intensity={5} />
+                </Atmosphere>
+            ) : (
+                <>
+                    {/* Fallback: Original lighting */}
+                    <ambientLight intensity={2.5} color="#ffffff" />
+                    <SunLight dayOfYear={dayOfYear} timeOfDay={timeOfDay} />
+                    <pointLight position={[-15, -10, -15]} intensity={2.0} color="#ffffff" />
+                    <pointLight position={[15, 10, 15]} intensity={2.0} color="#ffffff" />
+
+                    {/* Original Atmosphere */}
+                    <RealisticAtmosphere radius={earthRadius} dayOfYear={dayOfYear} timeOfDay={timeOfDay} />
+                </>
+            )}
 
             {/* Stars Background */}
             <Stars
@@ -260,9 +287,6 @@ const GlobeScene = ({ onBlockSelect, selectedBlock, isFocused, isAutoRotating, b
                 fade
                 speed={1}
             />
-
-            {/* Realistic Atmosphere */}
-            <RealisticAtmosphere radius={earthRadius} />
 
             <group ref={groupRef} rotation={[0, -2.1, 0.41]}> {/* Initial rotation to show Indonesia + Earth Tilt */}
                 <Earth />
@@ -324,8 +348,26 @@ const Globe3D = ({ onBlockSelect = () => { }, selectedBlock, blockData }: Globe3
     const [isFocused, setIsFocused] = useState(false)
     const [isAutoRotating, setIsAutoRotating] = useState(true)
 
+    // Leva Controls
+    const { dayOfYear, timeOfDay, exposure, useTakramAtmosphere } = useControls('Atmosphere', {
+        dayOfYear: { value: 1, min: 1, max: 365, step: 1, label: 'Day of Year' },
+        timeOfDay: { value: 12, min: 0, max: 24, step: 0.1, label: 'Time of Day' },
+        exposure: { value: 1.0, min: 0.1, max: 4.0, step: 0.1, label: 'Exposure' },
+        useTakramAtmosphere: { value: false, label: 'Takram Atmosphere (LUT)' }
+    })
+
     return (
         <div className="w-full h-full bg-black relative">
+            <Leva
+                collapsed={false}
+                theme={{
+                    colors: {
+                        accent1: '#3A6FF8',
+                        elevation1: '#1a1a1a',
+                        highlight1: '#ffffff',
+                    }
+                }}
+            />
             <Canvas
                 camera={{
                     position: [8, 2, 8],
@@ -334,7 +376,7 @@ const Globe3D = ({ onBlockSelect = () => { }, selectedBlock, blockData }: Globe3
                 gl={{
                     antialias: true,
                     toneMapping: THREE.AgXToneMapping, // Better for realistic high dynamic range
-                    toneMappingExposure: 1.0,
+                    toneMappingExposure: exposure,
                     outputColorSpace: THREE.SRGBColorSpace,
                     powerPreference: "high-performance",
                     alpha: false,
@@ -359,6 +401,9 @@ const Globe3D = ({ onBlockSelect = () => { }, selectedBlock, blockData }: Globe3
                         isFocused={isFocused}
                         isAutoRotating={isAutoRotating}
                         blockData={blockData}
+                        dayOfYear={dayOfYear}
+                        timeOfDay={timeOfDay}
+                        useTakramAtmosphere={useTakramAtmosphere}
                     />
                 </Suspense>
             </Canvas>

@@ -26,9 +26,10 @@ type MapAreaProps = {
    activeLayers?: string[]
    is3D?: boolean
    onToggle3D?: () => void
+   onViewReady?: (view: __esri.MapView | __esri.SceneView) => void
 }
 
-export function MapArea({ onElementClick, activeLayers = [], is3D = false, onToggle3D }: MapAreaProps = {}) {
+export function MapArea({ onElementClick, activeLayers = [], is3D = false, onToggle3D, onViewReady }: MapAreaProps = {}) {
    const mapDiv = useRef<HTMLDivElement>(null)
    const viewRef = useRef<MapView | SceneView | null>(null)
    const mapRef = useRef<Map | null>(null)
@@ -393,6 +394,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       }
 
       viewRef.current = view
+      onViewReady?.(view)
 
       // Dock popup so it doesn't sit on top of the block geometry
       // Applies to both 2D and 3D views
