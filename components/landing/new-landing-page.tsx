@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { AnimatePresence } from 'framer-motion'
 import blockData from '@/data/exploration-blocks.json'
+import { licensingRounds } from '@/data/licensing-rounds'
+import LicensingSummaryPanel from '@/components/landing/licensing-summary-panel'
+import LicensingOpportunitiesPanel from '@/components/landing/licensing-opportunities-panel'
+import OfficialLicensingAuthority from '@/components/landing/official-licensing-authority'
 import SearchBar from '@/components/landing/search-bar'
 import ViewModeToggle from '@/components/landing/view-mode-toggle'
 import BlockInfoPanel from '@/components/landing/block-info-panel'
@@ -40,6 +44,9 @@ export default function NewLandingPage() {
     const [activeFilter, setActiveFilter] = useState('all')
     const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>({})
     const [resetViewTrigger, setResetViewTrigger] = useState(0)
+    const [showOpportunities, setShowOpportunities] = useState(false)
+    const [showAuthority, setShowAuthority] = useState(true)
+    const [isTransitioning, setIsTransitioning] = useState(false)
 
     // Theme effect
     useEffect(() => {
@@ -96,7 +103,11 @@ export default function NewLandingPage() {
     }
 
     const handleEnterWorkspace = () => {
-        router.push('/workspace')
+        setIsTransitioning(true)
+        // Wait for zoom + white transition, then navigate
+        setTimeout(() => {
+            router.push('/workspace')
+        }, 1500)
     }
 
     // Extract searchable data
@@ -138,20 +149,25 @@ export default function NewLandingPage() {
                         onBlockSelect={handleBlockSelect}
                         selectedBlock={selectedBlock}
                         blockData={blockData}
+                        licensingRounds={licensingRounds}
+                        onOpenOpportunities={() => setShowOpportunities(true)}
+                        isZooming={isTransitioning}
                     />
                 )}
             </div>
 
             {/* 3. Bottom Controls (Theme & View Mode) - Bottom Middle */}
-            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3">
-                {/* Workspace Button */}
-                <button
-                    onClick={handleEnterWorkspace}
-                    className="group relative px-10 py-5 bg-white/10 backdrop-blur-xl text-white rounded-2xl font-semibold text-lg shadow-2xl hover:shadow-white/20 transition-all duration-300 hover:scale-105 border border-white/30 hover:border-white/50 hover:bg-white/15"
-                >
-                    <span className="relative z-10 tracking-wide">Workspace</span>
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </button>
+            <div className={`absolute bottom-20 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+                {/* Workspace Button - Only show after onboarding modal is closed */}
+                {!showAuthority && (
+                    <button
+                        onClick={handleEnterWorkspace}
+                        className="group relative px-10 py-5 bg-white/10 backdrop-blur-xl text-white rounded-2xl font-semibold text-lg shadow-2xl hover:shadow-white/20 transition-all duration-300 hover:scale-105 border border-white/30 hover:border-white/50 hover:bg-white/15"
+                    >
+                        <span className="relative z-10 tracking-wide">Workspace</span>
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    </button>
+                )}
 
                 {/* Toggles */}
                 <div className="flex items-center gap-4 p-2 rounded-full bg-black/20 backdrop-blur-sm border border-white/5 shadow-2xl">
@@ -202,6 +218,24 @@ export default function NewLandingPage() {
                     />
                 )}
             </AnimatePresence>
+
+            {/* Licensing summary (top-right), matches VDR landing */}
+            <LicensingSummaryPanel rounds={licensingRounds} onOpen={() => setShowOpportunities(true)} />
+
+            {/* Opportunities drawer */}
+            {showOpportunities && (
+                <LicensingOpportunitiesPanel rounds={licensingRounds} onClose={() => setShowOpportunities(false)} />
+            )}
+
+            {/* Official Licensing Authority (bottom-center) */}
+            {showAuthority && (
+                <OfficialLicensingAuthority onClose={() => setShowAuthority(false)} />
+            )}
+
+            {/* White Transition Overlay */}
+            <div 
+                className={`fixed inset-0 z-[100] bg-white pointer-events-none transition-opacity duration-1000 ease-in ${isTransitioning ? 'opacity-100' : 'opacity-0'}`}
+            />
 
         </div>
     )

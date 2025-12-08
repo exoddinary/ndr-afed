@@ -6,13 +6,34 @@ import { Play, Pause } from 'lucide-react'
 
 // We need to dynamically import WebGPU components
 let WebGPURenderer: any = null
-let PostProcessing: any = null
+let WebGPUPostProcessing: any = null
+let passNode: any = null
+let toneMappingNode: any = null
+let lensFlareNode: any = null
+let ditheringNode: any = null
 
-// Dynamic import for WebGPU
+// Dynamic import for WebGPU and Takram post-processing
 const loadWebGPU = async () => {
     try {
         const webgpu = await import('three/webgpu')
         WebGPURenderer = webgpu.WebGPURenderer
+        WebGPUPostProcessing = webgpu.PostProcessing
+        
+        // Import TSL nodes
+        const tsl = await import('three/tsl')
+        passNode = tsl.pass
+        toneMappingNode = tsl.toneMapping
+        
+        // Try to import Takram lens flare
+        try {
+            const takramWebgpu = await import('@takram/three-geospatial/webgpu')
+            lensFlareNode = takramWebgpu.lensFlare
+            ditheringNode = takramWebgpu.dithering
+            console.log('Takram lens flare loaded successfully')
+        } catch (e) {
+            console.warn('Takram lens flare not available, using fallback:', e)
+        }
+        
         return true
     } catch (e) {
         console.error('WebGPU not available:', e)
@@ -33,10 +54,15 @@ import blockData from '@/data/exploration-blocks.json'
 // Earth constants
 const EARTH_RADIUS = 6.371 // km scaled
 
+import type { LicensingRound } from '@/data/licensing-rounds'
+
 interface GlobeTakramFullProps {
     onBlockSelect?: (properties: any) => void
     selectedBlock?: any
     blockData?: any
+    licensingRounds?: LicensingRound[]
+    onOpenOpportunities?: () => void
+    isZooming?: boolean
 }
 
 // Convert lat/lng to 3D position
@@ -64,7 +90,10 @@ const getPolygonCenter = (coordinates: number[][][]): [number, number] => {
 const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
     onBlockSelect = () => {},
     selectedBlock,
-    blockData: propBlockData
+    blockData: propBlockData,
+    licensingRounds = [],
+    onOpenOpportunities,
+    isZooming = false,
 }) => {
     const [isAutoRotating, setIsAutoRotating] = useState(true)
     const [date, setDate] = useState(() => new Date())
@@ -102,6 +131,35 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
         sunSpeedRef.current = sunSpeed
     }, [sunSpeed])
 
+    // Zoom animation when entering workspace
+    useEffect(() => {
+        if (!isZooming || !cameraRef.current) return
+        
+        const camera = cameraRef.current
+        const targetDistance = EARTH_RADIUS * 0.8 // Zoom in close to Earth
+        const startPos = camera.position.clone()
+        const direction = startPos.clone().normalize()
+        const targetPos = direction.multiplyScalar(targetDistance)
+        
+        let progress = 0
+        const zoomAnimation = () => {
+            progress += 0.02
+            if (progress >= 1) return
+            
+            // Ease-in-out interpolation
+            const t = progress < 0.5 
+                ? 2 * progress * progress 
+                : 1 - Math.pow(-2 * progress + 2, 2) / 2
+            
+            camera.position.lerpVectors(startPos, targetPos, t)
+            camera.lookAt(0, 0, 0)
+            
+            requestAnimationFrame(zoomAnimation)
+        }
+        
+        zoomAnimation()
+    }, [isZooming])
+
     // Update date for sun position
     useEffect(() => {
         if (!isAutoRotating) return
@@ -135,8 +193,21 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     return
                 }
 
-                // Import Three.js WebGPU
-                const { WebGPURenderer } = await import('three/webgpu')
+                // Import Three.js WebGPU and TSL
+                const { WebGPURenderer, PostProcessing } = await import('three/webgpu')
+                const { pass, toneMapping, uniform } = await import('three/tsl')
+                
+                // Try to import Takram lens flare
+                let lensFlare: any = null
+                let dithering: any = null
+                try {
+                    const takram = await import('@takram/three-geospatial/webgpu')
+                    lensFlare = takram.lensFlare
+                    dithering = takram.dithering
+                    console.log('Takram lens flare loaded!')
+                } catch (e) {
+                    console.warn('Takram lens flare not available:', e)
+                }
 
                 // Create renderer
                 const renderer = new WebGPURenderer({
@@ -147,7 +218,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 renderer.setSize(window.innerWidth, window.innerHeight)
                 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
                 renderer.toneMapping = THREE.ACESFilmicToneMapping
-                renderer.toneMappingExposure = 1.0
+                renderer.toneMappingExposure = 1.4
                 rendererRef.current = renderer
 
                 // Create scene
@@ -165,6 +236,22 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 camera.position.set(EARTH_RADIUS * 2.5, EARTH_RADIUS * 0.5, EARTH_RADIUS * 1.5)
                 camera.lookAt(0, 0, 0)
                 cameraRef.current = camera
+
+                // Takram WebGPU atmosphere nodes - DISABLED for now (causes blue sky glow)
+                // Keep scene background as pure black
+                let takramContext: any = null
+                let takramSkyNode: any = null
+                // try {
+                //     const atm = await import('@takram/three-atmosphere/webgpu')
+                //     const AtmosphereContextNode = (atm as any).AtmosphereContextNode
+                //     const skyBackground = (atm as any).skyBackground
+                //     if (AtmosphereContextNode && skyBackground) {
+                //         takramContext = new AtmosphereContextNode()
+                //         takramContext.camera = camera
+                //         takramSkyNode = skyBackground(takramContext)
+                //         ;(scene as any).backgroundNode = takramSkyNode
+                //     }
+                // } catch {}
 
                 // Create Earth
                 const earthGeometry = new THREE.SphereGeometry(EARTH_RADIUS, 128, 128)
@@ -189,9 +276,9 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 // Add subtle atmosphere glow at the limb only (no haze overlay)
                 const atmosphereGeometry = new THREE.SphereGeometry(EARTH_RADIUS * 1.015, 64, 64)
                 const atmosphereMaterial = new THREE.MeshBasicMaterial({
-                    color: new THREE.Color(0.4, 0.6, 1.0), // Blue atmosphere
+                    color: new THREE.Color(0.45, 0.65, 1.0), // Blue atmosphere
                     transparent: true,
-                    opacity: 0.12,
+                    opacity: 0.08,
                     side: THREE.BackSide,
                     depthWrite: false,
                 })
@@ -213,63 +300,107 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 const skyLight = new THREE.HemisphereLight(
                     0x87ceeb, // Sky color (light blue)
                     0x362d1e, // Ground color (dark brown)
-                    0.3       // Intensity
+                    0.05      // Intensity (very subtle)
                 )
                 scene.add(skyLight)
 
                 // Add subtle ambient for shadow fill
-                const ambientLight = new THREE.AmbientLight(0x4466aa, 0.15)
+                const ambientLight = new THREE.AmbientLight(0x4466aa, 0.05)
                 scene.add(ambientLight)
 
-                // Add subtle sun glow with 8-direction streaks
+                // Takram-style sun with lens flare (6 sharp streaks like the reference)
                 const sunGroup = new THREE.Group()
                 sunGroup.position.set(50, 20, 30)
                 
-                // Core sun glow
-                const glowCanvas = document.createElement('canvas')
-                glowCanvas.width = 256
-                glowCanvas.height = 256
-                const glowCtx = glowCanvas.getContext('2d')!
-                const gradient = glowCtx.createRadialGradient(128, 128, 0, 128, 128, 128)
-                gradient.addColorStop(0, 'rgba(255, 255, 250, 0.9)')
-                gradient.addColorStop(0.1, 'rgba(255, 250, 240, 0.5)')
-                gradient.addColorStop(0.3, 'rgba(255, 245, 220, 0.2)')
-                gradient.addColorStop(0.6, 'rgba(255, 240, 200, 0.05)')
-                gradient.addColorStop(1, 'rgba(255, 230, 180, 0)')
-                glowCtx.fillStyle = gradient
-                glowCtx.fillRect(0, 0, 256, 256)
+                // Bright central core (smaller)
+                const coreCanvas = document.createElement('canvas')
+                coreCanvas.width = 128
+                coreCanvas.height = 128
+                const coreCtx = coreCanvas.getContext('2d')!
+                const coreGradient = coreCtx.createRadialGradient(64, 64, 0, 64, 64, 64)
+                coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)')
+                coreGradient.addColorStop(0.15, 'rgba(255, 255, 255, 0.75)')
+                coreGradient.addColorStop(0.4, 'rgba(255, 255, 250, 0.2)')
+                coreGradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
+                coreCtx.fillStyle = coreGradient
+                coreCtx.fillRect(0, 0, 128, 128)
                 
-                const glowTexture = new THREE.CanvasTexture(glowCanvas)
-                const sunSprite = new THREE.Sprite(
+                const coreTexture = new THREE.CanvasTexture(coreCanvas)
+                const coreSprite = new THREE.Sprite(
                     new THREE.SpriteMaterial({
-                        map: glowTexture,
+                        map: coreTexture,
                         transparent: true,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false,
                     })
                 )
-                sunSprite.scale.set(20, 20, 1)
-                sunGroup.add(sunSprite)
+                coreSprite.scale.set(4, 4, 1)
+                sunGroup.add(coreSprite)
                 
-                // Subtle streak texture
-                const streakCanvas = document.createElement('canvas')
-                streakCanvas.width = 256
-                streakCanvas.height = 16
-                const streakCtx = streakCanvas.getContext('2d')!
-                const streakGradient = streakCtx.createLinearGradient(0, 8, 256, 8)
-                streakGradient.addColorStop(0, 'rgba(255, 255, 255, 0)')
-                streakGradient.addColorStop(0.4, 'rgba(255, 252, 245, 0.03)')
-                streakGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.08)')
-                streakGradient.addColorStop(0.6, 'rgba(255, 252, 245, 0.03)')
-                streakGradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
-                streakCtx.fillStyle = streakGradient
-                streakCtx.fillRect(0, 0, 256, 16)
+                // Soft outer bloom (smaller, softer)
+                const bloomCanvas = document.createElement('canvas')
+                bloomCanvas.width = 256
+                bloomCanvas.height = 256
+                const bloomCtx = bloomCanvas.getContext('2d')!
+                const bloomGradient = bloomCtx.createRadialGradient(128, 128, 0, 128, 128, 128)
+                bloomGradient.addColorStop(0, 'rgba(255, 255, 255, 0.25)')
+                bloomGradient.addColorStop(0.2, 'rgba(255, 252, 245, 0.10)')
+                bloomGradient.addColorStop(0.5, 'rgba(255, 250, 240, 0.03)')
+                bloomGradient.addColorStop(1, 'rgba(255, 248, 235, 0)')
+                bloomCtx.fillStyle = bloomGradient
+                bloomCtx.fillRect(0, 0, 256, 256)
                 
-                const streakTexture = new THREE.CanvasTexture(streakCanvas)
+                const bloomTexture = new THREE.CanvasTexture(bloomCanvas)
+                const bloomSprite = new THREE.Sprite(
+                    new THREE.SpriteMaterial({
+                        map: bloomTexture,
+                        transparent: true,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                    })
+                )
+                bloomSprite.scale.set(22, 22, 1)
+                sunGroup.add(bloomSprite)
                 
-                // Add 8 directional streaks (every 45 degrees)
-                for (let i = 0; i < 8; i++) {
-                    const angle = (i * Math.PI) / 4 // 0, 45, 90, 135, 180, 225, 270, 315 degrees
+                // 6 sharp lens flare streaks (like Takram reference)
+                const createStreakTexture = (length: number, width: number) => {
+                    const canvas = document.createElement('canvas')
+                    canvas.width = length
+                    canvas.height = width
+                    const ctx = canvas.getContext('2d')!
+                    
+                    // Sharp streak with bright center tapering to edges
+                    const gradient = ctx.createLinearGradient(0, width/2, length, width/2)
+                    gradient.addColorStop(0, 'rgba(255, 255, 255, 0)')
+                    gradient.addColorStop(0.1, 'rgba(255, 255, 255, 0.015)')
+                    gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.06)')
+                    gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.20)')
+                    gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.06)')
+                    gradient.addColorStop(0.9, 'rgba(255, 255, 255, 0.015)')
+                    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
+                    
+                    // Vertical gradient for thin streak
+                    ctx.fillStyle = gradient
+                    ctx.fillRect(0, 0, length, width)
+                    
+                    // Make it thinner in the middle vertically
+                    const vGradient = ctx.createLinearGradient(0, 0, 0, width)
+                    vGradient.addColorStop(0, 'rgba(0, 0, 0, 1)')
+                    vGradient.addColorStop(0.45, 'rgba(0, 0, 0, 0)')
+                    vGradient.addColorStop(0.55, 'rgba(0, 0, 0, 0)')
+                    vGradient.addColorStop(1, 'rgba(0, 0, 0, 1)')
+                    ctx.globalCompositeOperation = 'destination-out'
+                    ctx.fillStyle = vGradient
+                    ctx.fillRect(0, 0, length, width)
+                    
+                    return new THREE.CanvasTexture(canvas)
+                }
+                
+                // 6 streaks at 60-degree intervals (like the reference image)
+                const streakLengths = [40, 32, 36, 28, 38, 26] // Varying lengths (subtle)
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i * Math.PI) / 3 // 0, 60, 120, 180, 240, 300 degrees
+                    const streakTexture = createStreakTexture(256, 6)
                     const streakSprite = new THREE.Sprite(
                         new THREE.SpriteMaterial({
                             map: streakTexture,
@@ -279,9 +410,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                             rotation: angle
                         })
                     )
-                    // Alternate longer/shorter streaks for variety
-                    const length = i % 2 === 0 ? 50 : 35
-                    streakSprite.scale.set(length, 1.5, 1)
+                    streakSprite.scale.set(streakLengths[i], 0.6, 1)
                     sunGroup.add(streakSprite)
                 }
                 
@@ -305,6 +434,22 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     point.position.copy(rotatedPos)
                     scene.add(point)
                 })
+
+                // Add licensing round markers (bidding blocks) - light purple
+                const licensingMarkerMeshes: THREE.Mesh[] = []
+                if (licensingRounds && licensingRounds.length > 0) {
+                    licensingRounds.forEach((r) => {
+                        const [lon, lat] = r.coordinates
+                        const pos = latLngToVector3(lat, lon, EARTH_RADIUS * 1.01)
+                        const rotated = pos.clone().applyEuler(new THREE.Euler(-0.1, -2.5, 0))
+                        const geom = new THREE.SphereGeometry(0.04, 12, 12)
+                        const mat = new THREE.MeshBasicMaterial({ color: 0xD8B4FE, toneMapped: false })
+                        const m = new THREE.Mesh(geom, mat)
+                        m.position.copy(rotated)
+                        scene.add(m)
+                        licensingMarkerMeshes.push(m)
+                    })
+                }
 
                 // Add flow lines connecting ALL blocks (spider web)
                 const flowLines: { curve: THREE.QuadraticBezierCurve3, particles: THREE.Mesh[], offset: number }[] = []
@@ -387,6 +532,21 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 controls.maxDistance = EARTH_RADIUS * 5
                 controls.enablePan = false
 
+                // Click to open opportunities when clicking a licensing marker
+                const raycaster = new THREE.Raycaster()
+                const ndc = new THREE.Vector2()
+                const onClick = (e: MouseEvent) => {
+                    if (!cameraRef.current) return
+                    ndc.x = (e.clientX / window.innerWidth) * 2 - 1
+                    ndc.y = -(e.clientY / window.innerHeight) * 2 + 1
+                    raycaster.setFromCamera(ndc, cameraRef.current)
+                    const intersects = raycaster.intersectObjects(licensingMarkerMeshes, false)
+                    if (intersects.length > 0) {
+                        onOpenOpportunities?.()
+                    }
+                }
+                window.addEventListener('pointerdown', onClick)
+
                 // Animation loop
                 let sunAngle = 0
                 let flowOffset = 0
@@ -402,6 +562,13 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     const sunZ = 80 * Math.cos(sunAngle)
                     sunLight.position.set(sunX, sunY, sunZ)
                     sunGroup.position.set(sunX, sunY, sunZ)
+                    if (takramContext) {
+                        const d = new THREE.Vector3(sunX, sunY, sunZ).normalize()
+                        try {
+                            ;(takramContext.sunDirectionECEF as any).value.set(d.x, d.y, d.z)
+                            if (takramSkyNode) (takramSkyNode as any).needsUpdate = true
+                        } catch {}
+                    }
                     
                     // Animate flow particles - one direction only
                     flowOffset += 0.003
@@ -437,6 +604,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     controls.update()
                     renderer.render(scene, camera)
                 }
+                
                 animate()
 
                 // Handle resize
@@ -452,6 +620,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
 
                 return () => {
                     window.removeEventListener('resize', handleResize)
+                    window.removeEventListener('pointerdown', onClick)
                     cancelAnimationFrame(animationRef.current)
                     renderer.dispose()
                 }
