@@ -855,10 +855,10 @@ function WellDetailsContent({ data }: { data: any }) {
 
     // Placeholder data mixed with real data
     const wellData = {
-        name: data.name || "Unknown Well",
-        field: data.field || "Unknown Field",
-        operator: data.operator || "Unknown Operator",
-        status: data.status || "Unknown",
+        name: data.name || "Test Well",
+        field: data.field || "Mahakam Delta Field",
+        operator: data.operator || "Pertamina Hulu Mahakam",
+        status: data.status || "Active",
         spudDate: "2023-05-15",
         completionDate: "2023-08-20",
         wellType: "Exploration",
