@@ -25,6 +25,7 @@ type ContextualPanelProps = {
 
 export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToCompare, onToggle3D, onViewSubsurface }: ContextualPanelProps) {
     const [isAnimating, setIsAnimating] = useState(false)
+    const [showSubsurfaceComingSoon, setShowSubsurfaceComingSoon] = useState(false)
 
     useEffect(() => {
         if (isOpen) {
@@ -70,6 +71,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                             onAddToCompare={onAddToCompare}
                             onToggle3D={onToggle3D}
                             onViewSubsurface={onViewSubsurface}
+                            onShowSubsurfaceComingSoon={() => setShowSubsurfaceComingSoon(true)}
                         />
                     )}
                     {context.type === "play" && <PlayContent data={context.data} onNavigate={onNavigate} />}
@@ -87,6 +89,36 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                     </div>
                 </div>
             </div>
+
+            {showSubsurfaceComingSoon && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-xl shadow-2xl border border-gray-200 max-w-sm w-full mx-4 p-5 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">VDR Subsurface</div>
+                                <h3 className="text-lg font-semibold text-slate-900">Upcoming Feature</h3>
+                            </div>
+                            <button
+                                onClick={() => setShowSubsurfaceComingSoon(false)}
+                                className="p-1 rounded hover:bg-slate-100 text-slate-500"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <p className="text-sm text-slate-600 leading-relaxed">
+                            The VDR Subsurface experience is currently under development and will be available in a future release.
+                        </p>
+                        <div className="flex justify-end pt-2">
+                            <button
+                                onClick={() => setShowSubsurfaceComingSoon(false)}
+                                className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800"
+                            >
+                                Got it
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
@@ -146,12 +178,14 @@ function BlockDetailsContent({
     data,
     onAddToCompare,
     onToggle3D,
-    onViewSubsurface
+    onViewSubsurface,
+    onShowSubsurfaceComingSoon,
 }: {
     data: any,
-    onAddToCompare?: (id: string) => void,
+    onAddToCompare?: (block: any) => void,
     onToggle3D?: () => void,
-    onViewSubsurface?: (blockName: string) => void
+    onViewSubsurface?: (blockName: string) => void,
+    onShowSubsurfaceComingSoon?: () => void
 }) {
     // Try to find mock data matching the clicked block name
     const blockName = data.name || "Mahakam Delta"
@@ -210,20 +244,20 @@ function BlockDetailsContent({
                         <GitCompare className="w-4 h-4" />
                     </button>
                     <button
-                        onClick={() => console.log('VDR Subsurface clicked for:', blockName)}
+                        onClick={() => onViewSubsurface?.(blockName)}
+                        className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-sm border border-slate-200 transition-colors flex items-center gap-2"
+                        title="3D Viewer"
+                    >
+                        <Layers className="w-4 h-4" />
+                        <span className="text-[10px] font-bold uppercase">3D Viewer</span>
+                    </button>
+                    <button
+                        onClick={() => onShowSubsurfaceComingSoon?.()}
                         className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-sm border border-slate-200 transition-colors flex items-center gap-2"
                         title="VDR Subsurface"
                     >
                         <Database className="w-4 h-4" />
                         <span className="text-[10px] font-bold uppercase">VDR Subsurface</span>
-                    </button>
-                    <button
-                        onClick={() => onViewSubsurface?.(blockName)}
-                        className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-sm border border-slate-200 transition-colors flex items-center gap-2"
-                        title="3D Visualisation"
-                    >
-                        <Layers className="w-4 h-4" />
-                        <span className="text-[10px] font-bold uppercase">3D Visualisation</span>
                     </button>
                 </div>
 
