@@ -850,6 +850,9 @@ function BasinContent({ data, onNavigate }: { data: any, onNavigate: (type: Pane
 
 // Well-specific content
 function WellDetailsContent({ data }: { data: any }) {
+    const [pdfViewerOpen, setPdfViewerOpen] = useState(false)
+    const [selectedPdf, setSelectedPdf] = useState<{ name: string; path: string } | null>(null)
+
     // Placeholder data mixed with real data
     const wellData = {
         name: data.name || "Unknown Well",
@@ -998,10 +1001,80 @@ function WellDetailsContent({ data }: { data: any }) {
                 </div>
             </div>
 
+            <div className="h-px bg-gray-200" />
+
+            {/* Well Reports */}
+            <div>
+                <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-3 tracking-wider">Well Reports</h4>
+                <div className="space-y-2">
+                    {[
+                        { name: "Completion & Workover Report", path: "/pdf/DURI05720 COMPLETION & WORKOVER PROG REPORT.pdf" },
+                        { name: "Downhole Well Log Report", path: "/pdf/PDD-M01-156-Downhole Well Log Report.pdf" },
+                    ].map((report, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => {
+                                setSelectedPdf(report)
+                                setPdfViewerOpen(true)
+                            }}
+                            className="w-full flex items-center gap-3 p-2.5 bg-slate-50 hover:bg-slate-100 rounded border border-slate-100 hover:border-slate-200 transition-all group text-left"
+                        >
+                            <img
+                                src="/pdf/pdf-icon.png"
+                                alt="PDF"
+                                className="w-8 h-8 object-contain"
+                            />
+                            <div className="flex-1 min-w-0">
+                                <div className="text-xs font-medium text-slate-800 truncate group-hover:text-teal-700 transition-colors">
+                                    {report.name}
+                                </div>
+                                <div className="text-[10px] text-slate-400">Click to view</div>
+                            </div>
+                            <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-600 transition-colors" />
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             {/* Seismic Viewer Reuse */}
             <div className="pt-2">
                 <SeismicViewer />
             </div>
+
+            {/* PDF Viewer Modal */}
+            {pdfViewerOpen && selectedPdf && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl border border-gray-200 w-[90vw] max-w-4xl h-[85vh] flex flex-col overflow-hidden">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+                            <div className="flex items-center gap-3">
+                                <img src="/pdf/pdf-icon.png" alt="PDF" className="w-6 h-6" />
+                                <div>
+                                    <div className="text-sm font-semibold text-slate-800">{selectedPdf.name}</div>
+                                    <div className="text-[10px] text-slate-500">Well Report Document</div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setPdfViewerOpen(false)
+                                    setSelectedPdf(null)
+                                }}
+                                className="p-2 rounded-full hover:bg-gray-200 text-slate-500 hover:text-slate-700 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        {/* PDF Embed */}
+                        <div className="flex-1 bg-gray-100">
+                            <iframe
+                                src={selectedPdf.path}
+                                className="w-full h-full border-0"
+                                title={selectedPdf.name}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

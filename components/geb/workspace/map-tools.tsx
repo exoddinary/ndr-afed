@@ -78,24 +78,20 @@ export function MapTools({ view }: MapToolsProps) {
                 if (!geometry) return
 
                 if (geometry.type === "polygon") {
-                    // For radius tool (circle drawn as polygon)
+                    // Circle/area tool (drawn as polygon) – measure area instead of radius
                     const polygon = geometry as __esri.Polygon
                     const centroid = polygon.centroid
-                    const extent = polygon.extent
-                    if (!extent) return
 
-                    // Calculate approximate radius from extent
-                    const radiusKm = (extent.width / 2) * 111 // Convert degrees to km (approximate)
+                    // Geodesic area in square kilometers
+                    const areaSqKm = Math.abs(geometryEngine.geodesicArea(polygon, "square-kilometers"))
+                    if (isNaN(areaSqKm)) return
 
-                    if (radiusKm >= 1) {
-                        setMeasurement(`Radius: ${radiusKm.toFixed(2)} km`)
-                    } else {
-                        setMeasurement(`Radius: ${(radiusKm * 1000).toFixed(0)} m`)
-                    }
+                    const areaText = `Area: ${areaSqKm.toFixed(2)} km2`
+                    setMeasurement(areaText)
 
                     // Add label at center
                     if (centroid && labelsLayerRef.current) {
-                        addMeasurementLabel(centroid, radiusKm >= 1 ? `${radiusKm.toFixed(2)} km` : `${(radiusKm * 1000).toFixed(0)} m`)
+                        addMeasurementLabel(centroid, `${areaSqKm.toFixed(2)} km2`)
                     }
                 } else if (geometry.type === "polyline") {
                     // For line tool
@@ -217,7 +213,7 @@ export function MapTools({ view }: MapToolsProps) {
                         ? "bg-blue-500 text-white shadow-md"
                         : "text-slate-600 hover:bg-slate-100"
                         }`}
-                    title="Draw radius circle"
+                    title="Draw area circle"
                 >
                     <Circle className="w-4 h-4" />
                     Radius
