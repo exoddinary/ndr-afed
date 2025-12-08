@@ -111,13 +111,13 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
     const sunLightRef = useRef<THREE.DirectionalLight | null>(null)
     const flowParticlesRef = useRef<THREE.Mesh[]>([])
     const lineMaterialsRef = useRef<THREE.LineBasicMaterial[]>([])
-    const sunSpeedRef = useRef(0.01)
+    const sunSpeedRef = useRef(0.005)
     
     // Default settings (from Leva adjustments)
     const dayOfYear = 172
     const timeOfDay = 12
     const exposure = 1.0
-    const sunSpeed = 0.01
+    const sunSpeed = 0.005
     const earthRotationY = -2.5
     const earthRotationX = -0.1
     const showFlowParticles = true
@@ -396,8 +396,8 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     return new THREE.CanvasTexture(canvas)
                 }
                 
-                // 6 streaks at 60-degree intervals (like the reference image)
-                const streakLengths = [40, 32, 36, 28, 38, 26] // Varying lengths (subtle)
+                // 6 streaks at 60-degree intervals (like the reference image) - shorter and more subtle
+                const streakLengths = [20, 16, 18, 14, 19, 13]
                 for (let i = 0; i < 6; i++) {
                     const angle = (i * Math.PI) / 3 // 0, 60, 120, 180, 240, 300 degrees
                     const streakTexture = createStreakTexture(256, 6)
@@ -426,7 +426,8 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 blockCenters.forEach((pos: THREE.Vector3 | null) => {
                     if (!pos) return
                     const pointGeom = new THREE.SphereGeometry(0.03, 8, 8)
-                    const pointMat = new THREE.MeshBasicMaterial({ color: 0xffffff })
+                    // Use a light-affected material so points pick up sun highlights/shadows
+                    const pointMat = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 40 })
                     const point = new THREE.Mesh(pointGeom, pointMat)
                     point.position.copy(pos)
                     // Apply same rotation as earth
@@ -443,7 +444,8 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                         const pos = latLngToVector3(lat, lon, EARTH_RADIUS * 1.01)
                         const rotated = pos.clone().applyEuler(new THREE.Euler(-0.1, -2.5, 0))
                         const geom = new THREE.SphereGeometry(0.04, 12, 12)
-                        const mat = new THREE.MeshBasicMaterial({ color: 0xD8B4FE, toneMapped: false })
+                        // Light-affected material so licensing markers catch the sun
+                        const mat = new THREE.MeshPhongMaterial({ color: 0xD8B4FE, shininess: 60 })
                         const m = new THREE.Mesh(geom, mat)
                         m.position.copy(rotated)
                         scene.add(m)
@@ -477,9 +479,9 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                         const points = curve.getPoints(32)
                         const geometry = new THREE.BufferGeometry().setFromPoints(points)
                         const material = new THREE.LineBasicMaterial({ 
-                            color: 0xffffff, 
+                            color: 0x9ca3af, // soft gray
                             transparent: true, 
-                            opacity: 0.15 // Subtle lines
+                            opacity: 0.06 // very subtle lines so dark side isn’t glowing
                         })
                         const line = new THREE.Line(geometry, material)
                         scene.add(line)
@@ -487,7 +489,8 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                         
                         // Create single flow particle per line
                         const particleGeom = new THREE.SphereGeometry(0.012, 6, 6)
-                        const particleMat = new THREE.MeshBasicMaterial({ color: 0xffffff })
+                        // Flow particles also respond softly to lighting
+                        const particleMat = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 30 })
                         const particle = new THREE.Mesh(particleGeom, particleMat)
                         scene.add(particle)
                         flowParticlesRef.current.push(particle) // Store ref for Leva
@@ -581,15 +584,8 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                         })
                     })
                     
-                    // Update satellite position to follow camera
-                    if (satellite) {
-                        const cameraDir = new THREE.Vector3()
-                        camera.getWorldDirection(cameraDir)
-                        const satPos = cameraDir.clone().multiplyScalar(-EARTH_RADIUS * 1.3)
-                        satPos.add(new THREE.Vector3(-1.5, -0.8, 0))
-                        satellite.position.lerp(satPos, 0.05)
-                        satellite.lookAt(camera.position)
-                    }
+                    // Keep satellite at its initial orbit position (no camera-follow fly-in)
+                    // Position is set once during creation; here we only handle visual effects (blink)
                     
                     // Blink satellite beacon every 1 second
                     blinkTime += 0.016

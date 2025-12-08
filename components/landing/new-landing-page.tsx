@@ -45,7 +45,7 @@ export default function NewLandingPage() {
     const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>({})
     const [resetViewTrigger, setResetViewTrigger] = useState(0)
     const [showOpportunities, setShowOpportunities] = useState(false)
-    const [showAuthority, setShowAuthority] = useState(true)
+    const [showAuthority, setShowAuthority] = useState(false)
     const [isTransitioning, setIsTransitioning] = useState(false)
 
     // Theme effect

@@ -95,7 +95,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                     <div className="bg-white rounded-xl shadow-2xl border border-gray-200 max-w-sm w-full mx-4 p-5 space-y-3">
                         <div className="flex items-start justify-between gap-3">
                             <div>
-                                <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">VDR Subsurface</div>
+                                <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">VDR Paleoscan</div>
                                 <h3 className="text-lg font-semibold text-slate-900">Upcoming Feature</h3>
                             </div>
                             <button
@@ -106,7 +106,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                             </button>
                         </div>
                         <p className="text-sm text-slate-600 leading-relaxed">
-                            The VDR Subsurface experience is currently under development and will be available in a future release.
+                            The VDR Paleoscan experience is currently under development and will be available in a future release.
                         </p>
                         <div className="flex justify-end pt-2">
                             <button
@@ -254,10 +254,10 @@ function BlockDetailsContent({
                     <button
                         onClick={() => onShowSubsurfaceComingSoon?.()}
                         className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-sm border border-slate-200 transition-colors flex items-center gap-2"
-                        title="VDR Subsurface"
+                        title="VDR Paleoscan"
                     >
                         <Database className="w-4 h-4" />
-                        <span className="text-[10px] font-bold uppercase">VDR Subsurface</span>
+                        <span className="text-[10px] font-bold uppercase">VDR Paleoscan</span>
                     </button>
                 </div>
 
