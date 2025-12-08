@@ -454,7 +454,10 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 }
 
                 // Add flow lines connecting ALL blocks (spider web)
-                const flowLines: { curve: THREE.QuadraticBezierCurve3, particles: THREE.Mesh[], offset: number }[] = []
+                // For each connection we draw:
+                //  - a dim base line
+                //  - a bright short line segment that moves along the curve
+                const flowLines: { curve: THREE.QuadraticBezierCurve3, bright: THREE.Line, offset: number }[] = []
                 const earthRotation = new THREE.Euler(-0.1, -2.5, 0)
                 
                 // Connect ALL blocks to each other (full web)
@@ -481,22 +484,27 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                         const material = new THREE.LineBasicMaterial({ 
                             color: 0x9ca3af, // soft gray
                             transparent: true, 
-                            opacity: 0.06 // very subtle lines so dark side isn’t glowing
+                            opacity: 0.035 // slightly dimmer base to let bloom pop
                         })
                         const line = new THREE.Line(geometry, material)
                         scene.add(line)
                         lineMaterialsRef.current.push(material) // Store ref for Leva
-                        
-                        // Create single flow particle per line
-                        const particleGeom = new THREE.SphereGeometry(0.012, 6, 6)
-                        // Flow particles also respond softly to lighting
-                        const particleMat = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 30 })
-                        const particle = new THREE.Mesh(particleGeom, particleMat)
-                        scene.add(particle)
-                        flowParticlesRef.current.push(particle) // Store ref for Leva
-                        
-                        // Random starting offset so particles don't all sync
-                        flowLines.push({ curve, particles: [particle], offset: Math.random() })
+
+                        // Bright segment: separate line geometry we will update each frame
+                        const brightPoints = curve.getPoints(16)
+                        const brightGeom = new THREE.BufferGeometry().setFromPoints(brightPoints)
+                        const brightMat = new THREE.LineBasicMaterial({
+                            color: 0xffffff,
+                            transparent: true,
+                            opacity: 1.0,
+                            depthWrite: false,
+                            blending: THREE.AdditiveBlending,
+                        })
+                        const brightLine = new THREE.Line(brightGeom, brightMat)
+                        scene.add(brightLine)
+
+                        // Random starting offset so flows don't sync
+                        flowLines.push({ curve, bright: brightLine, offset: Math.random() })
                     }
                 }
 
@@ -573,15 +581,24 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                         } catch {}
                     }
                     
-                    // Animate flow particles - one direction only
-                    flowOffset += 0.003
-                    flowLines.forEach(({ curve, particles, offset }) => {
-                        particles.forEach((particle) => {
-                            // Use offset for variation, flow only 0 to 1
-                            const t = (flowOffset + offset) % 1
-                            const pos = curve.getPoint(t)
-                            particle.position.copy(pos)
-                        })
+                    // Animate bright short segments along each curve (slower)
+                    flowOffset += 0.002
+                    flowLines.forEach(({ curve, bright, offset }) => {
+                        const geom = bright.geometry as THREE.BufferGeometry
+                        const positions = geom.attributes.position as THREE.BufferAttribute
+                        const segments = positions.count
+                        // Center of the bright segment moves along the curve
+                        const centerT = (flowOffset + offset) % 1
+                        const span = 0.10 // shorter fraction of curve covered by bright segment
+                        const startT = Math.max(0, centerT - span / 2)
+                        const endT = Math.min(1, centerT + span / 2)
+
+                        for (let i = 0; i < segments; i++) {
+                            const t = startT + ((endT - startT) * i) / Math.max(segments - 1, 1)
+                            const p = curve.getPoint(t)
+                            positions.setXYZ(i, p.x, p.y, p.z)
+                        }
+                        positions.needsUpdate = true
                     })
                     
                     // Keep satellite at its initial orbit position (no camera-follow fly-in)
