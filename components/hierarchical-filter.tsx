@@ -231,13 +231,13 @@ export function HierarchicalFilter() {
   const clearLocationFilters = () => {
     const locationLevels = ["region", "subregion", "businessRegion", "country", "basin", "subbasin"]
     const newSelected = new Set(selectedItems)
-    
+
     locationLevels.forEach(level => {
       getSelectedItemsForLevel(level).forEach(itemId => {
         newSelected.delete(itemId)
       })
     })
-    
+
     setSelectedItems(newSelected)
   }
 
@@ -300,7 +300,7 @@ export function HierarchicalFilter() {
 
     const levelData = levelDataMap[level] || []
     const levelIds = levelData.map((item) => item.id)
-    
+
     return Array.from(selectedItems).filter((id) => levelIds.includes(id))
   }
 
@@ -315,7 +315,7 @@ export function HierarchicalFilter() {
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
         <div className="flex items-center justify-between px-5 py-4">
           <h3 className="text-lg font-semibold text-foreground">Filter</h3>
-          <Button className="bg-teal-600 hover:bg-teal-700 text-white text-sm px-4 py-2 h-auto">
+          <Button className="bg-primary hover:bg-primary/90 text-white text-sm px-4 py-2 h-auto">
             Apply Filter
           </Button>
         </div>
@@ -332,562 +332,562 @@ export function HierarchicalFilter() {
 
         <div className="mb-4">
 
-        <div className="px-4">
-          <button
-            onClick={() => toggleSection("region")}
-            className={cn(
-              "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
-              expandedSections.has("region") || (selectedItems.size > 0 && !expandedSections.has("region"))
-                ? "rounded-t-lg"
-                : "rounded-lg"
-            )}
-          >
-            <span className="text-foreground font-medium text-sm">Region</span>
-            {expandedSections.has("region") ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
-        </div>
-
-        {!expandedSections.has("region") && getSelectedItemsForLevel("region").length > 0 && (
           <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("region").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {getItemLabel(itemId)}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+            <button
+              onClick={() => toggleSection("region")}
+              className={cn(
+                "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
+                expandedSections.has("region") || (selectedItems.size > 0 && !expandedSections.has("region"))
+                  ? "rounded-t-lg"
+                  : "rounded-lg"
+              )}
+            >
+              <span className="text-foreground font-medium text-sm">Region</span>
+              {expandedSections.has("region") ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+          </div>
+
+          {!expandedSections.has("region") && getSelectedItemsForLevel("region").length > 0 && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("region").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {getItemLabel(itemId)}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {expandedSections.has("region") && (
-          <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("region").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {getItemLabel(itemId)}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                <Input
-                  placeholder="Search Region"
-                  value={searchQueries["region"] || ""}
-                  onChange={(e) => setSearchQueries({ ...searchQueries, region: e.target.value })}
-                  className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
-                />
-              </div>
-              <div className="p-3 space-y-2">
-                {filteredRegions.map((region) => {
-                  const isSelected = selectedItems.has(region.id)
-                  return (
-                    <div key={region.id} className="flex items-center gap-3">
-                      <Checkbox
-                        id={region.id}
-                        checked={isSelected}
-                        onCheckedChange={() => toggleItem(region.id)}
-                        className="border-border data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
-                      />
-                      <label htmlFor={region.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
-                        {region.label}
-                      </label>
-                    </div>
-                  )
-                })}
+          {expandedSections.has("region") && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("region").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {getItemLabel(itemId)}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  <Input
+                    placeholder="Search Region"
+                    value={searchQueries["region"] || ""}
+                    onChange={(e) => setSearchQueries({ ...searchQueries, region: e.target.value })}
+                    className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
+                  />
+                </div>
+                <div className="p-3 space-y-2">
+                  {filteredRegions.map((region) => {
+                    const isSelected = selectedItems.has(region.id)
+                    return (
+                      <div key={region.id} className="flex items-center gap-3">
+                        <Checkbox
+                          id={region.id}
+                          checked={isSelected}
+                          onCheckedChange={() => toggleItem(region.id)}
+                          className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                        <label htmlFor={region.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
+                          {region.label}
+                        </label>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
+          )}
+
+          {/* Subregion Filter */}
+          <div className="px-4 mt-2">
+            <button
+              onClick={() => toggleSection("subregion")}
+              className={cn(
+                "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
+                expandedSections.has("subregion") || (getSelectedItemsForLevel("subregion").length > 0 && !expandedSections.has("subregion"))
+                  ? "rounded-t-lg"
+                  : "rounded-lg"
+              )}
+            >
+              <span className="text-foreground font-medium text-sm">Sub-region</span>
+              {expandedSections.has("subregion") ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
           </div>
-        )}
 
-        {/* Subregion Filter */}
-        <div className="px-4 mt-2">
-          <button
-            onClick={() => toggleSection("subregion")}
-            className={cn(
-              "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
-              expandedSections.has("subregion") || (getSelectedItemsForLevel("subregion").length > 0 && !expandedSections.has("subregion"))
-                ? "rounded-t-lg"
-                : "rounded-lg"
-            )}
-          >
-            <span className="text-foreground font-medium text-sm">Sub-region</span>
-            {expandedSections.has("subregion") ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
-        </div>
-
-        {!expandedSections.has("subregion") && getSelectedItemsForLevel("subregion").length > 0 && (
-          <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("subregion").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {hierarchyData.subregions.find((sr) => sr.id === itemId)?.label || itemId}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+          {!expandedSections.has("subregion") && getSelectedItemsForLevel("subregion").length > 0 && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("subregion").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {hierarchyData.subregions.find((sr) => sr.id === itemId)?.label || itemId}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {expandedSections.has("subregion") && (
-          <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("subregion").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {hierarchyData.subregions.find((sr) => sr.id === itemId)?.label || itemId}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                <Input
-                  placeholder="Search Sub-region"
-                  value={searchQueries["subregion"] || ""}
-                  onChange={(e) => setSearchQueries({ ...searchQueries, subregion: e.target.value })}
-                  className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
-                />
-              </div>
-              <div className="p-3 space-y-2">
-                {getFilteredOptions("subregion").length > 0 ? (
-                  getFilteredOptions("subregion")
-                    .filter((sr: any) => sr.label.toLowerCase().includes((searchQueries["subregion"] || "").toLowerCase()))
-                    .map((subregion) => {
-                      const isSelected = selectedItems.has(subregion.id)
-                      return (
-                        <div key={subregion.id} className="flex items-center gap-3">
-                          <Checkbox
-                            id={subregion.id}
-                            checked={isSelected}
-                            onCheckedChange={() => toggleItem(subregion.id)}
-                            className="border-border data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
-                          />
-                          <label htmlFor={subregion.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
-                            {subregion.label}
-                          </label>
-                        </div>
-                      )
-                    })
-                ) : (
-                  <p className="text-muted-foreground text-sm">Select a region to see sub-regions</p>
-                )}
+          {expandedSections.has("subregion") && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("subregion").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {hierarchyData.subregions.find((sr) => sr.id === itemId)?.label || itemId}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  <Input
+                    placeholder="Search Sub-region"
+                    value={searchQueries["subregion"] || ""}
+                    onChange={(e) => setSearchQueries({ ...searchQueries, subregion: e.target.value })}
+                    className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
+                  />
+                </div>
+                <div className="p-3 space-y-2">
+                  {getFilteredOptions("subregion").length > 0 ? (
+                    getFilteredOptions("subregion")
+                      .filter((sr: any) => sr.label.toLowerCase().includes((searchQueries["subregion"] || "").toLowerCase()))
+                      .map((subregion) => {
+                        const isSelected = selectedItems.has(subregion.id)
+                        return (
+                          <div key={subregion.id} className="flex items-center gap-3">
+                            <Checkbox
+                              id={subregion.id}
+                              checked={isSelected}
+                              onCheckedChange={() => toggleItem(subregion.id)}
+                              className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            />
+                            <label htmlFor={subregion.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
+                              {subregion.label}
+                            </label>
+                          </div>
+                        )
+                      })
+                  ) : (
+                    <p className="text-muted-foreground text-sm">Select a region to see sub-regions</p>
+                  )}
+                </div>
               </div>
             </div>
+          )}
+
+          {/* Business Region Filter */}
+          <div className="px-4 mt-2">
+            <button
+              onClick={() => toggleSection("businessRegion")}
+              className={cn(
+                "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
+                expandedSections.has("businessRegion") || (getSelectedItemsForLevel("businessRegion").length > 0 && !expandedSections.has("businessRegion"))
+                  ? "rounded-t-lg"
+                  : "rounded-lg"
+              )}
+            >
+              <span className="text-foreground font-medium text-sm">Business Region</span>
+              {expandedSections.has("businessRegion") ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
           </div>
-        )}
 
-        {/* Business Region Filter */}
-        <div className="px-4 mt-2">
-          <button
-            onClick={() => toggleSection("businessRegion")}
-            className={cn(
-              "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
-              expandedSections.has("businessRegion") || (getSelectedItemsForLevel("businessRegion").length > 0 && !expandedSections.has("businessRegion"))
-                ? "rounded-t-lg"
-                : "rounded-lg"
-            )}
-          >
-            <span className="text-foreground font-medium text-sm">Business Region</span>
-            {expandedSections.has("businessRegion") ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
-        </div>
-
-        {!expandedSections.has("businessRegion") && getSelectedItemsForLevel("businessRegion").length > 0 && (
-          <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("businessRegion").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {hierarchyData.businessRegions.find((br) => br.id === itemId)?.label || itemId}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+          {!expandedSections.has("businessRegion") && getSelectedItemsForLevel("businessRegion").length > 0 && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("businessRegion").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {hierarchyData.businessRegions.find((br) => br.id === itemId)?.label || itemId}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {expandedSections.has("businessRegion") && (
-          <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("businessRegion").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {hierarchyData.businessRegions.find((br) => br.id === itemId)?.label || itemId}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                <Input
-                  placeholder="Search Business Region"
-                  value={searchQueries["businessRegion"] || ""}
-                  onChange={(e) => setSearchQueries({ ...searchQueries, businessRegion: e.target.value })}
-                  className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
-                />
-              </div>
-              <div className="p-3 space-y-2">
-                {getFilteredOptions("businessRegion").length > 0 ? (
-                  getFilteredOptions("businessRegion")
-                    .filter((br: any) => br.label.toLowerCase().includes((searchQueries["businessRegion"] || "").toLowerCase()))
-                    .map((businessRegion) => {
-                      const isSelected = selectedItems.has(businessRegion.id)
-                      return (
-                        <div key={businessRegion.id} className="flex items-center gap-3">
-                          <Checkbox
-                            id={businessRegion.id}
-                            checked={isSelected}
-                            onCheckedChange={() => toggleItem(businessRegion.id)}
-                            className="border-border data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
-                          />
-                          <label htmlFor={businessRegion.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
-                            {businessRegion.label}
-                          </label>
-                        </div>
-                      )
-                    })
-                ) : (
-                  <p className="text-muted-foreground text-sm">Select a sub-region to see business regions</p>
-                )}
+          {expandedSections.has("businessRegion") && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("businessRegion").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {hierarchyData.businessRegions.find((br) => br.id === itemId)?.label || itemId}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  <Input
+                    placeholder="Search Business Region"
+                    value={searchQueries["businessRegion"] || ""}
+                    onChange={(e) => setSearchQueries({ ...searchQueries, businessRegion: e.target.value })}
+                    className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
+                  />
+                </div>
+                <div className="p-3 space-y-2">
+                  {getFilteredOptions("businessRegion").length > 0 ? (
+                    getFilteredOptions("businessRegion")
+                      .filter((br: any) => br.label.toLowerCase().includes((searchQueries["businessRegion"] || "").toLowerCase()))
+                      .map((businessRegion) => {
+                        const isSelected = selectedItems.has(businessRegion.id)
+                        return (
+                          <div key={businessRegion.id} className="flex items-center gap-3">
+                            <Checkbox
+                              id={businessRegion.id}
+                              checked={isSelected}
+                              onCheckedChange={() => toggleItem(businessRegion.id)}
+                              className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            />
+                            <label htmlFor={businessRegion.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
+                              {businessRegion.label}
+                            </label>
+                          </div>
+                        )
+                      })
+                  ) : (
+                    <p className="text-muted-foreground text-sm">Select a sub-region to see business regions</p>
+                  )}
+                </div>
               </div>
             </div>
+          )}
+
+          {/* Country Filter */}
+          <div className="px-4 mt-2">
+            <button
+              onClick={() => toggleSection("country")}
+              className={cn(
+                "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
+                expandedSections.has("country") || (getSelectedItemsForLevel("country").length > 0 && !expandedSections.has("country"))
+                  ? "rounded-t-lg"
+                  : "rounded-lg"
+              )}
+            >
+              <span className="text-foreground font-medium text-sm">Country</span>
+              {expandedSections.has("country") ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
           </div>
-        )}
 
-        {/* Country Filter */}
-        <div className="px-4 mt-2">
-          <button
-            onClick={() => toggleSection("country")}
-            className={cn(
-              "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
-              expandedSections.has("country") || (getSelectedItemsForLevel("country").length > 0 && !expandedSections.has("country"))
-                ? "rounded-t-lg"
-                : "rounded-lg"
-            )}
-          >
-            <span className="text-foreground font-medium text-sm">Country</span>
-            {expandedSections.has("country") ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
-        </div>
-
-        {!expandedSections.has("country") && getSelectedItemsForLevel("country").length > 0 && (
-          <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("country").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {hierarchyData.countries.find((c) => c.id === itemId)?.label || itemId}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+          {!expandedSections.has("country") && getSelectedItemsForLevel("country").length > 0 && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("country").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {hierarchyData.countries.find((c) => c.id === itemId)?.label || itemId}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {expandedSections.has("country") && (
-          <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("country").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {hierarchyData.countries.find((c) => c.id === itemId)?.label || itemId}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                <Input
-                  placeholder="Search Country"
-                  value={searchQueries["country"] || ""}
-                  onChange={(e) => setSearchQueries({ ...searchQueries, country: e.target.value })}
-                  className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
-                />
-              </div>
-              <div className="p-3 space-y-2">
-                {getFilteredOptions("country").length > 0 ? (
-                  getFilteredOptions("country")
-                    .filter((c: any) => c.label.toLowerCase().includes((searchQueries["country"] || "").toLowerCase()))
-                    .map((country) => {
-                      const isSelected = selectedItems.has(country.id)
-                      return (
-                        <div key={country.id} className="flex items-center gap-3">
-                          <Checkbox
-                            id={country.id}
-                            checked={isSelected}
-                            onCheckedChange={() => toggleItem(country.id)}
-                            className="border-border data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
-                          />
-                          <label htmlFor={country.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
-                            {country.label}
-                          </label>
-                        </div>
-                      )
-                    })
-                ) : (
-                  <p className="text-muted-foreground text-sm">Select a sub-region to see countries</p>
-                )}
+          {expandedSections.has("country") && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("country").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {hierarchyData.countries.find((c) => c.id === itemId)?.label || itemId}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  <Input
+                    placeholder="Search Country"
+                    value={searchQueries["country"] || ""}
+                    onChange={(e) => setSearchQueries({ ...searchQueries, country: e.target.value })}
+                    className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
+                  />
+                </div>
+                <div className="p-3 space-y-2">
+                  {getFilteredOptions("country").length > 0 ? (
+                    getFilteredOptions("country")
+                      .filter((c: any) => c.label.toLowerCase().includes((searchQueries["country"] || "").toLowerCase()))
+                      .map((country) => {
+                        const isSelected = selectedItems.has(country.id)
+                        return (
+                          <div key={country.id} className="flex items-center gap-3">
+                            <Checkbox
+                              id={country.id}
+                              checked={isSelected}
+                              onCheckedChange={() => toggleItem(country.id)}
+                              className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            />
+                            <label htmlFor={country.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
+                              {country.label}
+                            </label>
+                          </div>
+                        )
+                      })
+                  ) : (
+                    <p className="text-muted-foreground text-sm">Select a sub-region to see countries</p>
+                  )}
+                </div>
               </div>
             </div>
+          )}
+
+          {/* Basin Filter */}
+          <div className="px-4 mt-2">
+            <button
+              onClick={() => toggleSection("basin")}
+              className={cn(
+                "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
+                expandedSections.has("basin") || (getSelectedItemsForLevel("basin").length > 0 && !expandedSections.has("basin"))
+                  ? "rounded-t-lg"
+                  : "rounded-lg"
+              )}
+            >
+              <span className="text-foreground font-medium text-sm">Basin</span>
+              {expandedSections.has("basin") ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
           </div>
-        )}
 
-        {/* Basin Filter */}
-        <div className="px-4 mt-2">
-          <button
-            onClick={() => toggleSection("basin")}
-            className={cn(
-              "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
-              expandedSections.has("basin") || (getSelectedItemsForLevel("basin").length > 0 && !expandedSections.has("basin"))
-                ? "rounded-t-lg"
-                : "rounded-lg"
-            )}
-          >
-            <span className="text-foreground font-medium text-sm">Basin</span>
-            {expandedSections.has("basin") ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
-        </div>
-
-        {!expandedSections.has("basin") && getSelectedItemsForLevel("basin").length > 0 && (
-          <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("basin").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {hierarchyData.basins.find((b) => b.id === itemId)?.label || itemId}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+          {!expandedSections.has("basin") && getSelectedItemsForLevel("basin").length > 0 && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("basin").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {hierarchyData.basins.find((b) => b.id === itemId)?.label || itemId}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {expandedSections.has("basin") && (
-          <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("basin").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {hierarchyData.basins.find((b) => b.id === itemId)?.label || itemId}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                <Input
-                  placeholder="Search Basin"
-                  value={searchQueries["basin"] || ""}
-                  onChange={(e) => setSearchQueries({ ...searchQueries, basin: e.target.value })}
-                  className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
-                />
-              </div>
-              <div className="p-3 space-y-2">
-                {getFilteredOptions("basin").length > 0 ? (
-                  getFilteredOptions("basin")
-                    .filter((b: any) => b.label.toLowerCase().includes((searchQueries["basin"] || "").toLowerCase()))
-                    .map((basin) => {
-                      const isSelected = selectedItems.has(basin.id)
-                      return (
-                        <div key={basin.id} className="flex items-center gap-3">
-                          <Checkbox
-                            id={basin.id}
-                            checked={isSelected}
-                            onCheckedChange={() => toggleItem(basin.id)}
-                            className="border-border data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
-                          />
-                          <label htmlFor={basin.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
-                            {basin.label}
-                          </label>
-                        </div>
-                      )
-                    })
-                ) : (
-                  <p className="text-muted-foreground text-sm">Select a country to see basins</p>
-                )}
+          {expandedSections.has("basin") && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("basin").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {hierarchyData.basins.find((b) => b.id === itemId)?.label || itemId}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  <Input
+                    placeholder="Search Basin"
+                    value={searchQueries["basin"] || ""}
+                    onChange={(e) => setSearchQueries({ ...searchQueries, basin: e.target.value })}
+                    className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
+                  />
+                </div>
+                <div className="p-3 space-y-2">
+                  {getFilteredOptions("basin").length > 0 ? (
+                    getFilteredOptions("basin")
+                      .filter((b: any) => b.label.toLowerCase().includes((searchQueries["basin"] || "").toLowerCase()))
+                      .map((basin) => {
+                        const isSelected = selectedItems.has(basin.id)
+                        return (
+                          <div key={basin.id} className="flex items-center gap-3">
+                            <Checkbox
+                              id={basin.id}
+                              checked={isSelected}
+                              onCheckedChange={() => toggleItem(basin.id)}
+                              className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            />
+                            <label htmlFor={basin.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
+                              {basin.label}
+                            </label>
+                          </div>
+                        )
+                      })
+                  ) : (
+                    <p className="text-muted-foreground text-sm">Select a country to see basins</p>
+                  )}
+                </div>
               </div>
             </div>
+          )}
+
+          {/* Sub-basin Filter */}
+          <div className="px-4 mt-2">
+            <button
+              onClick={() => toggleSection("subbasin")}
+              className={cn(
+                "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
+                expandedSections.has("subbasin") || (getSelectedItemsForLevel("subbasin").length > 0 && !expandedSections.has("subbasin"))
+                  ? "rounded-t-lg"
+                  : "rounded-lg"
+              )}
+            >
+              <span className="text-foreground font-medium text-sm">Sub-basin</span>
+              {expandedSections.has("subbasin") ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
           </div>
-        )}
 
-        {/* Sub-basin Filter */}
-        <div className="px-4 mt-2">
-          <button
-            onClick={() => toggleSection("subbasin")}
-            className={cn(
-              "flex items-center justify-between w-full px-4 py-2.5 bg-card hover:bg-accent transition-colors border border-border dark:bg-card/70",
-              expandedSections.has("subbasin") || (getSelectedItemsForLevel("subbasin").length > 0 && !expandedSections.has("subbasin"))
-                ? "rounded-t-lg"
-                : "rounded-lg"
-            )}
-          >
-            <span className="text-foreground font-medium text-sm">Sub-basin</span>
-            {expandedSections.has("subbasin") ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
-        </div>
-
-        {!expandedSections.has("subbasin") && getSelectedItemsForLevel("subbasin").length > 0 && (
-          <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("subbasin").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {hierarchyData.subbasins.find((sb) => sb.id === itemId)?.label || itemId}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+          {!expandedSections.has("subbasin") && getSelectedItemsForLevel("subbasin").length > 0 && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("subbasin").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {hierarchyData.subbasins.find((sb) => sb.id === itemId)?.label || itemId}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {expandedSections.has("subbasin") && (
-          <div className="px-4">
-            <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
-              <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                {getSelectedItemsForLevel("subbasin").map((itemId) => (
-                  <Badge
-                    key={itemId}
-                    variant="secondary"
-                    className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
-                  >
-                    {hierarchyData.subbasins.find((sb) => sb.id === itemId)?.label || itemId}
-                    <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                <Input
-                  placeholder="Search Sub-basin"
-                  value={searchQueries["subbasin"] || ""}
-                  onChange={(e) => setSearchQueries({ ...searchQueries, subbasin: e.target.value })}
-                  className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
-                />
-              </div>
-              <div className="p-3 space-y-2">
-                {getFilteredOptions("subbasin").length > 0 ? (
-                  getFilteredOptions("subbasin")
-                    .filter((sb: any) => sb.label.toLowerCase().includes((searchQueries["subbasin"] || "").toLowerCase()))
-                    .map((subbasin) => {
-                      const isSelected = selectedItems.has(subbasin.id)
-                      return (
-                        <div key={subbasin.id} className="flex items-center gap-3">
-                          <Checkbox
-                            id={subbasin.id}
-                            checked={isSelected}
-                            onCheckedChange={() => toggleItem(subbasin.id)}
-                            className="border-border data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
-                          />
-                          <label htmlFor={subbasin.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
-                            {subbasin.label}
-                          </label>
-                        </div>
-                      )
-                    })
-                ) : (
-                  <p className="text-muted-foreground text-sm">Select a basin to see sub-basins</p>
-                )}
+          {expandedSections.has("subbasin") && (
+            <div className="px-4">
+              <div className="border border-border rounded-b-lg overflow-hidden bg-background border-t-0 -mt-px">
+                <div className="flex flex-wrap items-center gap-2 pl-9 pr-3 py-2 min-h-[40px] relative border-b border-border">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  {getSelectedItemsForLevel("subbasin").map((itemId) => (
+                    <Badge
+                      key={itemId}
+                      variant="secondary"
+                      className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
+                    >
+                      {hierarchyData.subbasins.find((sb) => sb.id === itemId)?.label || itemId}
+                      <button onClick={() => removeItem(itemId)} className="ml-1 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  <Input
+                    placeholder="Search Sub-basin"
+                    value={searchQueries["subbasin"] || ""}
+                    onChange={(e) => setSearchQueries({ ...searchQueries, subbasin: e.target.value })}
+                    className="flex-1 min-w-[120px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-6 px-0 py-0 text-sm"
+                  />
+                </div>
+                <div className="p-3 space-y-2">
+                  {getFilteredOptions("subbasin").length > 0 ? (
+                    getFilteredOptions("subbasin")
+                      .filter((sb: any) => sb.label.toLowerCase().includes((searchQueries["subbasin"] || "").toLowerCase()))
+                      .map((subbasin) => {
+                        const isSelected = selectedItems.has(subbasin.id)
+                        return (
+                          <div key={subbasin.id} className="flex items-center gap-3">
+                            <Checkbox
+                              id={subbasin.id}
+                              checked={isSelected}
+                              onCheckedChange={() => toggleItem(subbasin.id)}
+                              className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            />
+                            <label htmlFor={subbasin.id} className="text-foreground cursor-pointer flex-1 select-none text-sm">
+                              {subbasin.label}
+                            </label>
+                          </div>
+                        )
+                      })
+                  ) : (
+                    <p className="text-muted-foreground text-sm">Select a basin to see sub-basins</p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         </div>{/* end Location group */}
 
@@ -909,7 +909,7 @@ export function HierarchicalFilter() {
                 <Badge
                   key={tag}
                   variant="secondary"
-                  className="bg-teal-600/20 text-teal-500 border border-teal-600/30 hover:bg-teal-600/30 px-2 py-0.5 text-xs"
+                  className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 px-2 py-0.5 text-xs"
                 >
                   {tag}
                   <button onClick={() => handleTagRemove(tag)} className="ml-1 hover:opacity-70">
@@ -939,7 +939,7 @@ export function HierarchicalFilter() {
                     <Checkbox
                       checked={selectedTags.includes(tag)}
                       onCheckedChange={() => handleTagToggle(tag)}
-                      className="shrink-0 border-border data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
+                      className="shrink-0 border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                     <span className="flex-1 text-sm text-foreground">{tag}</span>
                   </label>

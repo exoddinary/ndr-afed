@@ -72,15 +72,10 @@ export function LoginPage() {
                     <div className="mx-auto w-full max-w-[360px]">
                         {/* Logo */}
                         <div className="mb-10 flex items-center gap-3">
-                            <div className="relative h-12 w-12">
-                                <Image
-                                    src="/images/skkmigas-logo.png"
-                                    alt="SKK Migas"
-                                    fill
-                                    className="object-contain"
-                                />
+                            <div className="flex items-center justify-center bg-primary rounded-xl h-12 w-12 text-white font-black text-xl">
+                                NDR
                             </div>
-                            <span className="text-2xl font-bold text-slate-900 tracking-tight">Virtual Data Room</span>
+                            <span className="text-2xl font-bold text-slate-900 tracking-tight">National Data Room</span>
                         </div>
 
                         <div className="mb-8">
@@ -95,7 +90,7 @@ export function LoginPage() {
                                     id="email"
                                     type="email"
                                     placeholder="name@company.com"
-                                    className="bg-slate-50 border-slate-200 focus-visible:ring-teal-600 focus-visible:border-teal-600 h-10"
+                                    className="bg-slate-50 border-slate-200 focus-visible:ring-primary focus-visible:border-primary h-10"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
@@ -104,7 +99,7 @@ export function LoginPage() {
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-slate-500">Password</Label>
-                                    <Link href="#" className="text-xs font-medium text-teal-600 hover:text-teal-500">
+                                    <Link href="#" className="text-xs font-medium text-primary hover:text-primary/80">
                                         Forgot password?
                                     </Link>
                                 </div>
@@ -113,7 +108,7 @@ export function LoginPage() {
                                         id="password"
                                         type={showPassword ? "text" : "password"}
                                         placeholder="Enter your password"
-                                        className="bg-slate-50 border-slate-200 pr-10 focus-visible:ring-teal-600 focus-visible:border-teal-600 h-10"
+                                        className="bg-slate-50 border-slate-200 pr-10 focus-visible:ring-primary focus-visible:border-primary h-10"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                     />
@@ -128,7 +123,7 @@ export function LoginPage() {
                             </div>
 
                             <div className="flex items-center space-x-2 pt-1">
-                                <Checkbox id="remember" className="data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600" />
+                                <Checkbox id="remember" className="data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
                                 <label
                                     htmlFor="remember"
                                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-600"
@@ -184,23 +179,23 @@ export function LoginPage() {
                     <div className="relative z-10 flex flex-col justify-between h-full p-12 text-white">
                         <div className="flex justify-end">
                             <div className="flex gap-1">
-                                <div className="h-1 w-8 bg-teal-500 rounded-full"></div>
+                                <div className="h-1 w-8 bg-accent rounded-full"></div>
                                 <div className="h-1 w-2 bg-slate-600 rounded-full"></div>
                                 <div className="h-1 w-2 bg-slate-600 rounded-full"></div>
                             </div>
                         </div>
 
                         <div>
-                            <div className="inline-flex items-center rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-medium text-teal-300 mb-6 backdrop-blur-sm">
-                                <span className="flex h-2 w-2 rounded-full bg-teal-400 mr-2 animate-pulse"></span>
+                            <div className="inline-flex items-center rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-medium text-accent mb-6 backdrop-blur-sm">
+                                <span className="flex h-2 w-2 rounded-full bg-accent mr-2 animate-pulse"></span>
                                 Secure Environment
                             </div>
                             <h2 className="text-3xl font-bold leading-tight mb-4 tracking-tight drop-shadow-lg">
                                 Accelerate Your <br />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-blue-400">Exploration Success</span>
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Exploration Success</span>
                             </h2>
                             <p className="text-slate-200 text-sm leading-relaxed max-w-sm drop-shadow-md">
-                                Advanced subsurface visualization and data management for Indonesia's energy sector. Access verified data in a secure, collaborative environment.
+                                Advanced subsurface visualization and data management for Indonesia&apos;s energy sector. Access verified data in a secure, collaborative environment.
                             </p>
                         </div>
                     </div>

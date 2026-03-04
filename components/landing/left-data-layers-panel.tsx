@@ -30,7 +30,7 @@ export default function LeftDataLayersPanel({ onLayerToggle, activeFilter, setAc
                             key={filter.id}
                             onClick={() => setActiveFilter(filter.id)}
                             className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeFilter === filter.id
-                                    ? 'bg-teal-500 text-white'
+                                    ? 'bg-primary text-white'
                                     : 'bg-white/5 text-white/70 hover:bg-white/10'
                                 }`}
                         >

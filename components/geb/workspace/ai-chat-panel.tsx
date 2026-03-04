@@ -19,110 +19,108 @@ type AIChatPanelProps = {
 
 // Suggested questions for VDR
 const SUGGESTED_QUESTIONS = [
-    "What are the potential 75 blocks for 2025 bidding?",
-    "Which blocks have the highest 2P reserves?",
-    "What are the fiscal terms for PSC Gross Split?",
-    "Compare offshore vs onshore exploration risks",
-    "Show me blocks expiring in the next 2 years",
-    "What is the average IRR for active blocks?",
-    "Which operators have the most active licenses?",
-    "Analyze the Mahakam Delta production history"
+    "Which North Sea blocks are available for 2025 licensing?",
+    "Which blocks have the highest 2P gas reserves?",
+    "What are the fiscal terms for Netherlands license agreements?",
+    "Compare shallow vs deep North Sea exploration risks",
+    "Show me licenses expiring in the next 2 years",
+    "What is the average IRR for active North Sea developments?",
+    "Which operators have the most active Netherlands licenses?",
+    "Analyze the Q1 block production history"
 ]
 
 // Placeholder AI responses mapped to specific questions
 const QUESTION_RESPONSES: Record<string, string> = {
-    "What are the potential 75 blocks for 2025 bidding?": `Based on ESDM's latest announcement, here are the key highlights for the 2025 Oil & Gas Bidding Round:
+    "Which North Sea blocks are available for 2025 licensing?": `Based on EBN and SodM's latest Netherlands licensing round, here are the key highlights:
 
-**Total Blocks Available:** 75 exploration blocks
+**2025 Netherlands Licensing Round:**
 
-**Regional Distribution:**
-• **Eastern Indonesia:** 28 blocks (Papua, Maluku, Sulawesi)
-• **Kalimantan:** 18 blocks (East, South, North Kalimantan)  
-• **Sumatra:** 15 blocks (Aceh, Riau, South Sumatra)
-• **Java Sea:** 14 blocks (North Java, Madura Strait)
+**Available Areas:**
+• **Southern North Sea (gas-prone):** 12 blocks (K, L, P quadrants)
+• **Central North Sea:** 8 blocks (F, G, H quadrants)
+• **Shallow Coastal Areas:** 5 blocks (Q quadrant)
+• **Onshore Groningen periphery:** 3 exploration permits
 
 **Top Recommended Blocks:**
-1. **Andaman IV** - Estimated 850 MMboe, deepwater
-2. **West Papua XVIII** - Gas-prone, 2.1 Tcf potential
-3. **South Makassar Strait** - Near existing infrastructure
-4. **North Sumatra Offshore** - Proven petroleum system
+1. **F16** - Rotliegend sandstone gas, ~60 bcm potential
+2. **K8** - Near K5 Amstel infrastructure, low CAPEX tie-back
+3. **L9** - Underexplored Carboniferous play, high upside
+4. **P12** - CCS-ready structure with existing well data
 
-The bidding window opens Q2 2025. Would you like detailed analysis on any specific block?`,
+The licensing window opens Q3 2025 under the Dutch Mining Act (Mijnbouwwet). Would you like detailed analysis on any specific block?`,
 
-    "Which blocks have the highest 2P reserves?": `Here are the top exploration blocks by 2P (Proven + Probable) reserves:
+    "Which blocks have the highest 2P gas reserves?": `Here are the top blocks by 2P (Proven + Probable) gas reserves in the Netherlands North Sea:
 
-**Top 10 by Oil Reserves:**
-1. **Mahakam Delta** - 1,250 MMbbl
-2. **Cepu Block** - 890 MMbbl  
-3. **Natuna Sea A** - 720 MMbbl
-4. **South Sumatra Basin** - 650 MMbbl
-5. **Rokan Block** - 580 MMbbl
+**Top Blocks by Gas Reserves:**
+1. **Q1** - ~120 bcm (Groningen-linked, NAM operated)
+2. **L2** - ~45 bcm (Shell/ExxonMobil, Leeuwarden field)
+3. **F3** - ~38 bcm (Neptune Energy, Anjea & Annabel fields)
+4. **K5** - ~31 bcm (Wintershall Dea, Amstel complex)
+5. **E18** - ~22 bcm (ONE-Dyas, Horizon discovery)
 
-**Top 5 by Gas Reserves:**
-1. **Tangguh** - 18.4 Tcf
-2. **Masela (Abadi)** - 12.8 Tcf
-3. **Natuna D-Alpha** - 9.2 Tcf
-4. **Corridor Block** - 4.8 Tcf
-5. **Senoro-Toili** - 2.5 Tcf
+**Key Observations:**
+• Netherlands North Sea is predominantly gas-prone
+• Average 2P recovery factor: 72% for gas fields
+• Remaining recoverable gas: ~500 bcm across active licenses
+• Most fields connected to Den Helder processing hub
 
-The Mahakam Delta remains Indonesia's most prolific oil producing area, while Tangguh leads gas reserves.`,
+Q1 and L2 remain the most prolific producers, with F3 offering the most exploration upside.`,
 
-    "What are the fiscal terms for PSC Gross Split?": `**Indonesia PSC Gross Split Fiscal Terms (2024 Update):**
+    "What are the fiscal terms for Netherlands license agreements?": `**Netherlands North Sea Fiscal Terms (2024):**
 
-**Base Split:**
-• Contractor: 57% Oil / 52% Gas
-• Government: 43% Oil / 48% Gas
+**Royalties:**
+• Gas: 0-8% (sliding scale based on production volume)
+• Oil: 0-8% (same sliding scale)
+• No royalty for fields < 500 MMcm/year
 
-**Variable Components (adjustments ±):**
-| Factor | Oil | Gas |
-|--------|-----|-----|
-| Frontier Area | +7% | +6% |
-| Water Depth >500m | +5% | +5% |
-| Field Size <25 MMBOE | +4% | +4% |
-| H2S >100 ppm | +3% | +3% |
-| CO2 >5% | +2% | +2% |
-| Local Content >50% | +2% | +2% |
+**State Participation:**
+| Component | Rate |
+|-----------|------|
+| EBN Carry | 40% in all licenses |
+| Corporate Tax | 25.8% |
+| Hydrocarbons Levy | 35.18% effective |
+| Total Government Take | ~68-72% |
 
-**Key Benefits:**
-• No cost recovery mechanism
-• DMO: 25% at market price
-• Income Tax: 40% corporate tax
-• No signature bonus required
+**Key Features:**
+• EBN (Energie Beheer Nederland) holds mandatory 40% in all blocks
+• Cost uplift of 10% on capital expenditure
+• Decommissioning costs 70% tax deductible
+• SDE++ subsidy available for low-carbon projects
 
-This makes Indonesia competitive with Malaysia's PSC terms.`,
+The Dutch system is stable and transparent, making it attractive for international operators compared to the UK's Energy Profits Levy.`,
 
-    "Compare offshore vs onshore exploration risks": `**Risk Comparison: Offshore vs Onshore Exploration**
+    "Compare shallow vs deep North Sea exploration risks": `**Risk Comparison: Shallow vs Deep North Sea (Netherlands)**
 
 **Technical Risks:**
-| Factor | Offshore | Onshore |
-|--------|----------|---------|
-| Drilling Cost | $50-150M | $5-20M |
-| Data Quality | Excellent 3D | Variable |
-| Well Complexity | High | Moderate |
-| Timeline | 2-4 years | 1-2 years |
+| Factor | Shallow (<150m) | Deep (>150m) |
+|--------|-----------------|-------------|
+| Drilling Cost | €8-25M | €25-60M |
+| Data Quality | Excellent 3D | Good 3D/4D |
+| Well Complexity | Low-Moderate | Moderate-High |
+| Avg Rig Rate | $150k/day | $250k/day |
 
 **Commercial Risks:**
-• **Offshore:** Higher CAPEX, but larger discoveries typically (>100 MMboe)
-• **Onshore:** Lower entry cost, faster monetization, smaller fields (10-50 MMboe)
+• **Shallow:** Smaller fields (5-30 bcm), but very low CAPEX via tie-backs
+• **Deep:** Larger potential discoveries (>50 bcm), requires standalone infrastructure
 
-**Success Rates (Indonesia 2014-2024):**
-• Offshore: 38% technical success
-• Onshore: 45% technical success
+**Success Rates (Netherlands 2014-2024):**
+• Shallow North Sea: 52% technical success
+• Deep/sub-salt: 28% technical success
 
 **Recommendation:**
-For new entrants, onshore blocks in proven basins (South Sumatra, Central Sumatra) offer better risk-adjusted returns. Majors should target deepwater frontier plays.`,
+For new entrants, shallow tie-back opportunities near Den Helder hub offer best risk-adjusted returns. Established operators should target underexplored Carboniferous plays in deep water.`,
 }
 
 // Generic placeholder responses for unmapped questions
 const PLACEHOLDER_RESPONSES = [
-    "Based on my analysis of the exploration blocks in this region, the Mahakam Delta shows promising hydrocarbon potential with estimated 2P reserves of 450 MMbbl. The geological formations indicate favorable conditions for both oil and gas accumulation.",
-    "The seismic data suggests a complex stratigraphic trap system in the offshore West Aceh region. I recommend focusing on the Miocene turbidite channels which show strong amplitude anomalies.",
-    "Looking at the production history of nearby blocks, the average decline rate is approximately 8% annually. However, infill drilling and EOR techniques could potentially increase recovery factors by 15-20%.",
-    "The fiscal terms for this PSC include a 5% royalty rate with cost recovery capped at 80%. Based on current oil prices, the project IRR is estimated at 22% with a payback period of 4.5 years.",
-    "I've identified three high-potential prospects within the selected area: Alpha-12 (2.4 km³), Beta-08 (1.8 km³), and Gamma-15 (3.1 km³). All show favorable structural closure and reservoir quality.",
-    "The infrastructure proximity analysis shows the nearest pipeline is 45 km away, which would require additional CAPEX of approximately $120M for tie-back development.",
-    "Historical drilling data indicates a 42% technical success rate in this play type. The main risks are reservoir quality uncertainty and charge timing relative to trap formation.",
-    "Based on analog fields in the region, I estimate a recovery factor of 35% for oil and 75% for gas. The development scenario assumes 8 production wells and 2 water injectors."
+    "Based on my analysis of the Netherlands North Sea blocks in this region, the Q1 block shows strong Rotliegend sandstone gas potential with estimated 2P reserves of 120 bcm. The Permian geological formations indicate excellent reservoir quality with average porosity of 18-22%.",
+    "The 3D seismic data suggests a four-way dip closure in the L2 area. I recommend focusing on the Slochteren Formation which shows strong amplitude-versus-offset anomalies consistent with gas saturation.",
+    "Looking at the production history of nearby Netherlands North Sea blocks, the average decline rate is approximately 6% annually for Rotliegend gas fields. Infill drilling and reservoir pressure management could increase recovery factors from 72% to 80%+.",
+    "The fiscal terms for this Netherlands license include EBN's mandatory 40% carry, the Hydrocarbons Levy at 35.18%, and standard corporate tax at 25.8%. Based on current Dutch TTF prices, the project IRR is estimated at 18% with a payback period of 5.2 years.",
+    "I've identified three high-potential prospects within the selected block: Noord Prospect (4.2 bcm P50), West Flank extension (2.8 bcm P50), and Deep Carboniferous play (12+ bcm P90-upside). All show favorable structural closure on recent 3D seismic.",
+    "The infrastructure proximity analysis shows the nearest NorFra pipeline tie-in is 28 km away, which would require approximately €45M for a subsea tie-back. This compares favorably with standalone development economics.",
+    "Historical drilling data in the Southern Gas Basin indicates a 48% technical success rate for four-way dip closures in Rotliegend targets. The main risks are lateral reservoir continuity and top-seal integrity in the Zechstein evaporites.",
+    "Based on analog Rotliegend fields in the Netherlands sector, I estimate a recovery factor of 74% for gas under primary depletion. The development scenario assumes 4 horizontal producers and potential tie-back to the P15-D platform."
 ]
 
 export function AIChatPanel({ isOpen, onClose }: AIChatPanelProps) {
@@ -130,7 +128,7 @@ export function AIChatPanel({ isOpen, onClose }: AIChatPanelProps) {
         {
             id: "welcome",
             role: "assistant",
-            content: "Hello! I'm your AI assistant for the Indonesia Virtual Data Room. I can help you analyze exploration blocks, understand geological data, evaluate fiscal terms, and answer questions about the energy sector. Try one of the suggested questions below, or ask me anything!",
+            content: "Hello! I'm your AI assistant for the Netherlands National Data Room. I can help you analyze North Sea exploration blocks, understand Rotliegend geology, evaluate Dutch fiscal terms, and answer questions about the Netherlands energy sector. Try one of the suggested questions below, or ask me anything!",
             timestamp: new Date()
         }
     ])

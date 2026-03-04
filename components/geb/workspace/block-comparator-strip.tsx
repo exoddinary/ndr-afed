@@ -45,7 +45,7 @@ export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 <div className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-teal-600" />
+                    <BarChart3 className="w-4 h-4 text-primary" />
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
                         Block Comparator ({blocks.length})
                     </span>
@@ -89,7 +89,7 @@ export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock
                             <Popover open={showAddMenu} onOpenChange={setShowAddMenu}>
                                 <PopoverTrigger asChild>
                                     <button
-                                        className="w-full h-full min-h-[120px] border-2 border-dashed border-slate-300 rounded-md hover:border-teal-500 hover:bg-teal-50/30 transition-all flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-teal-600"
+                                        className="w-full h-full min-h-[120px] border-2 border-dashed border-slate-300 rounded-md hover:border-primary hover:bg-primary/10/30 transition-all flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-primary"
                                     >
                                         <Plus className="w-6 h-6" />
                                         <span className="text-xs font-medium">Add Block</span>
@@ -113,7 +113,7 @@ export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock
                                                             onAddBlock(block.id)
                                                             setShowAddMenu(false)
                                                         }}
-                                                        className="flex items-center justify-between px-3 py-2 text-xs hover:bg-teal-50 hover:text-teal-900 cursor-pointer data-[selected=true]:bg-teal-50 data-[selected=true]:text-teal-900"
+                                                        className="flex items-center justify-between px-3 py-2 text-xs hover:bg-primary/10 hover:text-primary/70 cursor-pointer data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary/70"
                                                     >
                                                         <div className="flex flex-col gap-0.5">
                                                             <div className="font-bold text-slate-900">{block.name}</div>
@@ -180,7 +180,7 @@ export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock
                         <div className="sticky left-0 z-10 p-3 text-xs font-medium text-slate-500 text-right bg-white border-r border-gray-100">NPV (Est)</div>
                         {blocks.map(block => (
                             <div key={`npv-${block.id}`} className="p-3 text-xs text-slate-900 bg-white border-r border-gray-200/50 flex items-center">
-                                <span className="font-mono font-bold text-teal-700">${block.economics?.npv10 || 0}M</span>
+                                <span className="font-mono font-bold text-primary/90">${block.economics?.npv10 || 0}M</span>
                             </div>
                         ))}
 

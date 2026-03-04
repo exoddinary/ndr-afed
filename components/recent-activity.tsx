@@ -20,7 +20,7 @@ const managementCards = [
     title: "Processing Data",
     description: "Monitor data processing pipelines and view detailed logs",
     icon: Settings,
-    iconColor: "text-teal-400",
+    iconColor: "text-accent",
     buttonText: "View Status",
   },
 ]

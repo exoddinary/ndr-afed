@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import blockData from '@/data/exploration-blocks.json'
+// blockData fetched from NLOG WFS API (see lib/nlog-api.ts)
 
 // Dynamically import 3D Tiles Globe with atmospheric effects
 const Globe3D = dynamic(() => import('@/components/landing/globe-3d-tiles'), {

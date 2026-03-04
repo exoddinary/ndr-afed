@@ -1,10 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ChevronDown, ChevronUp, LogOut, Crown } from "lucide-react"
+import { LogOut, Crown } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import Image from "next/image"
 
 interface BasinHeaderProps {
   activeTab?: 'map' | 'subsurface'
@@ -12,7 +11,6 @@ interface BasinHeaderProps {
 }
 
 export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps) {
-  const [isExpanded, setIsExpanded] = useState(true)
   const [isPremium, setIsPremium] = useState(false)
   const router = useRouter()
 
@@ -37,15 +35,12 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
       <div className="h-12 px-4 flex items-center text-sm relative">
         {/* Left Section */}
         <div className="flex-1 flex items-center justify-start gap-6">
-          {/* SKK Migas Logo */}
+          {/* NDR Logo */}
           <div className="flex items-center">
-            <Image
-              src="/images/skkmigas-logo.png"
-              alt="SKK Migas"
-              width={80}
-              height={40}
-              className="h-8 w-auto object-contain"
-            />
+            <div className="flex items-center justify-center bg-primary rounded-lg h-8 w-8 text-white font-black text-xs mr-2">
+              NDR
+            </div>
+            <span className="text-[10px] leading-tight text-slate-500 uppercase font-bold">National Data Room<br />Netherlands</span>
           </div>
           <div className="h-6 w-px bg-gray-300" />
           <span className="font-bold text-lg tracking-tight text-slate-900">Virtual Data Room</span>
@@ -66,7 +61,7 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
               className={cn(
                 "px-4 py-1.5 text-xs font-semibold rounded-md transition-all",
                 activeTab === 'map'
-                  ? "bg-white text-teal-700 shadow-sm ring-1 ring-black/5"
+                  ? "bg-white text-primary shadow-sm ring-1 ring-black/5"
                   : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
               )}
             >
@@ -77,7 +72,7 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
               className={cn(
                 "px-4 py-1.5 text-xs font-semibold rounded-md transition-all",
                 activeTab === 'subsurface'
-                  ? "bg-white text-teal-700 shadow-sm ring-1 ring-black/5"
+                  ? "bg-white text-primary shadow-sm ring-1 ring-black/5"
                   : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
               )}
             >

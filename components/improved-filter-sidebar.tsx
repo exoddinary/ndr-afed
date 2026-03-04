@@ -205,7 +205,7 @@ export function ImprovedFilterSidebar({
             </Button>
             <Button
               onClick={handleApply}
-              className="flex-1 bg-teal-600 hover:bg-teal-700 text-white"
+              className="flex-1 bg-primary hover:bg-primary/90 text-white"
             >
               Apply filters
             </Button>

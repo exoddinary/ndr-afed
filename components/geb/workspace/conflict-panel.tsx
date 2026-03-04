@@ -38,7 +38,7 @@ export function ConflictPanel() {
                 </td>
                 <td className="py-2 pr-3 text-right opacity-0 group-hover:opacity-100 transition-opacity w-32">
                   <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-gray-100 text-slate-500 hover:text-teal-600" title="Resolve">
+                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-gray-100 text-slate-500 hover:text-primary" title="Resolve">
                       <Check className="w-3 h-3" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-gray-100 text-slate-500 hover:text-slate-700" title="Ignore">

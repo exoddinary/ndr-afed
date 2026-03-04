@@ -52,7 +52,7 @@ export default function BlockInfoPanel({ block, onClose }: BlockInfoPanelProps) 
                             {block.metrics.valuation_npv10 && (
                                 <div className="flex justify-between text-xs">
                                     <span className="text-white/60">NPV10:</span>
-                                    <span className="text-teal-400 font-mono">{block.metrics.valuation_npv10}</span>
+                                    <span className="text-accent font-mono">{block.metrics.valuation_npv10}</span>
                                 </div>
                             )}
                         </div>

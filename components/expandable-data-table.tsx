@@ -532,7 +532,7 @@ export function ExpandableDataTable() {
               <AlertDialogTrigger asChild>
                 <Button
                   size="sm"
-                  className="h-8 bg-teal-600 hover:bg-teal-700 text-white"
+                  className="h-8 bg-primary hover:bg-primary/90 text-white"
                 >
                   Confirm Action
                 </Button>

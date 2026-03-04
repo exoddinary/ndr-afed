@@ -23,7 +23,7 @@ import {
 
 
 // Import block data
-import blockData from '@/data/exploration-blocks.json'
+// blockData fetched from NLOG WFS API (see lib/nlog-api.ts)
 
 // Earth constants
 const EARTH_RADIUS = 6.371 // km scaled

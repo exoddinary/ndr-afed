@@ -74,7 +74,7 @@ export function UploadArea({ onFilesUploaded }: UploadAreaProps) {
         <div className="flex flex-col items-center gap-4">
           <div className="p-4 rounded-full bg-slate-700/50">
             {isUploading ? (
-              <Loader2 className="h-8 w-8 text-teal-400 animate-spin" />
+              <Loader2 className="h-8 w-8 text-accent animate-spin" />
             ) : (
               <Upload className="h-8 w-8 text-slate-400" />
             )}
@@ -96,7 +96,7 @@ export function UploadArea({ onFilesUploaded }: UploadAreaProps) {
                 onChange={handleFileSelect}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
-              <Button className="bg-teal-600 hover:bg-teal-700 text-white px-8">Browse Files</Button>
+              <Button className="bg-primary hover:bg-primary/90 text-white px-8">Browse Files</Button>
             </div>
           )}
 

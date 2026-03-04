@@ -56,7 +56,7 @@ export function ComparatorStrip() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 hover:text-teal-600 transition-colors"
+            className="flex items-center gap-2 hover:text-primary transition-colors"
           >
             <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
               Basin Comparator
@@ -69,7 +69,7 @@ export function ComparatorStrip() {
               {comparedBasins.map((basin, i) => (
                 <span
                   key={i}
-                  className="px-2 py-0.5 bg-teal-50 border border-teal-200 rounded text-[10px] text-teal-700 font-medium"
+                  className="px-2 py-0.5 bg-primary/10 border border-primary/30 rounded text-[10px] text-primary/90 font-medium"
                 >
                   {basin.name}
                 </span>
@@ -107,7 +107,7 @@ export function ComparatorStrip() {
                       setComparedBasins(prev => [...prev, basin])
                     }
                   }}
-                  className="w-full text-left px-2 py-1 text-[10px] rounded border border-gray-300 bg-white hover:bg-teal-50 hover:border-teal-300 transition-colors"
+                  className="w-full text-left px-2 py-1 text-[10px] rounded border border-gray-300 bg-white hover:bg-primary/10 hover:border-accent transition-colors"
                 >
                   <div className="font-medium text-slate-700">{basin.name}</div>
                   <div className="text-slate-500">{basin.region}</div>
@@ -126,7 +126,7 @@ export function ComparatorStrip() {
                     Current
                   </th>
                   {comparedBasins.map((basin, i) => (
-                    <th key={i} className="text-right p-2 text-[10px] font-bold uppercase text-teal-600 relative group">
+                    <th key={i} className="text-right p-2 text-[10px] font-bold uppercase text-primary relative group">
                       <div className="flex items-center justify-end gap-1">
                         <span className="truncate max-w-[80px]">{basin.name}</span>
                         <button

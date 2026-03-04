@@ -53,9 +53,9 @@ export function TimelineScrubber() {
                 className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
                 style={{ left: `${position}%` }}
               >
-                <div className={`w-0.5 h-3 ${marker.highlight ? 'bg-teal-500' : 'bg-gray-400'}`} />
+                <div className={`w-0.5 h-3 ${marker.highlight ? 'bg-primary' : 'bg-gray-400'}`} />
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                  <span className={`text-[9px] ${marker.highlight ? 'text-teal-600 font-bold' : 'text-gray-500'}`}>
+                  <span className={`text-[9px] ${marker.highlight ? 'text-primary font-bold' : 'text-gray-500'}`}>
                     {marker.label}
                   </span>
                 </div>
@@ -76,18 +76,18 @@ export function TimelineScrubber() {
             [&::-webkit-slider-thumb]:w-3 
             [&::-webkit-slider-thumb]:h-3 
             [&::-webkit-slider-thumb]:rounded-full 
-            [&::-webkit-slider-thumb]:bg-teal-500
+            [&::-webkit-slider-thumb]:bg-primary
             [&::-webkit-slider-thumb]:cursor-pointer
             [&::-webkit-slider-thumb]:shadow-md
-            [&::-webkit-slider-thumb]:hover:bg-teal-600
+            [&::-webkit-slider-thumb]:hover:bg-primary
             [&::-moz-range-thumb]:w-3 
             [&::-moz-range-thumb]:h-3 
             [&::-moz-range-thumb]:rounded-full 
-            [&::-moz-range-thumb]:bg-teal-500
+            [&::-moz-range-thumb]:bg-primary
             [&::-moz-range-thumb]:cursor-pointer
             [&::-moz-range-thumb]:border-0
             [&::-moz-range-thumb]:shadow-md
-            [&::-moz-range-thumb]:hover:bg-teal-600"
+            [&::-moz-range-thumb]:hover:bg-primary"
           title="Drag to animate paleogeography"
         />
       </div>
@@ -102,7 +102,7 @@ export function TimelineScrubber() {
         </button>
         <button
           onClick={() => setCurrentAge(90)}
-          className="px-2 py-0.5 text-[9px] rounded border border-teal-200 bg-teal-50 hover:bg-teal-100 text-teal-600 font-bold"
+          className="px-2 py-0.5 text-[9px] rounded border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-bold"
         >
           Turonian
         </button>

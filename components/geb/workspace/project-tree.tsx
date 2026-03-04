@@ -36,7 +36,8 @@ const INITIAL_TREE: TreeNode[] = [
     label: 'Seismic Data',
     type: 'folder',
     children: [
-      { id: 'seismic-2d', label: 'Seismic 2D Lines', type: 'layer' },
+      { id: 'seismic-2d', label: 'Seismic 2D Lines (NLOG)', type: 'layer' },
+      { id: 'seismic-3d', label: 'Seismic 3D Grids (NLOG)', type: 'layer' },
     ]
   },
   {
@@ -44,10 +45,9 @@ const INITIAL_TREE: TreeNode[] = [
     label: 'Infrastructure',
     type: 'folder',
     children: [
-      { id: 'pipeline-infrastructure', label: 'Pipeline Infrastructure', type: 'layer', isActive: true },
-      { id: 'platform-migas', label: 'Platform Migas', type: 'layer', isActive: true },
-      { id: 'wells', label: 'Wells', type: 'layer' },
-      { id: 'facilities', label: 'Facilities', type: 'layer' },
+      { id: 'pipeline-infrastructure', label: 'Oil & Gas Fields (NLOG)', type: 'layer', isActive: true },
+      { id: 'platform-migas', label: 'Mining Facilities (NLOG)', type: 'layer', isActive: true },
+      { id: 'wells', label: 'Boreholes (NLOG)', type: 'layer' },
     ]
   }
 ]
@@ -76,17 +76,18 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
   const [blocks, setBlocks] = useState<BlockData[]>([])
 
   useEffect(() => {
-    fetch('/data/exploration-blocks.json')
+    const NLOG_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:gdw_ng_licence_utm&outputFormat=application/json&srsName=EPSG:4326'
+    fetch(NLOG_URL)
       .then(res => res.json())
       .then(data => {
         const parsedBlocks = data.features.map((f: any) => ({
-          id: f.properties.objectid.toString(),
-          name: f.properties.namobj,
-          operator: f.properties.oprblk
+          id: f.id || f.properties?.objectid?.toString() || Math.random().toString(),
+          name: f.properties?.licence_name || f.properties?.namobj || f.id || 'Unknown',
+          operator: f.properties?.operator_name || f.properties?.oprblk || 'N/A'
         })).sort((a: any, b: any) => a.name.localeCompare(b.name))
         setBlocks(parsedBlocks)
       })
-      .catch(err => console.error("Failed to load blocks", err))
+      .catch(err => console.error("Failed to load NLOG blocks", err))
   }, [])
 
   const toggleExpand = (id: string) => {
@@ -106,7 +107,7 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
         <div
           className={cn(
             "flex items-center h-7 hover:bg-gray-100 cursor-pointer select-none group",
-            isActive && "bg-teal-50 text-teal-600 border-r-2 border-teal-500"
+            isActive && "bg-primary/10 text-primary border-r-2 border-primary"
           )}
           onClick={() => {
             if (hasChildren) {
@@ -136,7 +137,7 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
 
             <span className={cn(
               "text-xs truncate font-medium",
-              isActive ? "text-teal-600" : "text-slate-700 group-hover:text-slate-900"
+              isActive ? "text-primary" : "text-slate-700 group-hover:text-slate-900"
             )}>
               {node.label}
             </span>
@@ -148,7 +149,7 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
             isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           )}>
             {isActive ? (
-              <Eye className="w-3 h-3 text-teal-500" />
+              <Eye className="w-3 h-3 text-primary" />
             ) : (
               <EyeOff className="w-3 h-3 text-slate-300 hover:text-slate-500" />
             )}
@@ -165,7 +166,7 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
   }
 
   if (activeTab === 'subsurface') {
-    const displayedBlocks = filteredBlockName 
+    const displayedBlocks = filteredBlockName
       ? blocks.filter(b => b.name === filteredBlockName)
       : blocks
 
@@ -176,9 +177,9 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
             {filteredBlockName ? 'Selected Block' : 'Blocks'}
           </span>
           {filteredBlockName && (
-            <button 
+            <button
               onClick={onClearFilter}
-              className="text-[10px] text-teal-600 hover:text-teal-700 font-semibold hover:underline"
+              className="text-[10px] text-primary hover:text-primary/90 font-semibold hover:underline"
             >
               View All
             </button>
@@ -192,7 +193,7 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
                 className="flex items-center h-10 px-3 hover:bg-gray-50 cursor-pointer select-none group border-b border-gray-100 last:border-0"
               >
                 <div className="flex items-center flex-1 min-w-0 gap-3">
-                  <div className="flex-none p-1.5 bg-slate-100 rounded text-slate-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-colors">
+                  <div className="flex-none p-1.5 bg-slate-100 rounded text-slate-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors">
                     <Database className="w-3.5 h-3.5" />
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
@@ -207,11 +208,11 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
                 </div>
               </div>
             ))}
-            
+
             {displayedBlocks.length === 0 && (
-               <div className="p-4 text-center text-xs text-slate-400">
-                  {blocks.length === 0 ? "Loading..." : "No blocks found"}
-               </div>
+              <div className="p-4 text-center text-xs text-slate-400">
+                {blocks.length === 0 ? "Loading..." : "No blocks found"}
+              </div>
             )}
           </div>
         </div>

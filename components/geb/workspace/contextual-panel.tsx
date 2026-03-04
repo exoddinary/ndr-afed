@@ -188,7 +188,7 @@ function BlockDetailsContent({
     onShowSubsurfaceComingSoon?: () => void
 }) {
     // Try to find mock data matching the clicked block name
-    const blockName = data.name || "Mahakam Delta"
+    const blockName = data.name || "Q1"
     let blockData = Object.values(MOCK_BLOCKS).find(b => b.name === blockName)
 
     // If no direct match, pick one deterministically based on the name hash
@@ -281,7 +281,7 @@ function BlockDetailsContent({
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
                             className={`flex-1 justify-center py-2 text-[10px] font-bold uppercase tracking-wider rounded-sm flex items-center gap-2 transition-all border ${activeTab === tab.id
-                                ? "bg-white border-teal-600 text-teal-700 shadow-sm"
+                                ? "bg-white border-primary text-primary/90 shadow-sm"
                                 : "bg-white border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                                 }`}
                         >
@@ -353,7 +353,7 @@ function BlockDetailsContent({
                                     <div className="text-sm font-bold">{blockData.contact.agency}</div>
                                     <div className="text-[10px] text-slate-300">{blockData.contact.email}</div>
                                 </div>
-                                <Mail className="w-5 h-5 text-teal-400" />
+                                <Mail className="w-5 h-5 text-accent" />
                             </div>
                         )}
                     </div>
@@ -458,6 +458,123 @@ function BlockDetailsContent({
                                 </div>
                             </div>
 
+                            {/* Subsurface Data Uncertainty */}
+                            {(() => {
+                                // Derive uncertainty scores (0–100, higher = more confident/less uncertain)
+                                // from existing block data so every block is consistent without new fields
+                                const r = blockData.risks
+                                const hasProduction = (blockData.production?.length ?? 0) > 0
+                                const hasReserves = !!(blockData.resources.gasReserves2P || blockData.resources.oilReserves2P)
+                                const hasProspective = !!(blockData.resources.prospectiveGasMean || blockData.resources.prospectiveOilMean)
+                                const waterDepth = blockData.infrastructure.waterDepth ?? 0
+
+                                // Seismic coverage — inversely scaled with tech risk; production blocks generally better covered
+                                const seismicScore = Math.min(100, Math.max(10,
+                                    (hasReserves ? 70 : hasProspective ? 45 : 30) +
+                                    (10 - r.technical) * 3
+                                ))
+                                // Well control — production blocks have many wells; exploration has few/none
+                                const wellScore = Math.min(100, Math.max(5,
+                                    (hasProduction ? 80 : hasReserves ? 55 : 20) +
+                                    (10 - r.technical) * 2
+                                ))
+                                // Reservoir characterisation — linked to wells drilled + seismic
+                                const reservoirScore = Math.min(100, Math.max(10,
+                                    (hasProduction ? 75 : hasReserves ? 50 : 25) +
+                                    (10 - r.technical) * 3 - (waterDepth > 100 ? 10 : 0)
+                                ))
+                                // Fluid sampling — requires production test data
+                                const fluidScore = Math.min(100, Math.max(5,
+                                    hasProduction ? 82 : hasReserves ? 48 : 18
+                                ))
+                                // Structural confidence — inversely correlated with tech risk
+                                const structuralScore = Math.min(100, Math.max(15,
+                                    (hasReserves ? 72 : hasProspective ? 44 : 28) +
+                                    (10 - r.technical) * 2
+                                ))
+
+                                const dims: { label: string; score: number; note: string }[] = [
+                                    { label: "Seismic Coverage", score: seismicScore, note: seismicScore >= 70 ? "3D acquired" : seismicScore >= 45 ? "2D / partial 3D" : "Sparse 2D only" },
+                                    { label: "Well Control", score: wellScore, note: wellScore >= 70 ? "Multiple wells" : wellScore >= 45 ? "1–2 wells" : "Undrilled" },
+                                    { label: "Reservoir Characterisation", score: reservoirScore, note: reservoirScore >= 70 ? "High confidence" : reservoirScore >= 45 ? "Moderate" : "Conceptual" },
+                                    { label: "Fluid Sampling", score: fluidScore, note: fluidScore >= 70 ? "MDT / PVT available" : fluidScore >= 45 ? "Limited samples" : "No samples" },
+                                    { label: "Structural Confidence", score: structuralScore, note: structuralScore >= 70 ? "Seismically defined" : structuralScore >= 45 ? "Depth-converted" : "Analogue-based" },
+                                ]
+
+                                const overallScore = Math.round(dims.reduce((s, d) => s + d.score, 0) / dims.length)
+                                const overallLabel = overallScore >= 70 ? "HIGH CONFIDENCE" : overallScore >= 45 ? "MODERATE" : "LOW — HIGH RISK"
+                                const overallColor = overallScore >= 70 ? "text-emerald-600" : overallScore >= 45 ? "text-amber-600" : "text-red-500"
+                                const overallBg = overallScore >= 70 ? "bg-emerald-50 border-emerald-100" : overallScore >= 45 ? "bg-amber-50 border-amber-100" : "bg-red-50 border-red-100"
+
+                                // Primary data gap note
+                                const lowestDim = dims.reduce((a, b) => a.score < b.score ? a : b)
+                                const gapNote = `Primary uncertainty: ${lowestDim.label.toLowerCase()} (${lowestDim.note.toLowerCase()})`
+
+                                const barColor = (s: number) =>
+                                    s >= 70 ? "bg-emerald-500" : s >= 45 ? "bg-amber-400" : "bg-red-400"
+                                const labelColor = (s: number) =>
+                                    s >= 70 ? "text-emerald-600" : s >= 45 ? "text-amber-600" : "text-red-500"
+                                const confidenceLabel = (s: number) =>
+                                    s >= 70 ? "High" : s >= 45 ? "Med" : "Low"
+
+                                return (
+                                    <div>
+                                        <div className="h-px bg-gray-100 mb-6" />
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Subsurface Data Uncertainty</h4>
+                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${overallBg} ${overallColor} uppercase tracking-wide`}>
+                                                {overallLabel}
+                                            </span>
+                                        </div>
+
+                                        {/* Score bars */}
+                                        <div className="space-y-3">
+                                            {dims.map((d) => (
+                                                <div key={d.label}>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-[11px] text-slate-600 font-medium">{d.label}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[9px] text-slate-400 italic">{d.note}</span>
+                                                            <span className={`text-[9px] font-bold ${labelColor(d.score)} w-6 text-right`}>{confidenceLabel(d.score)}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full transition-all duration-500 ${barColor(d.score)}`}
+                                                            style={{ width: `${d.score}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Divider lines legend */}
+                                        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100">
+                                            <div className="flex items-center gap-1">
+                                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                <span className="text-[9px] text-slate-500">High ≥70</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <div className="w-2 h-2 rounded-full bg-amber-400" />
+                                                <span className="text-[9px] text-slate-500">Med 45–69</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <div className="w-2 h-2 rounded-full bg-red-400" />
+                                                <span className="text-[9px] text-slate-500">Low &lt;45</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Data gap callout */}
+                                        <div className="mt-3 p-2.5 rounded bg-slate-50 border border-slate-100 flex items-start gap-2">
+                                            <svg className="w-3 h-3 text-slate-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <p className="text-[10px] text-slate-500 leading-relaxed">{gapNote}. Full data packages available in the NDR subsurface library.</p>
+                                        </div>
+                                    </div>
+                                )
+                            })()}
+
                             {/* Development Timeline */}
                             {blockData.developmentPlan && (
                                 <div>
@@ -486,6 +603,7 @@ function BlockDetailsContent({
                         </div>
                     )
                 )}
+
 
                 {/* --- COMMERCIAL TAB --- */}
                 {activeTab === "commercial" && (
@@ -556,7 +674,7 @@ function BlockDetailsContent({
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="p-2 bg-slate-50 rounded border border-slate-100 text-center">
                                         <div className="text-[10px] text-slate-500 uppercase">Royalty Rate</div>
-                                        <div className="text-lg font-bold text-teal-600">{blockData.fiscalTerms.royaltyRate}%</div>
+                                        <div className="text-lg font-bold text-primary">{blockData.fiscalTerms.royaltyRate}%</div>
                                     </div>
                                     <div className="p-2 bg-slate-50 rounded border border-slate-100 text-center">
                                         <div className="text-[10px] text-slate-500 uppercase">Tax Rate</div>
@@ -705,7 +823,7 @@ function PlayContent({ data, onNavigate }: { data: any, onNavigate: (type: Panel
                         className="flex items-center justify-between p-2 hover:bg-slate-50 rounded cursor-pointer transition-colors group border border-transparent hover:border-slate-200"
                     >
                         <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-teal-500 rounded-sm" />
+                            <div className="w-1.5 h-1.5 bg-primary rounded-sm" />
                             <span className="text-xs font-medium text-slate-700 group-hover:text-slate-900">Alpha-12</span>
                         </div>
                         <div className="flex items-center gap-3">
@@ -769,7 +887,7 @@ function BasinContent({ data, onNavigate }: { data: any, onNavigate: (type: Pane
                     </div>
                     <div className="flex justify-between items-center">
                         <dt className="text-slate-600">Tech Success Rate</dt>
-                        <dd className="font-mono font-bold text-teal-600">42%</dd>
+                        <dd className="font-mono font-bold text-primary">42%</dd>
                     </div>
                     <div className="flex justify-between items-center">
                         <dt className="text-slate-600">Comm. Success Rate</dt>
@@ -856,17 +974,17 @@ function WellDetailsContent({ data }: { data: any }) {
     // Placeholder data mixed with real data
     const wellData = {
         name: data.name || "Test Well",
-        field: data.field || "Mahakam Delta Field",
-        operator: data.operator || "Pertamina Hulu Mahakam",
+        field: data.field || "Q1 Field",
+        operator: data.operator || "NAM (Shell/ExxonMobil)",
         status: data.status || "Active",
         spudDate: "2023-05-15",
         completionDate: "2023-08-20",
         wellType: "Exploration",
-        totalDepth: "3,450 m",
-        waterDepth: "120 m",
-        rigName: "Deepsea Challenger",
-        result: "Oil & Gas Discovery",
-        coordinates: "2° 15' 30\" N, 117° 45' 10\" E"
+        totalDepth: "3,280 m",
+        waterDepth: "32 m",
+        rigName: "Maersk Resilient",
+        result: "Gas Discovery",
+        coordinates: "52° 41' 12\" N, 4° 18' 55\" E"
     }
 
     const handleExportPDF = () => {
@@ -900,7 +1018,7 @@ function WellDetailsContent({ data }: { data: any }) {
                 ['Coordinates', wellData.coordinates],
             ],
             theme: 'grid',
-            headStyles: { fillColor: [13, 148, 136] }, // Teal-600
+            headStyles: { fillColor: [76, 29, 149] }, // Primary (Purple)
             styles: { fontSize: 10, cellPadding: 4 },
         })
 
@@ -909,7 +1027,7 @@ function WellDetailsContent({ data }: { data: any }) {
         doc.setFontSize(8)
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i)
-            doc.text('Indonesia VDR - Confidential', 14, doc.internal.pageSize.height - 10)
+            doc.text('Netherlands VDR - Confidential', 14, doc.internal.pageSize.height - 10)
         }
 
         doc.save(`${wellData.name.replace(/\s+/g, '_')}_Report.pdf`)
@@ -923,7 +1041,7 @@ function WellDetailsContent({ data }: { data: any }) {
                     <h3 className="text-xl font-bold text-slate-900">{wellData.name}</h3>
                     <button
                         onClick={handleExportPDF}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-teal-50 text-teal-700 text-[10px] font-bold uppercase tracking-wider rounded border border-teal-200 hover:bg-teal-100 transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary/90 text-[10px] font-bold uppercase tracking-wider rounded border border-primary/30 hover:bg-primary/20 transition-colors"
                     >
                         <FileDown className="w-3.5 h-3.5" />
                         Export Report
@@ -985,7 +1103,7 @@ function WellDetailsContent({ data }: { data: any }) {
                     </div>
                     <div className="flex justify-between">
                         <span className="text-slate-600">Result</span>
-                        <span className="font-medium text-teal-700">{wellData.result}</span>
+                        <span className="font-medium text-primary/90">{wellData.result}</span>
                     </div>
                 </div>
             </div>
@@ -996,7 +1114,7 @@ function WellDetailsContent({ data }: { data: any }) {
             <div>
                 <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-3 tracking-wider">Location</h4>
                 <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
-                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                     <span className="font-mono">{wellData.coordinates}</span>
                 </div>
             </div>
@@ -1025,12 +1143,12 @@ function WellDetailsContent({ data }: { data: any }) {
                                 className="w-8 h-8 object-contain"
                             />
                             <div className="flex-1 min-w-0">
-                                <div className="text-xs font-medium text-slate-800 truncate group-hover:text-teal-700 transition-colors">
+                                <div className="text-xs font-medium text-slate-800 truncate group-hover:text-primary/90 transition-colors">
                                     {report.name}
                                 </div>
                                 <div className="text-[10px] text-slate-400">Click to view</div>
                             </div>
-                            <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-600 transition-colors" />
+                            <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary transition-colors" />
                         </button>
                     ))}
                 </div>

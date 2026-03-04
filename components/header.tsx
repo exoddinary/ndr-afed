@@ -37,7 +37,7 @@ export function Header({ showNavigation = false, titleOverride }: HeaderProps) {
 
   
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-teal-600 dark:bg-slate-900/95 text-white dark:text-inherit backdrop-blur supports-[backdrop-filter]:bg-teal-600/95 dark:supports-[backdrop-filter]:bg-slate-900/60">
+    <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-primary dark:bg-slate-900/95 text-white dark:text-inherit backdrop-blur supports-[backdrop-filter]:bg-primary/95 dark:supports-[backdrop-filter]:bg-slate-900/60">
       <div className="w-full px-6 py-3">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
@@ -60,7 +60,7 @@ export function Header({ showNavigation = false, titleOverride }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="relative flex items-center justify-center w-9 h-9 rounded-full text-white/90 dark:text-slate-300 hover:text-white hover:bg-teal-700/40 dark:hover:bg-slate-800"
+                  className="relative flex items-center justify-center w-9 h-9 rounded-full text-white/90 dark:text-slate-300 hover:text-white hover:bg-primary/90/40 dark:hover:bg-slate-800"
                   aria-label="Notifications"
                 >
                   <Bell className="h-5 w-5" />
@@ -78,7 +78,7 @@ export function Header({ showNavigation = false, titleOverride }: HeaderProps) {
               >
                 <div className="px-4 py-3 flex items-center justify-between border-b border-border">
                   <h4 className="text-base font-semibold">Notifications</h4>
-                  <Button variant="link" className="text-sm text-teal-500 hover:text-teal-400 p-0 h-auto" onClick={markAllAsRead}>
+                  <Button variant="link" className="text-sm text-primary hover:text-accent p-0 h-auto" onClick={markAllAsRead}>
                     <Check className="h-4 w-4 mr-1" />
                     Mark all as read
                   </Button>
@@ -90,7 +90,7 @@ export function Header({ showNavigation = false, titleOverride }: HeaderProps) {
                       return (
                         <div
                           key={i}
-                          className="p-3 rounded-lg flex items-start gap-3 transition-colors cursor-pointer hover:bg-teal-500/10 dark:hover:bg-teal-500/15"
+                          className="p-3 rounded-lg flex items-start gap-3 transition-colors cursor-pointer hover:bg-primary/10 dark:hover:bg-primary/15"
                         >
                           <div
                             className={`mt-1 w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center ${n.iconColor.replace("text-", "bg-")}/10`}
@@ -117,7 +117,7 @@ export function Header({ showNavigation = false, titleOverride }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="flex items-center gap-2 text-white/90 dark:text-slate-300 hover:text-white hover:bg-teal-700/40 dark:hover:bg-slate-800"
+                  className="flex items-center gap-2 text-white/90 dark:text-slate-300 hover:text-white hover:bg-primary/90/40 dark:hover:bg-slate-800"
                 >
                   <RoleIcon className="h-4 w-4" />
                   <span className="text-sm">{currentRole}</span>
@@ -152,7 +152,7 @@ export function Header({ showNavigation = false, titleOverride }: HeaderProps) {
 
             <Button
               variant="ghost"
-              className="flex items-center gap-2 text-white/90 dark:text-slate-300 hover:text-white hover:bg-teal-700/40 dark:hover:bg-slate-800"
+              className="flex items-center gap-2 text-white/90 dark:text-slate-300 hover:text-white hover:bg-primary/90/40 dark:hover:bg-slate-800"
             >
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder-user.png" alt="Azli" />

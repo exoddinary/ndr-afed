@@ -12,7 +12,7 @@ const pipelineSteps = [
     title: "Format Conversion",
     description: "Convert shapefiles to GeoJSON format for web compatibility",
     icon: RefreshCw,
-    iconColor: "text-teal-400",
+    iconColor: "text-accent",
   },
   {
     title: "Validation",
@@ -24,7 +24,7 @@ const pipelineSteps = [
     title: "Catalog Integration",
     description: "Store in PostGIS database and add metadata to searchable catalog",
     icon: Database,
-    iconColor: "text-teal-400",
+    iconColor: "text-accent",
   },
   {
     title: "Geometry Processing",

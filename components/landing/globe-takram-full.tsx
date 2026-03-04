@@ -18,12 +18,12 @@ const loadWebGPU = async () => {
         const webgpu = await import('three/webgpu')
         WebGPURenderer = webgpu.WebGPURenderer
         WebGPUPostProcessing = webgpu.PostProcessing
-        
+
         // Import TSL nodes
         const tsl = await import('three/tsl')
         passNode = tsl.pass
         toneMappingNode = tsl.toneMapping
-        
+
         // Try to import Takram lens flare
         try {
             const takramWebgpu = await import('@takram/three-geospatial/webgpu')
@@ -33,7 +33,7 @@ const loadWebGPU = async () => {
         } catch (e) {
             console.warn('Takram lens flare not available, using fallback:', e)
         }
-        
+
         return true
     } catch (e) {
         console.error('WebGPU not available:', e)
@@ -48,8 +48,8 @@ import {
     getSunDirectionECI
 } from '@takram/three-atmosphere'
 
-// Import block data
-import blockData from '@/data/exploration-blocks.json'
+// Block data is fetched live from NLOG WFS API
+import { fetchNLOGLicences, type NLOGFeatureCollection } from '@/lib/nlog-api'
 
 // Earth constants
 const EARTH_RADIUS = 6.371 // km scaled
@@ -88,7 +88,7 @@ const getPolygonCenter = (coordinates: number[][][]): [number, number] => {
 
 // Main component using Takram's R3F components
 const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
-    onBlockSelect = () => {},
+    onBlockSelect = () => { },
     selectedBlock,
     blockData: propBlockData,
     licensingRounds = [],
@@ -97,6 +97,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
 }) => {
     const [isAutoRotating, setIsAutoRotating] = useState(true)
     const [date, setDate] = useState(() => new Date())
+    const [fetchedBlockData, setFetchedBlockData] = useState<NLOGFeatureCollection | null>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const rendererRef = useRef<any>(null)
     const sceneRef = useRef<THREE.Scene | null>(null)
@@ -104,7 +105,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
     const animationRef = useRef<number>(0)
     const [isReady, setIsReady] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    
+
     // Refs for dynamic updates from Leva
     const earthRef = useRef<THREE.Mesh | null>(null)
     const atmosphereMaterialRef = useRef<THREE.MeshBasicMaterial | null>(null)
@@ -112,7 +113,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
     const flowParticlesRef = useRef<THREE.Mesh[]>([])
     const lineMaterialsRef = useRef<THREE.LineBasicMaterial[]>([])
     const sunSpeedRef = useRef(0.005)
-    
+
     // Default settings (from Leva adjustments)
     const dayOfYear = 172
     const timeOfDay = 12
@@ -121,11 +122,19 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
     const earthRotationY = -2.5
     const earthRotationX = -0.1
     const showFlowParticles = true
-    
+
     const atmosphereOpacity = 0.15
     const lineOpacity = 0.15
     const sunIntensity = 3
-    
+
+    // Fetch NLOG block data
+    useEffect(() => {
+        if (propBlockData) return // use prop if available
+        fetchNLOGLicences()
+            .then(data => setFetchedBlockData(data))
+            .catch(e => console.warn('NLOG fetch failed:', e))
+    }, [propBlockData])
+
     // Set initial values
     useEffect(() => {
         sunSpeedRef.current = sunSpeed
@@ -134,36 +143,36 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
     // Zoom animation when entering workspace
     useEffect(() => {
         if (!isZooming || !cameraRef.current) return
-        
+
         const camera = cameraRef.current
         const targetDistance = EARTH_RADIUS * 0.8 // Zoom in close to Earth
         const startPos = camera.position.clone()
         const direction = startPos.clone().normalize()
         const targetPos = direction.multiplyScalar(targetDistance)
-        
+
         let progress = 0
         const zoomAnimation = () => {
             progress += 0.02
             if (progress >= 1) return
-            
+
             // Ease-in-out interpolation
-            const t = progress < 0.5 
-                ? 2 * progress * progress 
+            const t = progress < 0.5
+                ? 2 * progress * progress
                 : 1 - Math.pow(-2 * progress + 2, 2) / 2
-            
+
             camera.position.lerpVectors(startPos, targetPos, t)
             camera.lookAt(0, 0, 0)
-            
+
             requestAnimationFrame(zoomAnimation)
         }
-        
+
         zoomAnimation()
     }, [isZooming])
 
     // Update date for sun position
     useEffect(() => {
         if (!isAutoRotating) return
-        
+
         const interval = setInterval(() => {
             setDate(prev => {
                 const newDate = new Date(prev)
@@ -171,7 +180,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 return newDate
             })
         }, 100)
-        
+
         return () => clearInterval(interval)
     }, [isAutoRotating])
 
@@ -196,7 +205,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 // Import Three.js WebGPU and TSL
                 const { WebGPURenderer, PostProcessing } = await import('three/webgpu')
                 const { pass, toneMapping, uniform } = await import('three/tsl')
-                
+
                 // Try to import Takram lens flare
                 let lensFlare: any = null
                 let dithering: any = null
@@ -226,14 +235,14 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 scene.background = new THREE.Color(0x000000)
                 sceneRef.current = scene
 
-                // Create camera - positioned to view Indonesia
+                // Create camera - positioned to view the Netherlands
                 const camera = new THREE.PerspectiveCamera(
                     45,
                     window.innerWidth / window.innerHeight,
                     0.1,
                     1000
                 )
-                camera.position.set(EARTH_RADIUS * 2.5, EARTH_RADIUS * 0.5, EARTH_RADIUS * 1.5)
+                camera.position.set(EARTH_RADIUS * -0.3, EARTH_RADIUS * 1.8, EARTH_RADIUS * 2.2)
                 camera.lookAt(0, 0, 0)
                 cameraRef.current = camera
 
@@ -256,20 +265,20 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 // Create Earth
                 const earthGeometry = new THREE.SphereGeometry(EARTH_RADIUS, 128, 128)
                 const textureLoader = new THREE.TextureLoader()
-                
+
                 const earthTexture = textureLoader.load(
                     'https://unpkg.com/three-globe@2.31.0/example/img/earth-blue-marble.jpg'
                 )
                 earthTexture.colorSpace = THREE.SRGBColorSpace
-                
+
                 // Earth material - clean look, let lighting do the work
                 const earthMaterial = new THREE.MeshPhongMaterial({
                     map: earthTexture,
                     shininess: 5,
                 })
-                
+
                 const earth = new THREE.Mesh(earthGeometry, earthMaterial)
-                earth.rotation.set(-0.1, -2.5, 0) // Rotate to show Indonesia
+                earth.rotation.set(0.35, -0.09, 0) // Rotate to show the Netherlands (~52°N, 5°E)
                 scene.add(earth)
                 earthRef.current = earth // Store ref for Leva updates
 
@@ -311,7 +320,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 // Takram-style sun with lens flare (6 sharp streaks like the reference)
                 const sunGroup = new THREE.Group()
                 sunGroup.position.set(50, 20, 30)
-                
+
                 // Bright central core (smaller)
                 const coreCanvas = document.createElement('canvas')
                 coreCanvas.width = 128
@@ -324,7 +333,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 coreGradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
                 coreCtx.fillStyle = coreGradient
                 coreCtx.fillRect(0, 0, 128, 128)
-                
+
                 const coreTexture = new THREE.CanvasTexture(coreCanvas)
                 const coreSprite = new THREE.Sprite(
                     new THREE.SpriteMaterial({
@@ -336,7 +345,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 )
                 coreSprite.scale.set(4, 4, 1)
                 sunGroup.add(coreSprite)
-                
+
                 // Soft outer bloom (smaller, softer)
                 const bloomCanvas = document.createElement('canvas')
                 bloomCanvas.width = 256
@@ -349,7 +358,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 bloomGradient.addColorStop(1, 'rgba(255, 248, 235, 0)')
                 bloomCtx.fillStyle = bloomGradient
                 bloomCtx.fillRect(0, 0, 256, 256)
-                
+
                 const bloomTexture = new THREE.CanvasTexture(bloomCanvas)
                 const bloomSprite = new THREE.Sprite(
                     new THREE.SpriteMaterial({
@@ -361,16 +370,16 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 )
                 bloomSprite.scale.set(22, 22, 1)
                 sunGroup.add(bloomSprite)
-                
+
                 // 6 sharp lens flare streaks (like Takram reference)
                 const createStreakTexture = (length: number, width: number) => {
                     const canvas = document.createElement('canvas')
                     canvas.width = length
                     canvas.height = width
                     const ctx = canvas.getContext('2d')!
-                    
+
                     // Sharp streak with bright center tapering to edges
-                    const gradient = ctx.createLinearGradient(0, width/2, length, width/2)
+                    const gradient = ctx.createLinearGradient(0, width / 2, length, width / 2)
                     gradient.addColorStop(0, 'rgba(255, 255, 255, 0)')
                     gradient.addColorStop(0.1, 'rgba(255, 255, 255, 0.015)')
                     gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.06)')
@@ -378,11 +387,11 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.06)')
                     gradient.addColorStop(0.9, 'rgba(255, 255, 255, 0.015)')
                     gradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
-                    
+
                     // Vertical gradient for thin streak
                     ctx.fillStyle = gradient
                     ctx.fillRect(0, 0, length, width)
-                    
+
                     // Make it thinner in the middle vertically
                     const vGradient = ctx.createLinearGradient(0, 0, 0, width)
                     vGradient.addColorStop(0, 'rgba(0, 0, 0, 1)')
@@ -392,10 +401,10 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     ctx.globalCompositeOperation = 'destination-out'
                     ctx.fillStyle = vGradient
                     ctx.fillRect(0, 0, length, width)
-                    
+
                     return new THREE.CanvasTexture(canvas)
                 }
-                
+
                 // 6 streaks at 60-degree intervals (like the reference image) - shorter and more subtle
                 const streakLengths = [20, 16, 18, 14, 19, 13]
                 for (let i = 0; i < 6; i++) {
@@ -413,11 +422,12 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     streakSprite.scale.set(streakLengths[i], 0.6, 1)
                     sunGroup.add(streakSprite)
                 }
-                
+
                 scene.add(sunGroup)
 
-                // Add block points
-                const blockCenters = blockData.features.slice(0, 20).map((feature: any) => {
+                // Add block points (use prop > fetched > empty)
+                const activeBlockData = propBlockData ?? fetchedBlockData
+                const blockCenters = (activeBlockData?.features ?? []).slice(0, 20).map((feature: any) => {
                     const [lng, lat] = getPolygonCenter(feature.geometry.coordinates)
                     if (isNaN(lat) || isNaN(lng)) return null
                     return latLngToVector3(lat, lng, EARTH_RADIUS * 1.005)
@@ -431,7 +441,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     const point = new THREE.Mesh(pointGeom, pointMat)
                     point.position.copy(pos)
                     // Apply same rotation as earth
-                    const rotatedPos = pos.clone().applyEuler(new THREE.Euler(-0.1, -2.5, 0))
+                    const rotatedPos = pos.clone().applyEuler(new THREE.Euler(0.35, -0.09, 0))
                     point.position.copy(rotatedPos)
                     scene.add(point)
                 })
@@ -442,7 +452,7 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     licensingRounds.forEach((r) => {
                         const [lon, lat] = r.coordinates
                         const pos = latLngToVector3(lat, lon, EARTH_RADIUS * 1.01)
-                        const rotated = pos.clone().applyEuler(new THREE.Euler(-0.1, -2.5, 0))
+                        const rotated = pos.clone().applyEuler(new THREE.Euler(0.35, -0.09, 0))
                         const geom = new THREE.SphereGeometry(0.04, 12, 12)
                         // Light-affected material so licensing markers catch the sun
                         const mat = new THREE.MeshPhongMaterial({ color: 0xD8B4FE, shininess: 60 })
@@ -458,32 +468,32 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 //  - a dim base line
                 //  - a bright short line segment that moves along the curve
                 const flowLines: { curve: THREE.QuadraticBezierCurve3, bright: THREE.Line, offset: number }[] = []
-                const earthRotation = new THREE.Euler(-0.1, -2.5, 0)
-                
+                const earthRotation = new THREE.Euler(0.35, -0.09, 0)
+
                 // Connect ALL blocks to each other (full web)
                 for (let i = 0; i < blockCenters.length; i++) {
                     for (let j = i + 1; j < blockCenters.length; j++) {
                         const startPos = blockCenters[i] as THREE.Vector3
                         const endPos = blockCenters[j] as THREE.Vector3
                         if (!startPos || !endPos) continue
-                        
+
                         // Apply earth rotation
                         const start = startPos.clone().applyEuler(earthRotation)
                         const end = endPos.clone().applyEuler(earthRotation)
-                        
+
                         // Calculate arc midpoint - higher for longer distances
                         const distance = start.distanceTo(end)
                         const arcHeight = EARTH_RADIUS * (1.05 + distance * 0.015)
                         const mid = start.clone().add(end).multiplyScalar(0.5)
                         mid.normalize().multiplyScalar(arcHeight)
-                        
+
                         // Create curve
                         const curve = new THREE.QuadraticBezierCurve3(start, mid, end)
                         const points = curve.getPoints(32)
                         const geometry = new THREE.BufferGeometry().setFromPoints(points)
-                        const material = new THREE.LineBasicMaterial({ 
+                        const material = new THREE.LineBasicMaterial({
                             color: 0x9ca3af, // soft gray
-                            transparent: true, 
+                            transparent: true,
                             opacity: 0.035 // slightly dimmer base to let bloom pop
                         })
                         const line = new THREE.Line(geometry, material)
@@ -514,18 +524,18 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 let satellite: THREE.Group | null = null
                 let satelliteLight: THREE.PointLight | null = null
                 let satelliteBeacon: THREE.Mesh | null = null
-                
+
                 gltfLoader.load('/models/ISS_stationary.glb', (gltf) => {
                     satellite = gltf.scene
                     satellite.scale.set(0.008, 0.008, 0.008)
                     satellite.position.set(EARTH_RADIUS * 1.3, 0, 0)
                     scene.add(satellite)
-                    
+
                     // Add blinking beacon light
                     satelliteLight = new THREE.PointLight(0xff3333, 0, 8)
                     satelliteLight.position.set(0, 50, 0) // Relative to satellite
                     satellite.add(satelliteLight)
-                    
+
                     // Add visible beacon sphere
                     const beaconGeom = new THREE.SphereGeometry(5, 8, 8)
                     const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff3333, transparent: true, opacity: 0 })
@@ -562,10 +572,10 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                 let sunAngle = 0
                 let flowOffset = 0
                 let blinkTime = 0
-                
+
                 const animate = () => {
                     animationRef.current = requestAnimationFrame(animate)
-                    
+
                     // Rotate sun (speed controlled by Leva)
                     sunAngle += sunSpeedRef.current
                     const sunX = 80 * Math.sin(sunAngle)
@@ -576,11 +586,11 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     if (takramContext) {
                         const d = new THREE.Vector3(sunX, sunY, sunZ).normalize()
                         try {
-                            ;(takramContext.sunDirectionECEF as any).value.set(d.x, d.y, d.z)
+                            ; (takramContext.sunDirectionECEF as any).value.set(d.x, d.y, d.z)
                             if (takramSkyNode) (takramSkyNode as any).needsUpdate = true
-                        } catch {}
+                        } catch { }
                     }
-                    
+
                     // Animate bright short segments along each curve (slower)
                     flowOffset += 0.002
                     flowLines.forEach(({ curve, bright, offset }) => {
@@ -600,10 +610,10 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                         }
                         positions.needsUpdate = true
                     })
-                    
+
                     // Keep satellite at its initial orbit position (no camera-follow fly-in)
                     // Position is set once during creation; here we only handle visual effects (blink)
-                    
+
                     // Blink satellite beacon every 1 second
                     blinkTime += 0.016
                     const blinkOn = Math.floor(blinkTime) % 2 === 0 && (blinkTime % 1) < 0.1
@@ -613,11 +623,11 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
                     if (satelliteBeacon) {
                         (satelliteBeacon.material as THREE.MeshBasicMaterial).opacity = blinkOn ? 1 : 0
                     }
-                    
+
                     controls.update()
                     renderer.render(scene, camera)
                 }
-                
+
                 animate()
 
                 // Handle resize
@@ -669,9 +679,9 @@ const GlobeTakramFull: FC<GlobeTakramFullProps> = ({
 
     return (
         <div className="w-full h-full bg-black relative">
-            
+
             <canvas ref={canvasRef} className="w-full h-full" />
-            
+
             {!isReady && (
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-white text-lg">Initializing WebGPU...</div>

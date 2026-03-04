@@ -56,11 +56,11 @@ export default function SearchBar({ data, onSearch }: SearchBarProps) {
         <div ref={containerRef} className="relative w-full max-w-2xl mx-auto">
             <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-white/60 group-focus-within:text-teal-500 transition-colors" />
+                    <Search className="h-5 w-5 text-white/60 group-focus-within:text-primary transition-colors" />
                 </div>
                 <input
                     type="text"
-                    className="block w-full pl-12 pr-12 py-2.5 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full text-sm text-white placeholder-white/40 focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 focus:bg-black/80 transition-all outline-none shadow-2xl"
+                    className="block w-full pl-12 pr-12 py-2.5 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full text-sm text-white placeholder-white/40 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-black/80 transition-all outline-none shadow-2xl"
                     placeholder="Search blocks, basins, documents..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -102,11 +102,11 @@ export default function SearchBar({ data, onSearch }: SearchBarProps) {
                                         onClick={() => handleSelect(item)}
                                         className="w-full text-left px-4 py-3 hover:bg-white/10 transition-colors flex items-center gap-3 group"
                                     >
-                                        <div className="p-2 rounded-lg bg-white/5 text-white/60 group-hover:text-teal-500 group-hover:bg-teal-500/10 transition-colors">
+                                        <div className="p-2 rounded-lg bg-white/5 text-white/60 group-hover:text-primary group-hover:bg-primary/10 transition-colors">
                                             <MapPin className="h-4 w-4" />
                                         </div>
                                         <div>
-                                            <div className="text-sm font-medium text-white group-hover:text-teal-400 transition-colors">
+                                            <div className="text-sm font-medium text-white group-hover:text-primary transition-colors">
                                                 {item.namobj}
                                             </div>
                                             <div className="text-[10px] text-white/50 uppercase tracking-wider">

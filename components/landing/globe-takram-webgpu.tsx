@@ -8,7 +8,7 @@ import { Play, Pause } from 'lucide-react'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 
 // Import block data
-import blockData from '@/data/exploration-blocks.json'
+// blockData fetched from NLOG WFS API (see lib/nlog-api.ts)
 
 // Takram atmosphere imports
 import {

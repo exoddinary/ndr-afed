@@ -34,7 +34,7 @@ export function ToastNotification({ toasts, onRemoveToast }: ToastNotificationPr
           className="bg-slate-800 border-slate-700 p-4 min-w-[300px] shadow-lg animate-in slide-in-from-right-full"
         >
           <div className="flex items-start gap-3">
-            <CheckCircle className="h-5 w-5 text-teal-400 flex-shrink-0 mt-0.5" />
+            <CheckCircle className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-white text-sm font-medium">{toast.message}</p>
             </div>

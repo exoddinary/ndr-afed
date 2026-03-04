@@ -115,7 +115,7 @@ export function Landing3DMap() {
                             width: 500000,   // diameter of the object in meters
                             height: 500000,  // height of the object in meters
                             resource: { primitive: "sphere" },
-                            material: { color: [20, 184, 166] } // Teal color
+                            material: { color: [76, 29, 149] } // Purple color
                         }],
                         verticalOffset: {
                             screenLength: 40,
@@ -209,7 +209,7 @@ export function Landing3DMap() {
 
                     <button
                         onClick={startTransition}
-                        className="pointer-events-auto bg-teal-600/90 hover:bg-teal-500 text-white px-8 py-4 text-lg rounded-full shadow-[0_0_30px_rgba(20,184,166,0.5)] hover:shadow-[0_0_50px_rgba(20,184,166,0.8)] transition-all backdrop-blur-sm border border-teal-400/30 animate-in fade-in zoom-in duration-1000 delay-300"
+                        className="pointer-events-auto bg-primary/90 hover:bg-primary text-white px-8 py-4 text-lg rounded-full shadow-[0_0_30px_rgba(76,29,149,0.5)] hover:shadow-[0_0_50px_rgba(76,29,149,0.8)] transition-all backdrop-blur-sm border border-primary/30 animate-in fade-in zoom-in duration-1000 delay-300"
                     >
                         Enter Workspace
                     </button>

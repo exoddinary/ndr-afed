@@ -1,23 +1,13 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { useTheme } from "next-themes"
 import Map from "@arcgis/core/Map"
 import MapView from "@arcgis/core/views/MapView"
 import SceneView from "@arcgis/core/views/SceneView"
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer"
-import MapImageLayer from "@arcgis/core/layers/MapImageLayer"
-import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer"
-import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol"
-import Extent from "@arcgis/core/geometry/Extent"
 import LabelClass from "@arcgis/core/layers/support/LabelClass"
 import TextSymbol from "@arcgis/core/symbols/TextSymbol"
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils"
-import FeatureLayer from "@arcgis/core/layers/FeatureLayer"
-import Graphic from "@arcgis/core/Graphic"
-import Point from "@arcgis/core/geometry/Point"
-// @ts-ignore - shpjs doesn't have type declarations
-import shp from "shpjs"
 import "@arcgis/core/assets/esri/themes/light/main.css"
 
 // Props to allow parent to listen to map clicks
@@ -67,15 +57,15 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       console.log('🗺️ MAP EFFECT RUNNING - mounted:', mounted, 'is3D:', is3D)
 
       // 1. Save current extent/center from previous view if available
-      let currentCenter = [117.5, 2.5]
+      let currentCenter = [5.2, 52.2] // Netherlands
       let currentZoom = 6
 
       if (viewRef.current) {
          if (viewRef.current.center) {
-            currentCenter = [viewRef.current.center.longitude ?? 117.5, viewRef.current.center.latitude ?? 2.5]
+            currentCenter = [viewRef.current.center.longitude ?? 5.2, viewRef.current.center.latitude ?? 52.2]
          }
          if (viewRef.current.zoom) {
-            currentZoom = viewRef.current.zoom ?? 6
+            currentZoom = viewRef.current.zoom ?? 7
          }
          viewRef.current.destroy()
          viewRef.current = null
@@ -89,9 +79,10 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       mapRef.current = map
 
       // 3. Initialize Layers on the new Map
+      const NLOG_LICENCES_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:gdw_ng_licence_utm&outputFormat=application/json&srsName=EPSG:4326'
       const blocksLayer = new GeoJSONLayer({
-         url: "/data/exploration-blocks.json",
-         copyright: "ESDM",
+         url: NLOG_LICENCES_URL,
+         copyright: "NLOG / Rijkswaterstaat Noordzee & TNO",
          renderer: {
             type: "simple",
             symbol: {
@@ -102,30 +93,27 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
          },
          labelingInfo: [
             new LabelClass({
-               labelExpressionInfo: { expression: "$feature.namobj" },
+               labelExpressionInfo: { expression: "$feature.licence_name" },
                symbol: new TextSymbol({
                   color: "white",
                   haloColor: [50, 50, 50, 0.9],
                   haloSize: 2,
                   font: { size: 10, weight: "bold", family: "Arial" }
                }),
-               minScale: 0, // Always show labels
+               minScale: 0,
                maxScale: 0,
                labelPlacement: "always-horizontal"
             })
          ],
          popupTemplate: {
-            title: "{namobj}",
+            title: "{licence_name}",
             content: [{
                type: "fields",
                fieldInfos: [
-                  { fieldName: "oprblk", label: "Operator" },
-                  { fieldName: "status", label: "Status" },
-                  {
-                     fieldName: "expdat",
-                     label: "Expiry Date",
-                     format: { dateFormat: "short-date" }
-                  }
+                  { fieldName: "licence_name", label: "Licence Name" },
+                  { fieldName: "operator_name", label: "Operator" },
+                  { fieldName: "licence_status", label: "Status" },
+                  { fieldName: "expiry_date", label: "Expiry Date" }
                ]
             }]
          },
@@ -135,60 +123,139 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       map.add(blocksLayer)
       layersRef.current['active-blocks'] = blocksLayer
 
-      const seismicLayer = new MapImageLayer({
-         url: "https://datamigas.esdm.go.id/arcgis/rest/services/MDR2/Seismik_2D_LN/MapServer",
-         opacity: 0.7,
-         visible: activeLayers.includes('seismic-2d')
-      })
-      map.add(seismicLayer)
-      layersRef.current['seismic-2d'] = seismicLayer
-
-      const pipelineLayer = new GeoJSONLayer({
-         url: "/data/pipeline/pipe_infrastructure.geojson",
-         copyright: "ESDM",
+      // --- NLOG: 2D Seismic lines ---
+      const NLOG_2D_SEISMIC_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:gdw_ng_smc_ln_utm&outputFormat=application/json&srsName=EPSG:4326'
+      const seismicLayer = new GeoJSONLayer({
+         url: NLOG_2D_SEISMIC_URL,
+         copyright: "NLOG / TNO",
          renderer: {
             type: "simple",
             symbol: {
                type: "simple-line",
-               color: [255, 215, 0, 1],
-               width: 2
+               color: [0, 191, 255, 0.85], // deep sky blue
+               width: 1
             } as any
          },
-         visible: activeLayers.includes('pipeline-infrastructure'),
-         minScale: 5000000,
-         effect: "bloom(1.5, 0.5px, 0.1)",
+         popupTemplate: {
+            title: "{survey_name}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "survey_name", label: "Survey" },
+                  { fieldName: "survey_type", label: "Type" },
+                  { fieldName: "operator_name", label: "Operator" },
+                  { fieldName: "survey_year", label: "Year" }
+               ]
+            }]
+         },
+         visible: activeLayers.includes('seismic-2d'),
          elevationInfo: { mode: "on-the-ground" }
       })
-      map.add(pipelineLayer)
-      layersRef.current['pipeline-infrastructure'] = pipelineLayer
+      map.add(seismicLayer)
+      layersRef.current['seismic-2d'] = seismicLayer
 
-      // Wells layer - ArcGIS service (points)
-      const wellsLayer = new FeatureLayer({
-         url: "https://datamigas.esdm.go.id/arcgis/rest/services/MDR2/well/MapServer/0",
-         title: "Wells",
-         outFields: ["*"],
+      // --- NLOG: 3D Seismic grids ---
+      const NLOG_3D_SEISMIC_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:gdw_ng_smc_grid_utm&outputFormat=application/json&srsName=EPSG:4326'
+      const seismic3dLayer = new GeoJSONLayer({
+         url: NLOG_3D_SEISMIC_URL,
+         copyright: "NLOG / TNO",
+         renderer: {
+            type: "simple",
+            symbol: {
+               type: "simple-fill",
+               color: [0, 120, 255, 0.08],
+               outline: { color: [0, 160, 255, 0.7], width: 1 }
+            } as any
+         },
+         popupTemplate: {
+            title: "{survey_name}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "survey_name", label: "Survey" },
+                  { fieldName: "operator_name", label: "Operator" },
+                  { fieldName: "survey_year", label: "Year" },
+                  { fieldName: "area_sqkm", label: "Area (km²)" }
+               ]
+            }]
+         },
+         visible: activeLayers.includes('seismic-3d'),
+         effect: "bloom(1.0, 0.5px, 0)",
+         elevationInfo: { mode: "on-the-ground" }
+      })
+      map.add(seismic3dLayer)
+      layersRef.current['seismic-3d'] = seismic3dLayer
+
+      // --- NLOG: Oil & Gas Fields (replaces pipeline layer) ---
+      const NLOG_FIELDS_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:v_nlog_velden&outputFormat=application/json&srsName=EPSG:4326'
+      const fieldsLayer = new GeoJSONLayer({
+         url: NLOG_FIELDS_URL,
+         copyright: "NLOG / TNO",
+         renderer: {
+            type: "simple",
+            symbol: {
+               type: "simple-fill",
+               color: [34, 197, 94, 0.15],
+               outline: { color: [34, 197, 94, 0.8], width: 1.5 }
+            } as any
+         },
+         labelingInfo: [
+            new LabelClass({
+               labelExpressionInfo: { expression: "$feature.field_name" },
+               symbol: new TextSymbol({
+                  color: [34, 197, 94, 1],
+                  haloColor: [0, 0, 0, 0.8],
+                  haloSize: 1.5,
+                  font: { size: 9, weight: "bold", family: "Arial" }
+               }),
+               minScale: 2000000,
+               maxScale: 0
+            })
+         ],
+         popupTemplate: {
+            title: "{field_name}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "field_name", label: "Field" },
+                  { fieldName: "operator_name", label: "Operator" },
+                  { fieldName: "field_status", label: "Status" },
+                  { fieldName: "primary_product", label: "Product" }
+               ]
+            }]
+         },
+         visible: activeLayers.includes('pipeline-infrastructure'),
+         elevationInfo: { mode: "on-the-ground" }
+      })
+      map.add(fieldsLayer)
+      layersRef.current['pipeline-infrastructure'] = fieldsLayer
+
+      // --- NLOG: All Boreholes / Wells ---
+      const NLOG_WELLS_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:gdw_ng_wll_all_utm&outputFormat=application/json&srsName=EPSG:4326'
+      const wellsLayer = new GeoJSONLayer({
+         url: NLOG_WELLS_URL,
+         copyright: "NLOG / TNO",
          renderer: {
             type: "simple",
             symbol: {
                type: "simple-marker",
                style: "circle",
-               color: [0, 255, 255, 0.9], // cyan
-               size: 3, // smaller dots
-               outline: {
-                  color: [0, 128, 128, 1],
-                  width: 0.5
-               }
-            }
-         } as any,
+               color: [0, 255, 200, 0.9], // teal-cyan
+               size: 4,
+               outline: { color: [0, 160, 130, 1], width: 0.5 }
+            } as any
+         },
          popupTemplate: {
-            title: "Well: {WELLNAME}",
+            title: "{well_name}",
             content: [{
                type: "fields",
                fieldInfos: [
-                  { fieldName: "WELLNAME", label: "Name" },
-                  { fieldName: "FIELD", label: "Field" },
-                  { fieldName: "OPERATOR", label: "Operator" },
-                  { fieldName: "STATUS", label: "Status" }
+                  { fieldName: "well_name", label: "Well Name" },
+                  { fieldName: "operator_name", label: "Operator" },
+                  { fieldName: "well_type", label: "Type" },
+                  { fieldName: "well_status", label: "Status" },
+                  { fieldName: "spud_date", label: "Spud Date" },
+                  { fieldName: "total_depth", label: "Total Depth (m)" }
                ]
             }]
          },
@@ -199,127 +266,38 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       map.add(wellsLayer)
       layersRef.current['wells'] = wellsLayer
 
-      // Platform layer - load from shapefile using shpjs
-
-      // Load shapefile and create FeatureLayer
-      fetch('/data/platform/platforms_migas.zip')
-         .then(response => response.arrayBuffer())
-         .then(buffer => shp(buffer))
-         .then((geojson: any) => {
-            console.log('📍 Shapefile parsed via shpjs')
-
-            // Handle both single and multiple layer results
-            const features = Array.isArray(geojson) ? geojson[0].features : geojson.features
-            console.log('📍 Features count:', features?.length)
-
-            if (!features || features.length === 0) {
-               console.error('No features found in shapefile')
-               return
-            }
-
-            // Convert GeoJSON features to ArcGIS Graphics (filter out null geometries)
-            const graphics = features
-               .filter((feature: any) => feature.geometry && feature.geometry.coordinates)
-               .map((feature: any, index: number) => {
-                  const coords = feature.geometry.coordinates
-                  return new Graphic({
-                     geometry: new Point({
-                        x: coords[0],
-                        y: coords[1],
-                        spatialReference: { wkid: 4326 }
-                     }),
-                     attributes: {
-                        OBJECTID: index + 1,
-                        ...feature.properties
-                     }
-                  })
-               })
-
-            console.log('📍 Valid graphics (after filtering null geometries):', graphics.length)
-
-            // Create FeatureLayer from graphics with diamond symbols and bloom effect
-            const platformLayer = new FeatureLayer({
-               source: graphics,
-               objectIdField: "OBJECTID",
-               geometryType: "point",
-               spatialReference: { wkid: 4326 },
-               fields: [
-                  { name: "OBJECTID", type: "oid" },
-                  { name: "nama_platf", type: "string" },
-                  { name: "kkks", type: "string" },
-                  { name: "status", type: "string" },
-                  { name: "lokasi", type: "string" },
-                  { name: "jenis_plat", type: "string" }
-               ],
-               renderer: {
-                  type: "unique-value",
-                  field: "lokasi",
-                  defaultSymbol: {
-                     type: "simple-marker",
-                     style: "diamond",
-                     color: [255, 255, 255, 1],
-                     size: 10,
-                     outline: null
-                  },
-                  uniqueValueInfos: [
-                     {
-                        value: "OFFSHORE",
-                        symbol: {
-                           type: "picture-marker",
-                           url: "/icons/offshore_icon.png",
-                           width: "24px",
-                           height: "24px"
-                        }
-                     },
-                     {
-                        value: "ONSHORE",
-                        symbol: {
-                           type: "picture-marker",
-                           url: "/icons/onshore_icon.png",
-                           width: "24px",
-                           height: "24px"
-                        }
-                     }
-                  ]
-               } as any,
-               effect: "bloom(1.5, 1.5px, 0.1)",
-               popupTemplate: {
-                  title: "Platform: {nama_platf}",
-                  content: [{
-                     type: "fields",
-                     fieldInfos: [
-                        { fieldName: "nama_platf", label: "Name" },
-                        { fieldName: "kkks", label: "Operator" },
-                        { fieldName: "status", label: "Status" },
-                        { fieldName: "lokasi", label: "Location" },
-                        { fieldName: "jenis_plat", label: "Platform Type" }
-                     ]
-                  }]
-               },
-               visible: activeLayers.includes('platform-migas')
-            })
-
-            // Debug: Check layer status after creation
-            platformLayer.when(() => {
-               console.log('✅ Platform FeatureLayer ready')
-               console.log('📍 Renderer type:', platformLayer.renderer?.type)
-               console.log('📍 Geometry type:', platformLayer.geometryType)
-               console.log('📍 Visible:', platformLayer.visible)
-               console.log('📍 Full extent:', platformLayer.fullExtent)
-
-               // Query to verify features are accessible
-               platformLayer.queryFeatureCount().then(count => {
-                  console.log('📍 Queryable feature count:', count)
-               })
-            }).catch((err: any) => {
-               console.error('❌ Platform layer error:', err)
-            })
-
-            map.add(platformLayer)
-            layersRef.current['platform-migas'] = platformLayer
-            console.log('✅ Platform layer added from shapefile with', graphics.length, 'features')
-         })
-         .catch(err => console.error('❌ Failed to load platform shapefile:', err))
+      // Platform layer - load from NLOG WFS (production facilities)
+      const NLOG_FACILITIES_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:GDW_NG_FACILITY_UTM&outputFormat=application/json&srsName=EPSG:4326'
+      const platformGeoJSONLayer = new GeoJSONLayer({
+         url: NLOG_FACILITIES_URL,
+         copyright: "NLOG / Rijkswaterstaat Noordzee & TNO",
+         renderer: {
+            type: "simple",
+            symbol: {
+               type: "simple-marker",
+               style: "diamond",
+               color: [255, 255, 255, 1],
+               size: 8,
+               outline: { color: [180, 140, 0, 1], width: 1 }
+            } as any
+         },
+         effect: "bloom(1.5, 1.5px, 0.1)",
+         popupTemplate: {
+            title: "{facility_name}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "facility_name", label: "Name" },
+                  { fieldName: "operator_name", label: "Operator" },
+                  { fieldName: "facility_type", label: "Type" },
+                  { fieldName: "facility_status", label: "Status" }
+               ]
+            }]
+         },
+         visible: activeLayers.includes('platform-migas')
+      })
+      map.add(platformGeoJSONLayer)
+      layersRef.current['platform-migas'] = platformGeoJSONLayer
 
       // 4. Create View
       let view: MapView | SceneView
@@ -422,13 +400,17 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             const graphic = (wellResults[0] as any).graphic
             const attr = graphic.attributes
 
-            console.log("井 Well Clicked:", attr)
+            console.log("🟢 Well Clicked (NLOG):", attr)
 
+            // NLOG WFS uses: well_name, operator_name, well_type, well_status, spud_date, total_depth
             onElementClick?.("well", {
-               name: attr.WELLNAME,
-               field: attr.FIELD,
-               operator: attr.OPERATOR,
-               status: attr.STATUS
+               name: attr.well_name || attr.wellbore_name || attr.WELL_NAME || attr.name || "Unknown Well",
+               field: attr.field_name || attr.FIELD || "",
+               operator: attr.operator_name || attr.OPERATOR || "",
+               status: attr.well_status || attr.wellbore_status || attr.STATUS || "",
+               type: attr.well_type || attr.wellbore_type || "",
+               totalDepth: attr.total_depth || attr.TD_M || null,
+               spudDate: attr.spud_date || attr.SPUD_DATE || ""
             })
             return // Stop propagation so we don't click the block underneath
          }
@@ -458,11 +440,43 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                }
             }
 
+            // NLOG WFS layer uses 'licence_name', 'operator_name', 'licence_status', 'expiry_date'
+            // Fall back through multiple possible field names for robustness
+            const blockName =
+               attr.licence_name ||
+               attr.LNAAM ||
+               attr.namobj ||
+               attr.NAME ||
+               attr.name ||
+               "Unknown Block"
+
+            const operator =
+               attr.operator_name ||
+               attr.OPRBLK ||
+               attr.oprblk ||
+               attr.OPERATOR ||
+               ""
+
+            const status =
+               attr.licence_status ||
+               attr.STATUS ||
+               attr.status ||
+               ""
+
+            const expiry =
+               attr.expiry_date
+                  ? formatExpiryDate(attr.expiry_date)
+                  : attr.expdat
+                     ? formatExpiryDate(attr.expdat)
+                     : "-"
+
+            console.log("🟡 Block Clicked:", blockName, "| Raw attrs:", attr)
+
             onElementClick?.("polygon", {
-               name: attr.namobj,
-               operator: attr.oprblk,
-               status: attr.status,
-               expiry: formatExpiryDate(attr.expdat)
+               name: blockName,
+               operator,
+               status,
+               expiry
             })
          }
       })

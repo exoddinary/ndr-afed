@@ -109,7 +109,7 @@ export function GDEWorkspace() {
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-gray-50 text-slate-900 overflow-hidden font-sans selection:bg-teal-100 selection:text-teal-900">
+    <div className="flex flex-col h-full w-full bg-gray-50 text-slate-900 overflow-hidden font-sans selection:bg-primary/20 selection:text-primary/70">
       {/* Top Fixed Bar */}
       <div className="flex-none z-50 relative">
         <BasinHeader activeTab={activeTab} onTabChange={setActiveTab} />

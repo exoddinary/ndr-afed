@@ -41,7 +41,7 @@ export default function GEBBasinInfoPanel({ basinData, onClose }: GEBBasinInfoPa
     const m = maturity?.toLowerCase() || ''
     if (m.includes('frontier')) return 'bg-purple-500/20 text-purple-300 border-purple-500/30'
     if (m.includes('mature')) return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-    if (m.includes('emerging')) return 'bg-teal-500/20 text-teal-300 border-teal-500/30'
+    if (m.includes('emerging')) return 'bg-primary/20 text-accent border-primary/30'
     return 'bg-gray-500/20 text-gray-300 border-gray-500/30'
   }
 
@@ -90,7 +90,7 @@ export default function GEBBasinInfoPanel({ basinData, onClose }: GEBBasinInfoPa
             {basinData['Basin Maturity (needs review in G&G datasheet)']}
           </Badge>
           {basinData['PETRONAS Existing Basin Presence'] === 'YES' && (
-            <Badge variant="default" className="bg-teal-500/20 text-teal-300 border-teal-500/30">
+            <Badge variant="default" className="bg-primary/20 text-accent border-primary/30">
               PETRONAS Present
             </Badge>
           )}

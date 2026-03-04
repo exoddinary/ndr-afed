@@ -49,7 +49,7 @@ export function ExplanationRibbon() {
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
           <div className="text-xs font-bold text-slate-700 mb-0.5">{explanation.label}</div>
-          <div className="text-lg font-mono font-bold text-teal-600">{explanation.value}</div>
+          <div className="text-lg font-mono font-bold text-primary">{explanation.value}</div>
         </div>
         <Button
           variant="ghost"
@@ -106,14 +106,14 @@ export function ExplanationRibbon() {
             type="text"
             value={overrideValue}
             onChange={(e) => setOverrideValue(e.target.value)}
-            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-teal-500 font-mono"
+            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-primary font-mono"
             autoFocus
           />
           <div className="flex gap-2">
             <Button
               variant="default"
               size="sm"
-              className="flex-1 h-7 text-xs bg-teal-600 hover:bg-teal-700"
+              className="flex-1 h-7 text-xs bg-primary hover:bg-primary/90"
               onClick={() => {
                 // Handle override save
                 console.log('Override saved:', overrideValue)

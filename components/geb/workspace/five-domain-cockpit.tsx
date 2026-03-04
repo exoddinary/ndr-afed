@@ -138,7 +138,7 @@ export function FiveDomainCockpit() {
                     {getTrendIcon(metric.trend)}
                   </div>
                   <div className={`text-sm font-bold font-mono flex items-baseline gap-1 ${
-                    metric.clickable ? 'text-slate-900 group-hover:text-teal-600' : 'text-slate-700'
+                    metric.clickable ? 'text-slate-900 group-hover:text-primary' : 'text-slate-700'
                   }`}>
                     <span>{metric.value}</span>
                     {metric.unit && (

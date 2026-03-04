@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { AnimatePresence } from 'framer-motion'
-import blockData from '@/data/exploration-blocks.json'
+import { fetchNLOGLicences, type NLOGFeatureCollection } from '@/lib/nlog-api'
 import { licensingRounds } from '@/data/licensing-rounds'
 import LicensingSummaryPanel from '@/components/landing/licensing-summary-panel'
 import LicensingOpportunitiesPanel from '@/components/landing/licensing-opportunities-panel'
@@ -47,6 +47,14 @@ export default function NewLandingPage() {
     const [showOpportunities, setShowOpportunities] = useState(false)
     const [showAuthority, setShowAuthority] = useState(false)
     const [isTransitioning, setIsTransitioning] = useState(false)
+    const [blockData, setBlockData] = useState<NLOGFeatureCollection | null>(null)
+
+    // Fetch NLOG block data on mount
+    useEffect(() => {
+        fetchNLOGLicences()
+            .then(data => setBlockData(data))
+            .catch(e => console.warn('NLOG fetch failed:', e))
+    }, [])
 
     // Theme effect
     useEffect(() => {
@@ -75,7 +83,7 @@ export default function NewLandingPage() {
                     note: 'No detailed data available for this block in demo mode.',
                     metrics: { reserves_2p_mmbbl: 0, valuation_npv10: 'N/A' },
                     risk: { technical: 5, commercial: 5, political: 5, regulatory: 5 },
-                    contact: { entity: 'SKK Migas', email: 'info@skkmigas.go.id' }
+                    contact: { entity: 'National Data Room', email: 'info@ndr.go.id' }
                 })
             }
         }
@@ -111,7 +119,7 @@ export default function NewLandingPage() {
     }
 
     // Extract searchable data
-    const searchableData = blockData.features.map(f => f.properties)
+    const searchableData = (blockData?.features ?? []).map(f => f.properties)
 
     return (
         <div className="relative w-full h-screen overflow-hidden bg-black text-white transition-colors duration-300" data-theme={theme}>
@@ -130,7 +138,7 @@ export default function NewLandingPage() {
                         VIRTUAL DATA ROOM
                     </h1>
                     <p className="text-[8px] text-white/60 font-medium tracking-[0.25em] uppercase drop-shadow-md pl-0.5">
-                        Indonesia Exploration & Licensing Platform
+                        Netherlands North Sea Exploration &amp; Licensing Platform
                     </p>
                 </div>
             </div>
@@ -233,7 +241,7 @@ export default function NewLandingPage() {
             )}
 
             {/* White Transition Overlay */}
-            <div 
+            <div
                 className={`fixed inset-0 z-[100] bg-white pointer-events-none transition-opacity duration-1000 ease-in ${isTransitioning ? 'opacity-100' : 'opacity-0'}`}
             />
 

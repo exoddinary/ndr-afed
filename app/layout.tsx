@@ -10,8 +10,8 @@ import "mapbox-gl/dist/mapbox-gl.css"
 import Script from "next/script"
 
 export const metadata: Metadata = {
-  title: "Indonesia VDR",
-  description: "Geological data processing platform",
+  title: "Netherlands NDR",
+  description: "Netherlands National Data Room – North Sea exploration & licensing platform",
 }
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-sans" })

@@ -532,7 +532,7 @@ export function Sidebar({ isOpen = true, onCollapseChange }: SidebarProps) {
                                     <span
                                       className={cn(
                                         "ml-auto px-1.5 py-0.5 text-xs font-semibold text-white rounded-full",
-                                        item.badgeColor || "bg-teal-500",
+                                        item.badgeColor || "bg-primary",
                                       )}
                                     >
                                       {item.badge}

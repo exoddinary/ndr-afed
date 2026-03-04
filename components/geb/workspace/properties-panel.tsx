@@ -63,8 +63,8 @@ export function PropertiesPanel() {
         <div className="mt-auto pt-4">
            <div className="bg-gray-50 border border-gray-200 p-2 rounded text-xs">
               <div className="text-slate-500 mb-1">Active Interval</div>
-              <div className="text-teal-600 font-bold flex items-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></div>
+              <div className="text-primary font-bold flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
                  Turonian (93.9 - 89.8 Ma)
               </div>
            </div>

@@ -40,7 +40,7 @@ export default function OfficialLicensingAuthority({ onClose }: Props) {
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-xl bg-yellow-400/15 text-yellow-400 border border-yellow-400/20"><Shield className="w-5 h-5" /></div>
             <div>
-              <div className="text-[11px] font-extrabold tracking-[0.18em] uppercase text-yellow-400">Republic of Indonesia</div>
+              <div className="text-[11px] font-extrabold tracking-[0.18em] uppercase text-yellow-400">Kingdom of the Netherlands</div>
               <h2 className="text-2xl md:text-3xl font-black text-white mt-1">Official Licensing Authority</h2>
               <p className="mt-2 text-sm text-white/80 max-w-3xl">
                 Facilitating sustainable energy exploration through transparent, efficient, and investor‑friendly licensing mechanisms.
@@ -84,25 +84,21 @@ export default function OfficialLicensingAuthority({ onClose }: Props) {
             <div className="flex items-center gap-8 mb-6">
               {/* ESDM Logo/Text */}
               <div className="flex items-center gap-2">
-                <span className="text-xl font-black text-white tracking-wide">ESDM</span>
+                <span className="text-xl font-black text-white tracking-wide">SodM</span>
                 <div className="text-[8px] leading-tight text-white/50 uppercase border-l border-white/20 pl-2">
-                  Ministry of Energy<br/>and Mineral Resources
+                  State Supervision<br />of Mines
                 </div>
               </div>
               <div className="h-8 w-px bg-white/20" />
-              {/* SKK Migas Logo */}
+              {/* National Data Room Logo/Text */}
               <div className="flex items-center gap-2">
-                <Image
-                  src="/images/skkmigas-logo.png"
-                  alt="SKK Migas"
-                  width={40}
-                  height={40}
-                  className="opacity-90"
-                />
-                <span className="text-xl font-black text-white tracking-wide">SKKMIGAS</span>
+                <span className="text-xl font-black text-white tracking-wide">NDR</span>
+                <div className="text-[8px] leading-tight text-white/50 uppercase border-l border-white/20 pl-2">
+                  National Data<br />Room Netherlands
+                </div>
               </div>
             </div>
-            
+
             {/* Powered by AFED Digital */}
             <div className="flex items-center justify-center gap-2 pt-4 border-t border-white/5">
               <span className="text-[9px] uppercase tracking-widest text-white/40 font-medium">Powered by</span>
@@ -114,8 +110,8 @@ export default function OfficialLicensingAuthority({ onClose }: Props) {
                 className="opacity-80"
               />
             </div>
-            
-            <div className="text-[10px] text-white/30 text-center mt-4">© 2025 Indonesia Petroleum Bidding Round. All Rights Reserved.</div>
+
+            <div className="text-[10px] text-white/30 text-center mt-4">© 2025 Netherlands North Sea Licensing Round. All Rights Reserved.</div>
           </div>
         </div>
       </div>
