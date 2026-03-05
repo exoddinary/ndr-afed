@@ -123,6 +123,48 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       map.add(blocksLayer)
       layersRef.current['active-blocks'] = blocksLayer
 
+      // --- Local Netherlands Offshore Blocks (Detailed) ---
+      const offshoreDetailedLayer = new GeoJSONLayer({
+         url: '/data/netherlands-offshore-blocks.json',
+         copyright: "Historical Data Collection",
+         renderer: {
+            type: "simple",
+            symbol: {
+               type: "simple-fill",
+               color: [147, 51, 234, 0.15], // purple
+               outline: { color: [168, 85, 247, 1], width: 1.5 }
+            } as any
+         },
+         labelingInfo: [
+            new LabelClass({
+               labelExpressionInfo: { expression: "$feature.BlokNummer" },
+               symbol: new TextSymbol({
+                  color: [168, 85, 247, 1],
+                  haloColor: [0, 0, 0, 0.8],
+                  haloSize: 1,
+                  font: { size: 9, weight: "bold", family: "Arial" }
+               }),
+               minScale: 1000000,
+               maxScale: 0
+            })
+         ],
+         popupTemplate: {
+            title: "Block {BlokNummer}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "BlokNummer", label: "Block Number" },
+                  { fieldName: "Area_sqkm", label: "Area (km²)" },
+                  { fieldName: "OBJECTID", label: "ID" }
+               ]
+            }]
+         },
+         visible: activeLayers.includes('offshore-blocks-detailed'),
+         elevationInfo: { mode: "on-the-ground" }
+      })
+      map.add(offshoreDetailedLayer)
+      layersRef.current['offshore-blocks-detailed'] = offshoreDetailedLayer
+
       // --- NLOG: 2D Seismic lines ---
       const NLOG_2D_SEISMIC_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:gdw_ng_smc_ln_utm&outputFormat=application/json&srsName=EPSG:4326'
       const seismicLayer = new GeoJSONLayer({
@@ -415,7 +457,29 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             return // Stop propagation so we don't click the block underneath
          }
 
-         // 2. Check for Blocks
+         // 2. Check for Detailed Blocks
+         const detailedResults = response.results.filter((result: any) =>
+            result.type === "graphic" &&
+            result.graphic?.layer === layersRef.current['offshore-blocks-detailed']
+         )
+
+         if (detailedResults.length > 0) {
+            const graphic = (detailedResults[0] as any).graphic
+            const attr = graphic.attributes
+
+            console.log("🟣 Detailed Block Clicked:", attr)
+
+            onElementClick?.("polygon", {
+               name: attr.BlokNummer || "Unknown Block",
+               operator: "Available",
+               status: "Static",
+               expiry: "N/A",
+               area: attr.Area_sqkm
+            })
+            return
+         }
+
+         // 3. Check for Blocks (NLOG)
          const results = response.results.filter((result: any) =>
             result.type === "graphic" &&
             (result.graphic?.layer === blocksLayer) // Check against current layer instance

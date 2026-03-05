@@ -40,7 +40,7 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
             <div className="flex items-center justify-center bg-primary rounded-lg h-8 w-8 text-white font-black text-xs mr-2">
               NDR
             </div>
-            <span className="text-[10px] leading-tight text-slate-500 uppercase font-bold">National Data Room<br />Netherlands</span>
+            <span className="text-[10px] leading-tight text-slate-500 uppercase font-bold">Ministry of Climate Policy<br />& Green Growth</span>
           </div>
           <div className="h-6 w-px bg-gray-300" />
           <span className="font-bold text-lg tracking-tight text-slate-900">Virtual Data Room</span>

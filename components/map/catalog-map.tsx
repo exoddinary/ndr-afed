@@ -19,7 +19,7 @@ interface MapLayer {
 
 export default function CatalogMap({
   layers: initialLayers = [],
-  center = [4.5, 109.5], // Center on Malaysia
+  center = [52.1326, 5.2913], // Center on Netherlands
   zoom = 6,
   showLayerControl = true,
 }: {
@@ -123,13 +123,12 @@ export default function CatalogMap({
         attributionControl: true,
       })
 
-      // Add ArcGIS tile layer from Indonesian government geoportal
-      // Using ESDM (Ministry of Energy and Mineral Resources) MapServer
-      //const baseMapUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-      const baseMapUrl = "https://geoportal.esdm.go.id/gis3/rest/services/DMEW/Wilayah_Kerja_Migas_Konvensional/MapServer/tile/{z}/{y}/{x}"
-      const overlayUrl = "https://geoportal.esdm.go.id/gis3/rest/services/DMEW/Wilayah_Kerja_Migas_Konvensional/MapServer/tile/{z}/{y}/{x}"
+      // Add ArcGIS tile layer or default OpenStreetMap/Esri Satellite for Netherlands
+      const baseMapUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+      // Using a more generic or specific NLOG tile layer if available, otherwise just use standard imagery
+      const overlayUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 
-      console.log("[CatalogMap] Loading ArcGIS tiles from ESDM geoportal:", { center, zoom })
+      console.log("[CatalogMap] Loading Map tiles:", { center, zoom })
 
       const tileLayer = L.tileLayer(baseMapUrl, {
         attribution:
@@ -151,7 +150,7 @@ export default function CatalogMap({
 
       // Add the oil and gas working areas overlay
       const overlayLayer = L.tileLayer(overlayUrl, {
-        attribution: '© <a href="https://geoportal.esdm.go.id/">ESDM Indonesia</a>',
+        attribution: '© <a href="https://nlog.nl/">NLOG / Geological Survey of the Netherlands</a>',
         maxZoom: 20,
         tileSize: 256,
         opacity: 0.7, // Make it semi-transparent to see the base map
@@ -162,7 +161,7 @@ export default function CatalogMap({
       })
 
       overlayLayer.on('load', () => {
-        console.log("[CatalogMap] ESDM overlay tiles loaded successfully")
+        console.log("[CatalogMap] Map overlay tiles loaded successfully")
       })
 
       overlayLayer.addTo(map)

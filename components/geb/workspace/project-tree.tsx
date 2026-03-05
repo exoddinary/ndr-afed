@@ -19,7 +19,8 @@ const INITIAL_TREE: TreeNode[] = [
     label: 'Exploration Blocks',
     type: 'folder',
     children: [
-      { id: 'active-blocks', label: 'Active Blocks', type: 'layer', isActive: true },
+      { id: 'active-blocks', label: 'Active Blocks (NLOG)', type: 'layer', isActive: true },
+      { id: 'offshore-blocks-detailed', label: 'Offshore Licences', type: 'layer' },
       { id: 'open-blocks', label: 'Open Areas', type: 'layer' },
     ]
   },
@@ -76,18 +77,40 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
   const [blocks, setBlocks] = useState<BlockData[]>([])
 
   useEffect(() => {
+    // Attempt to load from official NLOG WFS
     const NLOG_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:gdw_ng_licence_utm&outputFormat=application/json&srsName=EPSG:4326'
-    fetch(NLOG_URL)
-      .then(res => res.json())
-      .then(data => {
+
+    // Also consider the local full blocks file
+    const LOCAL_BLOCKS_URL = '/data/netherlands-offshore-blocks.json'
+
+    const fetchBlocks = async () => {
+      try {
+        const response = await fetch(NLOG_URL)
+        const data = await response.json()
         const parsedBlocks = data.features.map((f: any) => ({
           id: f.id || f.properties?.objectid?.toString() || Math.random().toString(),
           name: f.properties?.licence_name || f.properties?.namobj || f.id || 'Unknown',
           operator: f.properties?.operator_name || f.properties?.oprblk || 'N/A'
         })).sort((a: any, b: any) => a.name.localeCompare(b.name))
         setBlocks(parsedBlocks)
-      })
-      .catch(err => console.error("Failed to load NLOG blocks", err))
+      } catch (err) {
+        console.error("Failed to load NLOG blocks, trying local fallback...", err)
+        try {
+          const localRes = await fetch(LOCAL_BLOCKS_URL)
+          const localData = await localRes.json()
+          const parsed = localData.features.map((f: any) => ({
+            id: f.id?.toString() || f.properties?.OBJECTID?.toString() || Math.random().toString(),
+            name: f.properties?.BlokNummer || 'Unknown',
+            operator: 'Available'
+          })).sort((a: any, b: any) => a.name.localeCompare(b.name))
+          setBlocks(parsed)
+        } catch (localErr) {
+          console.error("Failed to load local blocks too", localErr)
+        }
+      }
+    }
+
+    fetchBlocks()
   }, [])
 
   const toggleExpand = (id: string) => {

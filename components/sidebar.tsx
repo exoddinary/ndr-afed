@@ -31,7 +31,7 @@ const getSidebarSections = (role: string): SidebarSection[] => {
       items: [
         {
           title: "Home",
-          href: "/",
+          href: "/workspace",
           iconSrc: "/icons/homepage-sidebar.svg",
         },
       ],
@@ -257,31 +257,6 @@ export function Sidebar({ isOpen = true, onCollapseChange }: SidebarProps) {
                       <h3 className="px-6 mb-3 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">RANKING</h3>
                     )}
                     <div className="px-2 space-y-2">
-                      {/* Home (back to main site) */}
-                      <Link
-                        href="/"
-                        className={cn(
-                          "flex items-center rounded-lg transition-all duration-200 text-sm relative group",
-                          isCollapsed ? "size-9 justify-center p-0 mx-auto" : "gap-2.5 px-2.5 py-2",
-                          pathname === "/" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent",
-                        )}
-                        title={isCollapsed ? "Home" : undefined}
-                      >
-                        {isCollapsed ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <i className="bi bi-house text-base" />
-                            </TooltipTrigger>
-                            <TooltipContent side="right" align="center">Home</TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <>
-                            <i className="bi bi-house text-base" />
-                            <span className="font-medium">Home</span>
-                          </>
-                        )}
-                      </Link>
-
                       {/* Ranking group */}
                       {isCollapsed ? (
                         <div>

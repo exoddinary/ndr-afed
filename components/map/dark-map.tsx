@@ -11,8 +11,8 @@ import "leaflet/dist/leaflet.css"
 // Adaptive map that switches between light and dark tiles based on theme
 // Renders a circle marker at the provided lat/lng
 export default function DarkMap({
-  lat = 3.2,
-  lng = 113.1,
+  lat = 52.3676,
+  lng = 4.9041,
   zoom = 7,
   bluish = true,
 }: {
@@ -54,9 +54,9 @@ export default function DarkMap({
         attributionControl: true,
       })
 
-      // Use ArcGIS base layer + ESDM overlay
+      // Use ArcGIS base layer
       const baseMapUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-      const overlayUrl = "https://geoportal.esdm.go.id/gis3/rest/services/DMEW/Wilayah_Kerja_Migas_Konvensional/MapServer/tile/{z}/{y}/{x}"
+      const overlayUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 
       L.tileLayer(baseMapUrl, {
         attribution: '© <a href="https://www.esri.com/">Esri</a>',
@@ -66,7 +66,7 @@ export default function DarkMap({
 
       // Add oil and gas working areas overlay
       L.tileLayer(overlayUrl, {
-        attribution: '© <a href="https://geoportal.esdm.go.id/">ESDM Indonesia</a>',
+        attribution: '© <a href="https://nlog.nl/">NLOG / GDN</a>',
         maxZoom: 20,
         tileSize: 256,
         opacity: 0.7,

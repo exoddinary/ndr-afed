@@ -56,9 +56,9 @@ export function LoginPage() {
             }
         }
 
-        // Simulate login delay then navigate to dashboard landing page
+        // Simulate login delay then navigate to workspace
         setTimeout(() => {
-            router.push("/dashboard")
+            router.push("/workspace")
         }, 400)
     }
 
@@ -85,12 +85,12 @@ export function LoginPage() {
 
                         <form onSubmit={handleLogin} className="space-y-5">
                             <div className="space-y-2">
-                                <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-slate-500">Email</Label>
+                                <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500">Email</Label>
                                 <Input
                                     id="email"
                                     type="email"
                                     placeholder="name@company.com"
-                                    className="bg-slate-50 border-slate-200 focus-visible:ring-primary focus-visible:border-primary h-10"
+                                    className="bg-slate-50 border-slate-200 focus-visible:ring-primary focus-visible:border-primary h-10 dark:bg-slate-50 dark:border-slate-200 dark:text-slate-900 dark:placeholder:text-slate-400"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
@@ -98,8 +98,8 @@ export function LoginPage() {
 
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-slate-500">Password</Label>
-                                    <Link href="#" className="text-xs font-medium text-primary hover:text-primary/80">
+                                    <Label htmlFor="password" title="Password Label" className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500">Password</Label>
+                                    <Link href="#" className="text-xs font-medium text-primary hover:text-primary/80 dark:text-primary">
                                         Forgot password?
                                     </Link>
                                 </div>
@@ -108,14 +108,14 @@ export function LoginPage() {
                                         id="password"
                                         type={showPassword ? "text" : "password"}
                                         placeholder="Enter your password"
-                                        className="bg-slate-50 border-slate-200 pr-10 focus-visible:ring-primary focus-visible:border-primary h-10"
+                                        className="bg-slate-50 border-slate-200 pr-10 focus-visible:ring-primary focus-visible:border-primary h-10 dark:bg-slate-50 dark:border-slate-200 dark:text-slate-900 dark:placeholder:text-slate-400"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-400"
                                     >
                                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                     </button>
@@ -123,10 +123,10 @@ export function LoginPage() {
                             </div>
 
                             <div className="flex items-center space-x-2 pt-1">
-                                <Checkbox id="remember" className="data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
+                                <Checkbox id="remember" className="data-[state=checked]:bg-primary data-[state=checked]:border-primary dark:bg-white dark:border-slate-200" />
                                 <label
                                     htmlFor="remember"
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-600"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-600 dark:text-slate-600"
                                 >
                                     Keep me logged in
                                 </label>
@@ -166,7 +166,7 @@ export function LoginPage() {
                 <div className="hidden lg:flex w-1/2 relative bg-slate-900 overflow-hidden">
                     <Image
                         src="/images/login-globe.png"
-                        alt="Indonesia VDR Globe"
+                        alt="Netherlands VDR Globe"
                         fill
                         className="object-cover opacity-90"
                         priority
@@ -195,7 +195,7 @@ export function LoginPage() {
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Exploration Success</span>
                             </h2>
                             <p className="text-slate-200 text-sm leading-relaxed max-w-sm drop-shadow-md">
-                                Advanced subsurface visualization and data management for Indonesia&apos;s energy sector. Access verified data in a secure, collaborative environment.
+                                Advanced subsurface visualization and data management for the Netherlands&apos; energy sector. Access verified data in a secure, collaborative environment.
                             </p>
                         </div>
                     </div>

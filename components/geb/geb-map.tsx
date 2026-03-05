@@ -7,7 +7,7 @@ import "leaflet/dist/leaflet.css"
 /**
  * GEBMap - Leaflet map using ArcGIS tiles
  */
-export function GEBMap({ center = [4.7122, 112.7785], zoom = 5 }: { center?: [number, number]; zoom?: number }) {
+export function GEBMap({ center = [52.1326, 5.2913], zoom = 6 }: { center?: [number, number]; zoom?: number }) {
   const mapRef = useRef<LeafletMap | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -32,9 +32,9 @@ export function GEBMap({ center = [4.7122, 112.7785], zoom = 5 }: { center?: [nu
       attributionControl: true,
     })
 
-    // Use ArcGIS base layer + ESDM overlay
-    const baseMapUrl = "https://server.arcgisonoline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-    const overlayUrl = "https://geoportal.esdm.go.id/gis3/rest/services/DMEW/Wilayah_Kerja_Migas_Konvensional/MapServer/tile/{z}/{y}/{x}"
+    // Use ArcGIS base layer
+    const baseMapUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+    const overlayUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 
     L.tileLayer(baseMapUrl, {
       attribution: '© <a href="https://www.esri.com/">Esri</a>',
@@ -44,7 +44,7 @@ export function GEBMap({ center = [4.7122, 112.7785], zoom = 5 }: { center?: [nu
 
     // Add oil and gas working areas overlay
     L.tileLayer(overlayUrl, {
-      attribution: '© <a href="https://geoportal.esdm.go.id/">ESDM Indonesia</a>',
+      attribution: '© <a href="https://nlog.nl/">NLOG / GDN</a>',
       maxZoom: 20,
       tileSize: 256,
       opacity: 0.7,
