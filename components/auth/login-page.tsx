@@ -25,13 +25,13 @@ export function LoginPage() {
 
         const allowedUsers = [
             {
-                email: process.env.NEXT_PUBLIC_AUTH_USER1_EMAIL,
-                password: process.env.NEXT_PUBLIC_AUTH_USER1_PASSWORD,
+                email: process.env.NEXT_PUBLIC_AUTH_USER1_EMAIL || "user1@afed.com.my",
+                password: process.env.NEXT_PUBLIC_AUTH_USER1_PASSWORD || "Testing123!",
                 token: "user1",
             },
             {
-                email: process.env.NEXT_PUBLIC_AUTH_USER2_EMAIL,
-                password: process.env.NEXT_PUBLIC_AUTH_USER2_PASSWORD,
+                email: process.env.NEXT_PUBLIC_AUTH_USER2_EMAIL || "user2@afed.com.my",
+                password: process.env.NEXT_PUBLIC_AUTH_USER2_PASSWORD || "Testing123!",
                 token: "user2",
             },
         ]
