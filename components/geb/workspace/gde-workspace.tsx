@@ -28,7 +28,7 @@ export function GDEWorkspace() {
   const [panelData, setPanelData] = useState<ContextualData | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [selectedBlocks, setSelectedBlocks] = useState<BlockCommercialData[]>([])
-  const [activeLayers, setActiveLayers] = useState<string[]>(['active-blocks', 'sedimentary-basins', 'pipeline-infrastructure', 'platform-migas'])
+  const [activeLayers, setActiveLayers] = useState<string[]>(['sedimentary-basins', 'pipeline-infrastructure', 'wells'])
   const [is3DMode, setIs3DMode] = useState(false)
   const [activeTab, setActiveTab] = useState<'map' | 'subsurface'>('map')
   const [filteredBlockName, setFilteredBlockName] = useState<string | null>(null)

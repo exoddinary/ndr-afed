@@ -25,26 +25,8 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
    const mapRef = useRef<Map | null>(null)
    const layersRef = useRef<Record<string, __esri.Layer>>({})
    const [mounted, setMounted] = useState(false)
+   const [basemapStyle, setBasemapStyle] = useState<'oceans' | 'light-gray'>('oceans')
 
-   const formatExpiryDate = (value: any): string => {
-      const d = new Date(value)
-      if (isNaN(d.getTime())) return "-"
-
-      const day = d.getDate()
-      const monthIndex = d.getMonth()
-      const year = d.getFullYear()
-
-      const suffix = day % 10 === 1 && day !== 11
-         ? "st"
-         : day % 10 === 2 && day !== 12
-            ? "nd"
-            : day % 10 === 3 && day !== 13
-               ? "rd"
-               : "th"
-
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-      return `${day}${suffix} ${months[monthIndex]} ${year}`
-   }
 
    useEffect(() => {
       setMounted(true)
@@ -73,79 +55,36 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
 
       // 2. Create new Map instance
       const map = new Map({
-         basemap: "satellite",
+         basemap: "oceans",
          ground: is3D ? "world-elevation" : undefined
       })
       mapRef.current = map
 
       // 3. Initialize Layers on the new Map
-      const NLOG_LICENCES_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:gdw_ng_licence_utm&outputFormat=application/json&srsName=EPSG:4326'
+      // --- Offshore Blocks (Local GeoJSON) ---
       const blocksLayer = new GeoJSONLayer({
-         url: NLOG_LICENCES_URL,
-         copyright: "NLOG / Rijkswaterstaat Noordzee & TNO",
+         url: '/data/Offshore_Blocks.json',
+         copyright: "NDR / AFED Digital",
          renderer: {
             type: "simple",
             symbol: {
                type: "simple-fill",
-               color: [245, 158, 11, 0.2],
-               outline: { color: [251, 191, 36, 1], width: 2 }
-            } as any
-         },
-         labelingInfo: [
-            new LabelClass({
-               labelExpressionInfo: { expression: "$feature.licence_name" },
-               symbol: new TextSymbol({
-                  color: "white",
-                  haloColor: [50, 50, 50, 0.9],
-                  haloSize: 2,
-                  font: { size: 10, weight: "bold", family: "Arial" }
-               }),
-               minScale: 0,
-               maxScale: 0,
-               labelPlacement: "always-horizontal"
-            })
-         ],
-         popupTemplate: {
-            title: "{licence_name}",
-            content: [{
-               type: "fields",
-               fieldInfos: [
-                  { fieldName: "licence_name", label: "Licence Name" },
-                  { fieldName: "operator_name", label: "Operator" },
-                  { fieldName: "licence_status", label: "Status" },
-                  { fieldName: "expiry_date", label: "Expiry Date" }
-               ]
-            }]
-         },
-         visible: activeLayers.includes('active-blocks'),
-         elevationInfo: { mode: "on-the-ground" }
-      })
-      map.add(blocksLayer)
-      layersRef.current['active-blocks'] = blocksLayer
-
-      // --- Local Netherlands Offshore Blocks (Detailed) ---
-      const offshoreDetailedLayer = new GeoJSONLayer({
-         url: '/data/netherlands-offshore-blocks.json',
-         copyright: "Historical Data Collection",
-         renderer: {
-            type: "simple",
-            symbol: {
-               type: "simple-fill",
-               color: [147, 51, 234, 0.15], // purple
-               outline: { color: [168, 85, 247, 1], width: 1.5 }
+               color: [245, 158, 11, 0.15],
+               outline: { color: [251, 191, 36, 1], width: 1.5 }
             } as any
          },
          labelingInfo: [
             new LabelClass({
                labelExpressionInfo: { expression: "$feature.BlokNummer" },
                symbol: new TextSymbol({
-                  color: [168, 85, 247, 1],
-                  haloColor: [0, 0, 0, 0.8],
-                  haloSize: 1,
-                  font: { size: 9, weight: "bold", family: "Arial" }
+                  color: "white",
+                  haloColor: [50, 50, 50, 0.9],
+                  haloSize: 2,
+                  font: { size: 10, weight: "bold", family: "Arial" }
                }),
-               minScale: 1000000,
-               maxScale: 0
+               minScale: 2000000,
+               maxScale: 0,
+               labelPlacement: "always-horizontal"
             })
          ],
          popupTemplate: {
@@ -154,39 +93,67 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                type: "fields",
                fieldInfos: [
                   { fieldName: "BlokNummer", label: "Block Number" },
-                  { fieldName: "Area_sqkm", label: "Area (km²)" },
-                  { fieldName: "OBJECTID", label: "ID" }
+                  { fieldName: "Field", label: "Field" },
+                  { fieldName: "Area_sqkm", label: "Area (km²)" }
                ]
             }]
          },
          visible: activeLayers.includes('offshore-blocks-detailed'),
          elevationInfo: { mode: "on-the-ground" }
       })
-      map.add(offshoreDetailedLayer)
-      layersRef.current['offshore-blocks-detailed'] = offshoreDetailedLayer
+      map.add(blocksLayer)
+      layersRef.current['offshore-blocks-detailed'] = blocksLayer
 
-      // --- NLOG: 2D Seismic lines ---
-      const NLOG_2D_SEISMIC_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:gdw_ng_smc_ln_utm&outputFormat=application/json&srsName=EPSG:4326'
-      const seismicLayer = new GeoJSONLayer({
-         url: NLOG_2D_SEISMIC_URL,
-         copyright: "NLOG / TNO",
+      // --- Well Trajectories (Local GeoJSON) ---
+      const wellTrajLayer = new GeoJSONLayer({
+         url: '/data/Wells_Trajectories.json',
+         copyright: "NDR / AFED Digital",
          renderer: {
             type: "simple",
             symbol: {
                type: "simple-line",
-               color: [0, 191, 255, 0.85], // deep sky blue
+               color: [56, 189, 248, 0.7], // sky blue
                width: 1
             } as any
          },
          popupTemplate: {
-            title: "{survey_name}",
+            title: "{SHORT_NM}",
             content: [{
                type: "fields",
                fieldInfos: [
-                  { fieldName: "survey_name", label: "Survey" },
-                  { fieldName: "survey_type", label: "Type" },
-                  { fieldName: "operator_name", label: "Operator" },
-                  { fieldName: "survey_year", label: "Year" }
+                  { fieldName: "SHORT_NM", label: "Borehole Name" },
+                  { fieldName: "BOREHOLE_D", label: "Borehole ID" },
+                  { fieldName: "Shape_Length", label: "Length" }
+               ]
+            }]
+         },
+         visible: activeLayers.includes('well-trajectories'),
+         elevationInfo: { mode: "on-the-ground" }
+      })
+      map.add(wellTrajLayer)
+      layersRef.current['well-trajectories'] = wellTrajLayer
+
+      // --- Seismic 2D Lines (Local GeoJSON) ---
+      const seismicLayer = new GeoJSONLayer({
+         url: '/data/Seismic_2D_Surveys.json',
+         copyright: "NDR / AFED Digital",
+         renderer: {
+            type: "simple",
+            symbol: {
+               type: "simple-line",
+               color: [0, 191, 255, 0.85],
+               width: 1
+            } as any
+         },
+         popupTemplate: {
+            title: "{line_name}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "line_name", label: "Line Name" },
+                  { fieldName: "survey_col", label: "Survey Collection" },
+                  { fieldName: "line_colle", label: "Line Collection" },
+                  { fieldName: "delivery_c", label: "Delivery" }
                ]
             }]
          },
@@ -196,11 +163,10 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       map.add(seismicLayer)
       layersRef.current['seismic-2d'] = seismicLayer
 
-      // --- NLOG: 3D Seismic grids ---
-      const NLOG_3D_SEISMIC_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:gdw_ng_smc_grid_utm&outputFormat=application/json&srsName=EPSG:4326'
+      // --- Seismic 3D Surveys (Local GeoJSON) ---
       const seismic3dLayer = new GeoJSONLayer({
-         url: NLOG_3D_SEISMIC_URL,
-         copyright: "NLOG / TNO",
+         url: '/data/Seismic_3D_Surveys.json',
+         copyright: "NDR / AFED Digital",
          renderer: {
             type: "simple",
             symbol: {
@@ -210,14 +176,14 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             } as any
          },
          popupTemplate: {
-            title: "{survey_name}",
+            title: "Survey {SURVEY_ID}",
             content: [{
                type: "fields",
                fieldInfos: [
-                  { fieldName: "survey_name", label: "Survey" },
-                  { fieldName: "operator_name", label: "Operator" },
-                  { fieldName: "survey_year", label: "Year" },
-                  { fieldName: "area_sqkm", label: "Area (km²)" }
+                  { fieldName: "SURVEY_ID", label: "Survey ID" },
+                  { fieldName: "GRID_ID", label: "Grid ID" },
+                  { fieldName: "YEAR", label: "Year" },
+                  { fieldName: "Shape_Area", label: "Area" }
                ]
             }]
          },
@@ -228,11 +194,10 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       map.add(seismic3dLayer)
       layersRef.current['seismic-3d'] = seismic3dLayer
 
-      // --- NLOG: Oil & Gas Fields (replaces pipeline layer) ---
-      const NLOG_FIELDS_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:v_nlog_velden&outputFormat=application/json&srsName=EPSG:4326'
+      // --- Hydrocarbon Fields (Local GeoJSON) ---
       const fieldsLayer = new GeoJSONLayer({
-         url: NLOG_FIELDS_URL,
-         copyright: "NLOG / TNO",
+         url: '/data/HC_Fields.json',
+         copyright: "NDR / AFED Digital",
          renderer: {
             type: "simple",
             symbol: {
@@ -243,7 +208,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
          },
          labelingInfo: [
             new LabelClass({
-               labelExpressionInfo: { expression: "$feature.field_name" },
+               labelExpressionInfo: { expression: "$feature.FIELD_NAME" },
                symbol: new TextSymbol({
                   color: [34, 197, 94, 1],
                   haloColor: [0, 0, 0, 0.8],
@@ -255,14 +220,16 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             })
          ],
          popupTemplate: {
-            title: "{field_name}",
+            title: "{FIELD_NAME}",
             content: [{
                type: "fields",
                fieldInfos: [
-                  { fieldName: "field_name", label: "Field" },
-                  { fieldName: "operator_name", label: "Operator" },
-                  { fieldName: "field_status", label: "Status" },
-                  { fieldName: "primary_product", label: "Product" }
+                  { fieldName: "FIELD_NAME", label: "Field" },
+                  { fieldName: "OPERATOR", label: "Operator" },
+                  { fieldName: "STATUS", label: "Status" },
+                  { fieldName: "RESULT", label: "Result" },
+                  { fieldName: "DISCOVERY_", label: "Discovery Year" },
+                  { fieldName: "LANDSEA", label: "Land/Sea" }
                ]
             }]
          },
@@ -272,32 +239,33 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       map.add(fieldsLayer)
       layersRef.current['pipeline-infrastructure'] = fieldsLayer
 
-      // --- NLOG: All Boreholes / Wells ---
-      const NLOG_WELLS_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:gdw_ng_wll_all_utm&outputFormat=application/json&srsName=EPSG:4326'
+      // --- Well Locations (Local GeoJSON) ---
       const wellsLayer = new GeoJSONLayer({
-         url: NLOG_WELLS_URL,
-         copyright: "NLOG / TNO",
+         url: '/data/Wells.json',
+         copyright: "NDR / AFED Digital",
          renderer: {
             type: "simple",
             symbol: {
                type: "simple-marker",
                style: "circle",
-               color: [0, 255, 200, 0.9], // teal-cyan
+               color: [0, 255, 200, 0.9],
                size: 4,
                outline: { color: [0, 160, 130, 1], width: 0.5 }
             } as any
          },
          popupTemplate: {
-            title: "{well_name}",
+            title: "{IDENTIFICA}",
             content: [{
                type: "fields",
                fieldInfos: [
-                  { fieldName: "well_name", label: "Well Name" },
-                  { fieldName: "operator_name", label: "Operator" },
-                  { fieldName: "well_type", label: "Type" },
-                  { fieldName: "well_status", label: "Status" },
-                  { fieldName: "spud_date", label: "Spud Date" },
-                  { fieldName: "total_depth", label: "Total Depth (m)" }
+                  { fieldName: "IDENTIFICA", label: "Well Name" },
+                  { fieldName: "OPERATOR", label: "Operator" },
+                  { fieldName: "WELL_TYPE", label: "Type" },
+                  { fieldName: "STATUS", label: "Status" },
+                  { fieldName: "WELL_RESUL", label: "Result" },
+                  { fieldName: "START_DATE", label: "Start Date" },
+                  { fieldName: "END_DEPTH_", label: "Total Depth (m)" },
+                  { fieldName: "FIELD_NAME", label: "Field" }
                ]
             }]
          },
@@ -308,38 +276,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       map.add(wellsLayer)
       layersRef.current['wells'] = wellsLayer
 
-      // Platform layer - load from NLOG WFS (production facilities)
-      const NLOG_FACILITIES_URL = 'https://www.gdngeoservices.nl/geoserver/nlog/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=nlog:GDW_NG_FACILITY_UTM&outputFormat=application/json&srsName=EPSG:4326'
-      const platformGeoJSONLayer = new GeoJSONLayer({
-         url: NLOG_FACILITIES_URL,
-         copyright: "NLOG / Rijkswaterstaat Noordzee & TNO",
-         renderer: {
-            type: "simple",
-            symbol: {
-               type: "simple-marker",
-               style: "diamond",
-               color: [255, 255, 255, 1],
-               size: 8,
-               outline: { color: [180, 140, 0, 1], width: 1 }
-            } as any
-         },
-         effect: "bloom(1.5, 1.5px, 0.1)",
-         popupTemplate: {
-            title: "{facility_name}",
-            content: [{
-               type: "fields",
-               fieldInfos: [
-                  { fieldName: "facility_name", label: "Name" },
-                  { fieldName: "operator_name", label: "Operator" },
-                  { fieldName: "facility_type", label: "Type" },
-                  { fieldName: "facility_status", label: "Status" }
-               ]
-            }]
-         },
-         visible: activeLayers.includes('platform-migas')
-      })
-      map.add(platformGeoJSONLayer)
-      layersRef.current['platform-migas'] = platformGeoJSONLayer
+      // (Mining Facilities layer removed per new GIS structure)
 
       // 4. Create View
       let view: MapView | SceneView
@@ -442,22 +379,21 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             const graphic = (wellResults[0] as any).graphic
             const attr = graphic.attributes
 
-            console.log("🟢 Well Clicked (NLOG):", attr)
+            console.log("🟢 Well Clicked (local):", attr)
 
-            // NLOG WFS uses: well_name, operator_name, well_type, well_status, spud_date, total_depth
             onElementClick?.("well", {
-               name: attr.well_name || attr.wellbore_name || attr.WELL_NAME || attr.name || "Unknown Well",
-               field: attr.field_name || attr.FIELD || "",
-               operator: attr.operator_name || attr.OPERATOR || "",
-               status: attr.well_status || attr.wellbore_status || attr.STATUS || "",
-               type: attr.well_type || attr.wellbore_type || "",
-               totalDepth: attr.total_depth || attr.TD_M || null,
-               spudDate: attr.spud_date || attr.SPUD_DATE || ""
+               name: attr.IDENTIFICA || attr.SHORT_NM || "Unknown Well",
+               field: attr.FIELD_NAME || "",
+               operator: attr.OPERATOR || "",
+               status: attr.STATUS || "",
+               type: attr.WELL_TYPE || "",
+               totalDepth: attr.END_DEPTH_ || null,
+               spudDate: attr.START_DATE || ""
             })
-            return // Stop propagation so we don't click the block underneath
+            return
          }
 
-         // 2. Check for Detailed Blocks
+         // 2. Check for Offshore Blocks
          const detailedResults = response.results.filter((result: any) =>
             result.type === "graphic" &&
             result.graphic?.layer === layersRef.current['offshore-blocks-detailed']
@@ -467,80 +403,43 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             const graphic = (detailedResults[0] as any).graphic
             const attr = graphic.attributes
 
-            console.log("🟣 Detailed Block Clicked:", attr)
+            console.log("🟡 Offshore Block Clicked:", attr)
 
             onElementClick?.("polygon", {
                name: attr.BlokNummer || "Unknown Block",
-               operator: "Available",
-               status: "Static",
+               operator: attr.Field || "N/A",
+               status: "Active",
                expiry: "N/A",
                area: attr.Area_sqkm
             })
             return
          }
 
-         // 3. Check for Blocks (NLOG)
-         const results = response.results.filter((result: any) =>
+         // 3. Check for Hydrocarbon Fields
+         const fieldResults = response.results.filter((result: any) =>
             result.type === "graphic" &&
-            (result.graphic?.layer === blocksLayer) // Check against current layer instance
+            result.graphic?.layer === layersRef.current['pipeline-infrastructure']
          )
 
-         if (results.length > 0) {
-            const graphic = (results[0] as any).graphic
+         if (fieldResults.length > 0) {
+            const graphic = (fieldResults[0] as any).graphic
             const attr = graphic.attributes
 
             if (graphic.geometry && graphic.geometry.type === "polygon") {
                const polygon = graphic.geometry as __esri.Polygon
                const extent = polygon.extent
-
                if (extent) {
-                  view.goTo({
-                     target: extent.expand(1.67),
-                     tilt: is3D ? 45 : 0
-                  }, {
-                     duration: 400,
-                     easing: "ease-in-out"
-                  })
+                  view.goTo({ target: extent.expand(1.67), tilt: is3D ? 45 : 0 }, { duration: 400, easing: "ease-in-out" })
                }
             }
 
-            // NLOG WFS layer uses 'licence_name', 'operator_name', 'licence_status', 'expiry_date'
-            // Fall back through multiple possible field names for robustness
-            const blockName =
-               attr.licence_name ||
-               attr.LNAAM ||
-               attr.namobj ||
-               attr.NAME ||
-               attr.name ||
-               "Unknown Block"
-
-            const operator =
-               attr.operator_name ||
-               attr.OPRBLK ||
-               attr.oprblk ||
-               attr.OPERATOR ||
-               ""
-
-            const status =
-               attr.licence_status ||
-               attr.STATUS ||
-               attr.status ||
-               ""
-
-            const expiry =
-               attr.expiry_date
-                  ? formatExpiryDate(attr.expiry_date)
-                  : attr.expdat
-                     ? formatExpiryDate(attr.expdat)
-                     : "-"
-
-            console.log("🟡 Block Clicked:", blockName, "| Raw attrs:", attr)
+            console.log("🟢 HC Field Clicked:", attr)
 
             onElementClick?.("polygon", {
-               name: blockName,
-               operator,
-               status,
-               expiry
+               name: attr.FIELD_NAME || "Unknown Field",
+               operator: attr.OPERATOR || "",
+               status: attr.STATUS || "",
+               expiry: attr.DISCOVERY_ ? String(attr.DISCOVERY_) : "-"
             })
          }
       })
@@ -552,6 +451,14 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       }
 
    }, [mounted, is3D]) // Re-run when view mode changes
+
+   // Separate effect for reactive basemap switching (no view rebuild needed)
+   useEffect(() => {
+      if (!mapRef.current || !mounted) return
+      // Use built-in named IDs: 'oceans' and 'gray-vector' (no API key required)
+      const basemapId = basemapStyle === 'oceans' ? 'oceans' : 'gray-vector'
+      mapRef.current.basemap = basemapId as any
+   }, [basemapStyle, mounted])
 
    // Separate effect just for toggling visibility (lightweight)
    useEffect(() => {
@@ -569,7 +476,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       <div className="w-full h-full relative group">
          <div ref={mapDiv} className="w-full h-full" />
 
-         {/* Return to 2D Mode Overlay (top-left, offset to the right of ArcGIS controls) */}
+         {/* Return to 2D Mode Overlay */}
          {is3D && (
             <div className="absolute top-4 left-20 z-10">
                <button
@@ -578,6 +485,34 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
                   Return to 2D
+               </button>
+            </div>
+         )}
+
+         {/* Basemap Switcher - bottom left */}
+         {!is3D && (
+            <div className="absolute bottom-8 left-3 z-10 flex flex-col gap-1.5">
+               <button
+                  onClick={() => setBasemapStyle('oceans')}
+                  title="World Ocean Base"
+                  className={`w-12 h-12 rounded-md border-2 shadow-md overflow-hidden transition-all ${basemapStyle === 'oceans' ? 'border-blue-500 ring-2 ring-blue-400/50 scale-105' : 'border-white/80 hover:border-blue-300'}`}
+               >
+                  <div className="w-full h-full bg-[#c8daea] flex flex-col items-center justify-center gap-0.5">
+                     <div className="w-6 h-1 rounded bg-[#7bafd4]" />
+                     <div className="w-5 h-1 rounded bg-[#5a9bc2]" />
+                     <div className="w-3 h-1 rounded bg-[#3b7da8]" />
+                  </div>
+               </button>
+               <button
+                  onClick={() => setBasemapStyle('light-gray')}
+                  title="Light Gray Base"
+                  className={`w-12 h-12 rounded-md border-2 shadow-md overflow-hidden transition-all ${basemapStyle === 'light-gray' ? 'border-blue-500 ring-2 ring-blue-400/50 scale-105' : 'border-white/80 hover:border-blue-300'}`}
+               >
+                  <div className="w-full h-full bg-[#e8e8e8] flex flex-col items-center justify-center gap-0.5">
+                     <div className="w-6 h-1 rounded bg-[#c0c0c0]" />
+                     <div className="w-5 h-1 rounded bg-[#a8a8a8]" />
+                     <div className="w-3 h-1 rounded bg-[#909090]" />
+                  </div>
                </button>
             </div>
          )}

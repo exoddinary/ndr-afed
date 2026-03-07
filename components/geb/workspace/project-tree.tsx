@@ -15,21 +15,12 @@ type TreeNode = {
 
 const INITIAL_TREE: TreeNode[] = [
   {
-    id: 'blocks',
-    label: 'Exploration Blocks',
+    id: 'wells-folder',
+    label: 'Wells:',
     type: 'folder',
     children: [
-      { id: 'active-blocks', label: 'Active Blocks (NLOG)', type: 'layer', isActive: true },
-      { id: 'offshore-blocks-detailed', label: 'Offshore Licences', type: 'layer' },
-      { id: 'open-blocks', label: 'Open Areas', type: 'layer' },
-    ]
-  },
-  {
-    id: 'basins',
-    label: 'Basins',
-    type: 'folder',
-    children: [
-      { id: 'sedimentary-basins', label: 'Sedimentary Basins', type: 'layer', isActive: true },
+      { id: 'wells', label: 'Well Locations', type: 'layer' },
+      { id: 'well-trajectories', label: 'Well Trajectories', type: 'layer' },
     ]
   },
   {
@@ -37,20 +28,14 @@ const INITIAL_TREE: TreeNode[] = [
     label: 'Seismic Data',
     type: 'folder',
     children: [
-      { id: 'seismic-2d', label: 'Seismic 2D Lines (NLOG)', type: 'layer' },
-      { id: 'seismic-3d', label: 'Seismic 3D Grids (NLOG)', type: 'layer' },
+      { id: 'seismic-2d', label: 'Seismic 2D (Lines)', type: 'layer' },
+      { id: 'seismic-3d', label: 'Seismic 3D (Polygon)', type: 'layer' },
     ]
   },
-  {
-    id: 'infrastructure',
-    label: 'Infrastructure',
-    type: 'folder',
-    children: [
-      { id: 'pipeline-infrastructure', label: 'Oil & Gas Fields (NLOG)', type: 'layer', isActive: true },
-      { id: 'platform-migas', label: 'Mining Facilities (NLOG)', type: 'layer', isActive: true },
-      { id: 'wells', label: 'Boreholes (NLOG)', type: 'layer' },
-    ]
-  }
+  { id: 'pipeline-infrastructure', label: 'Hydrocarbon Fields', type: 'layer' },
+  { id: 'gg-project-data', label: 'G&G Project Data Outlines', type: 'layer' },
+  { id: 'offshore-blocks-detailed', label: 'Offshore Blocks', type: 'layer' },
+  { id: 'sedimentary-basins', label: 'Basins', type: 'layer' },
 ]
 
 interface ProjectTreeProps {
@@ -69,10 +54,8 @@ type BlockData = {
 
 export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map', filteredBlockName, onClearFilter }: ProjectTreeProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    'blocks': true,
-    'basins': true,
+    'wells-folder': true,
     'seismic': true,
-    'infrastructure': true,
   })
   const [blocks, setBlocks] = useState<BlockData[]>([])
 
