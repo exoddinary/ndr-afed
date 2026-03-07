@@ -1,0 +1,83 @@
+import Groq from 'groq-sdk'
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+const MODEL = 'llama-3.3-70b-versatile'
+
+const SYSTEM_PROMPT = `You are the Insight Agent for the Netherlands National Data Room (NDR).
+Your role: interpret and synthesize structured data outputs from the Asset Query Agent and Spatial Reasoning Agent.
+Generate concise, actionable exploration insights for oil & gas analysts and investors.
+
+You are an expert in:
+- Netherlands North Sea geology (Rotliegend, Carboniferous, Zechstein plays)
+- Netherlands exploration history and licensing
+- Hydrocarbon field assessment and ranking
+- Spatial exploration opportunity identification
+
+Your outputs must:
+1. Be grounded in the data provided — do not invent facts
+2. Rank or prioritize assets when multiple options exist
+3. Suggest concrete follow-up actions or questions
+4. Flag exploration potential or data gaps
+5. Use professional E&P language
+
+Format: concise bullets + optional short table. Keep under 400 words.`
+
+export type InsightResult = {
+    answer: string
+    followUpQuestions: string[]
+    opportunityScore?: { label: string; score: number; reason: string }[]
+}
+
+export async function runInsightAgent(
+    userQuery: string,
+    assetData: string,
+    spatialData: string
+): Promise<InsightResult> {
+    const completion = await groq.chat.completions.create({
+        model: MODEL,
+        messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            {
+                role: 'user',
+                content: `Original user question: "${userQuery}"
+
+Asset analysis data:
+${assetData || '(none)'}
+
+Spatial analysis data:
+${spatialData || '(none)'}
+
+Based on this data, provide:
+1. An interpretation of what this means for exploration or analysis
+2. Key insights about the assets or spatial context
+3. 3 concise follow-up questions the analyst should consider
+4. If applicable, rank the top 3 assets by exploration interest with a brief reason
+
+Format the follow-up questions as a plain list, each prefixed with "FOLLOWUP:" so they can be parsed.`
+            }
+        ],
+        temperature: 0.5,
+        max_tokens: 900,
+    })
+
+    const raw = completion.choices[0]?.message?.content || ''
+
+    // Parse follow-up questions
+    const followUpLines = raw.split('\n').filter(l => l.includes('FOLLOWUP:'))
+    const followUpQuestions = followUpLines
+        .map(l => l.replace(/FOLLOWUP:\s*/i, '').trim())
+        .filter(l => l.length > 5)
+        .slice(0, 3)
+
+    // Clean answer: remove the FOLLOWUP: lines from display text
+    const answer = raw.split('\n').filter(l => !l.includes('FOLLOWUP:')).join('\n').trim()
+
+    return {
+        answer,
+        followUpQuestions: followUpQuestions.length > 0 ? followUpQuestions : [
+            'Which wells near this area have reported gas discoveries?',
+            'What seismic coverage exists in this block?',
+            'Who are the active operators in this region?'
+        ],
+    }
+}

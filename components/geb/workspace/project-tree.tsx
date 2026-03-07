@@ -33,9 +33,8 @@ const INITIAL_TREE: TreeNode[] = [
     ]
   },
   { id: 'pipeline-infrastructure', label: 'Hydrocarbon Fields', type: 'layer' },
-  { id: 'gg-project-data', label: 'G&G Project Data Outlines', type: 'layer' },
+  { id: 'gng-projects', label: 'G&G Project Data Outlines', type: 'layer' },
   { id: 'offshore-blocks-detailed', label: 'Offshore Blocks', type: 'layer' },
-  { id: 'sedimentary-basins', label: 'Basins', type: 'layer' },
 ]
 
 interface ProjectTreeProps {

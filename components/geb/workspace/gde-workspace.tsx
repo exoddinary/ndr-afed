@@ -3,12 +3,8 @@
 import { BasinHeader } from "./basin-header"
 import { ProjectTree } from "./project-tree"
 import dynamic from "next/dynamic"
-// import { SummarySheet } from "./summary-sheet"
 import { ContextualPanel, type ContextualData, type PanelContext } from "./contextual-panel"
-// import { TimelineScrubber } from "./timeline-scrubber"
-// import { ComparatorStrip } from "./comparator-strip"
 import { BlockComparatorStrip } from "./block-comparator-strip"
-import { ExplanationRibbon } from "./explanation-ribbon"
 import { useState, useCallback } from "react"
 import { MapTools } from "./map-tools"
 import { AIChatPanel } from "./ai-chat-panel"
@@ -28,14 +24,14 @@ export function GDEWorkspace() {
   const [panelData, setPanelData] = useState<ContextualData | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [selectedBlocks, setSelectedBlocks] = useState<BlockCommercialData[]>([])
-  const [activeLayers, setActiveLayers] = useState<string[]>(['sedimentary-basins', 'pipeline-infrastructure', 'wells'])
+  const [activeLayers, setActiveLayers] = useState<string[]>(['offshore-blocks-detailed', 'pipeline-infrastructure', 'wells'])
   const [is3DMode, setIs3DMode] = useState(false)
   const [activeTab, setActiveTab] = useState<'map' | 'subsurface'>('map')
   const [filteredBlockName, setFilteredBlockName] = useState<string | null>(null)
 
-  // New state for AI Chat and Map View
   const [isAIChatOpen, setIsAIChatOpen] = useState(false)
   const [mapView, setMapView] = useState<__esri.MapView | __esri.SceneView | null>(null)
+  const [focusedFeatures, setFocusedFeatures] = useState<{ layer: string; identifiers: string[] } | null>(null)
 
   const handleElementClick = (type: PanelContext, data: any) => {
     setPanelData({ type, data })
@@ -97,6 +93,49 @@ export function GDEWorkspace() {
     setMapView(view)
   }, [])
 
+  // Handle AI map actions (zoom/highlight from AI responses)
+  const handleMapAction = useCallback(async (
+    action: { action: string; layer: string; identifiers: string[] }
+  ) => {
+    // Apply highlight on map immediately
+    setFocusedFeatures({ layer: action.layer, identifiers: action.identifiers })
+
+    // Also zoom to the features
+    if (!mapView) return
+    try {
+      const res = await fetch('/api/ndr-ai/resolve-geometry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ layer: action.layer, identifiers: action.identifiers })
+      })
+      if (!res.ok) return
+      const { points } = await res.json() as { points: { lat: number; lon: number }[] }
+      if (!points || points.length === 0) return
+
+      if (points.length === 1) {
+        await (mapView as __esri.MapView).goTo(
+          { center: [points[0].lon, points[0].lat], zoom: 10 },
+          { animate: true, duration: 1500 }
+        )
+      } else {
+        const minLon = Math.min(...points.map(p => p.lon))
+        const maxLon = Math.max(...points.map(p => p.lon))
+        const minLat = Math.min(...points.map(p => p.lat))
+        const maxLat = Math.max(...points.map(p => p.lat))
+        await (mapView as __esri.MapView).goTo(
+          { target: { type: 'extent', xmin: minLon - 0.5, xmax: maxLon + 0.5, ymin: minLat - 0.5, ymax: maxLat + 0.5, spatialReference: { wkid: 4326 } } },
+          { animate: true, duration: 1500 }
+        )
+      }
+    } catch (e) {
+      console.warn('[MapAction] Failed to resolve geometry:', e)
+    }
+  }, [mapView])
+
+  const handleClearFocus = useCallback(() => {
+    setFocusedFeatures(null)
+  }, [])
+
   // Handle AI Chat toggle
   const handleOpenAIChat = () => {
     setIsAIChatOpen(true)
@@ -142,6 +181,8 @@ export function GDEWorkspace() {
                   is3D={is3DMode}
                   onToggle3D={handleToggle3D}
                   onViewReady={handleViewReady}
+                  focusedFeatures={focusedFeatures}
+                  onClearFocus={handleClearFocus}
                 />
                 {/* Map Tools Overlay */}
                 <MapTools view={mapView} />
@@ -171,6 +212,7 @@ export function GDEWorkspace() {
           <AIChatPanel
             isOpen={isAIChatOpen}
             onClose={handleCloseAIChat}
+            onMapAction={handleMapAction}
           />
         ) : (
           <ContextualPanel

@@ -12,20 +12,51 @@ import "@arcgis/core/assets/esri/themes/light/main.css"
 
 // Props to allow parent to listen to map clicks
 type MapAreaProps = {
-   onElementClick?: (type: "polygon" | "play" | "basin" | "well", data: any) => void
+   onElementClick?: (type: "polygon" | "play" | "well", data: any) => void
    activeLayers?: string[]
    is3D?: boolean
    onToggle3D?: () => void
    onViewReady?: (view: __esri.MapView | __esri.SceneView) => void
+   focusedFeatures?: { layer: string; identifiers: string[] } | null
+   onClearFocus?: () => void
 }
 
-export function MapArea({ onElementClick, activeLayers = [], is3D = false, onToggle3D, onViewReady }: MapAreaProps = {}) {
+// Map AI layer names → layersRef keys
+const AI_TO_REF: Record<string, string> = {
+   wells: 'wells',
+   fields: 'pipeline-infrastructure',
+   blocks: 'offshore-blocks-detailed',
+   seismic2d: 'seismic-2d',
+   seismic3d: 'seismic-3d',
+   trajectories: 'well-trajectories',
+   gng_projects: 'gng-projects'
+}
+
+// Name field used in definitionExpression for each layersRef key
+const REF_NAME_FIELD: Record<string, string> = {
+   'wells': 'IDENTIFICA',
+   'pipeline-infrastructure': 'FIELD_NAME',
+   'offshore-blocks-detailed': 'BlokNummer',
+   'seismic-2d': 'line_name',
+   'seismic-3d': 'SURVEY_ID',
+   'well-trajectories': 'SHORT_NM',
+   'gng-projects': 'PROJECT_NAME'
+}
+
+export function MapArea({ onElementClick, activeLayers = [], is3D = false, onToggle3D, onViewReady, focusedFeatures, onClearFocus }: MapAreaProps = {}) {
    const mapDiv = useRef<HTMLDivElement>(null)
    const viewRef = useRef<MapView | SceneView | null>(null)
    const mapRef = useRef<Map | null>(null)
    const layersRef = useRef<Record<string, __esri.Layer>>({})
    const [mounted, setMounted] = useState(false)
    const [basemapStyle, setBasemapStyle] = useState<'oceans' | 'light-gray'>('oceans')
+   const [isFocused, setIsFocused] = useState(false)
+   const originalStateRef = useRef<{
+      layerKey: string
+      definitionExpression: string
+      renderer: unknown
+      visibilities: Record<string, boolean>
+   } | null>(null)
 
 
    useEffect(() => {
@@ -69,8 +100,8 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             type: "simple",
             symbol: {
                type: "simple-fill",
-               color: [245, 158, 11, 0.15],
-               outline: { color: [251, 191, 36, 1], width: 1.5 }
+               color: [225, 225, 225, 0.7], // Light Grey with 30% transparency
+               outline: { color: [255, 255, 255, 1], width: 2 } // White outline
             } as any
          },
          labelingInfo: [
@@ -112,7 +143,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             type: "simple",
             symbol: {
                type: "simple-line",
-               color: [56, 189, 248, 0.7], // sky blue
+               color: [255, 255, 0, 1], // Yellow
                width: 1
             } as any
          },
@@ -133,6 +164,67 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       map.add(wellTrajLayer)
       layersRef.current['well-trajectories'] = wellTrajLayer
 
+      // --- Seismic 3D Surveys (Local GeoJSON) ---
+      const seismic3dLayer = new GeoJSONLayer({
+         url: '/data/Seismic_3D_Surveys.json',
+         copyright: "NDR / AFED Digital",
+         renderer: {
+            type: "class-breaks",
+            field: "YEAR",
+            defaultSymbol: {
+               type: "simple-fill",
+               color: [130, 130, 130, 0.7],
+               outline: { color: [110, 110, 110, 0.7], width: 0.7 }
+            } as any,
+            classBreakInfos: [
+               {
+                  minValue: 0,
+                  maxValue: 1993,
+                  symbol: {
+                     type: "simple-fill",
+                     color: [230, 238, 207, 0.7],
+                     outline: { color: [110, 110, 110, 0.7], width: 0.7 }
+                  } as any
+               },
+               {
+                  minValue: 1993,
+                  maxValue: 2007,
+                  symbol: {
+                     type: "simple-fill",
+                     color: [105, 168, 183, 0.7],
+                     outline: { color: [110, 110, 110, 0.7], width: 0.7 }
+                  } as any
+               },
+               {
+                  minValue: 2007,
+                  maxValue: 2030,
+                  symbol: {
+                     type: "simple-fill",
+                     color: [46, 85, 122, 0.7],
+                     outline: { color: [110, 110, 110, 0.7], width: 0.7 }
+                  } as any
+               }
+            ]
+         } as any,
+         popupTemplate: {
+            title: "Survey {SURVEY_ID}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "SURVEY_ID", label: "Survey ID" },
+                  { fieldName: "GRID_ID", label: "Grid ID" },
+                  { fieldName: "YEAR", label: "Year" },
+                  { fieldName: "Shape_Area", label: "Area" }
+               ]
+            }]
+         },
+         visible: activeLayers.includes('seismic-3d'),
+         effect: "bloom(1.0, 0.5px, 0)",
+         elevationInfo: { mode: "on-the-ground" }
+      })
+      map.add(seismic3dLayer)
+      layersRef.current['seismic-3d'] = seismic3dLayer
+
       // --- Seismic 2D Lines (Local GeoJSON) ---
       const seismicLayer = new GeoJSONLayer({
          url: '/data/Seismic_2D_Surveys.json',
@@ -141,8 +233,8 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             type: "simple",
             symbol: {
                type: "simple-line",
-               color: [0, 191, 255, 0.85],
-               width: 1
+               color: [0, 38, 115, 1], // Dark Blue
+               width: 0.5
             } as any
          },
          popupTemplate: {
@@ -163,49 +255,45 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       map.add(seismicLayer)
       layersRef.current['seismic-2d'] = seismicLayer
 
-      // --- Seismic 3D Surveys (Local GeoJSON) ---
-      const seismic3dLayer = new GeoJSONLayer({
-         url: '/data/Seismic_3D_Surveys.json',
-         copyright: "NDR / AFED Digital",
-         renderer: {
-            type: "simple",
-            symbol: {
-               type: "simple-fill",
-               color: [0, 120, 255, 0.08],
-               outline: { color: [0, 160, 255, 0.7], width: 1 }
-            } as any
-         },
-         popupTemplate: {
-            title: "Survey {SURVEY_ID}",
-            content: [{
-               type: "fields",
-               fieldInfos: [
-                  { fieldName: "SURVEY_ID", label: "Survey ID" },
-                  { fieldName: "GRID_ID", label: "Grid ID" },
-                  { fieldName: "YEAR", label: "Year" },
-                  { fieldName: "Shape_Area", label: "Area" }
-               ]
-            }]
-         },
-         visible: activeLayers.includes('seismic-3d'),
-         effect: "bloom(1.0, 0.5px, 0)",
-         elevationInfo: { mode: "on-the-ground" }
-      })
-      map.add(seismic3dLayer)
-      layersRef.current['seismic-3d'] = seismic3dLayer
-
       // --- Hydrocarbon Fields (Local GeoJSON) ---
       const fieldsLayer = new GeoJSONLayer({
          url: '/data/HC_Fields.json',
          copyright: "NDR / AFED Digital",
          renderer: {
-            type: "simple",
-            symbol: {
+            type: "unique-value",
+            field: "RESULT",
+            defaultSymbol: {
                type: "simple-fill",
-               color: [34, 197, 94, 0.15],
-               outline: { color: [34, 197, 94, 0.8], width: 1.5 }
-            } as any
-         },
+               color: [130, 130, 130, 0.7],
+               outline: { color: [110, 110, 110, 1], width: 0.7 }
+            } as any,
+            uniqueValueInfos: [
+               {
+                  value: "Gas",
+                  symbol: {
+                     type: "simple-fill",
+                     color: [255, 127, 127, 0.7],
+                     outline: { color: [255, 190, 190, 1], width: 1.5 }
+                  } as any
+               },
+               {
+                  value: "Olie",
+                  symbol: {
+                     type: "simple-fill",
+                     color: [85, 255, 0, 0.7],
+                     outline: { color: [211, 255, 190, 1], width: 1.5 }
+                  } as any
+               },
+               {
+                  value: "Olie en Gas",
+                  symbol: {
+                     type: "simple-fill",
+                     color: [255, 170, 0, 0.7],
+                     outline: { color: [255, 235, 175, 1], width: 1.5 }
+                  } as any
+               }
+            ]
+         } as any,
          labelingInfo: [
             new LabelClass({
                labelExpressionInfo: { expression: "$feature.FIELD_NAME" },
@@ -248,9 +336,9 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             symbol: {
                type: "simple-marker",
                style: "circle",
-               color: [0, 255, 200, 0.9],
+               color: [0, 0, 0, 1], // Black
                size: 4,
-               outline: { color: [0, 160, 130, 1], width: 0.5 }
+               outline: { color: [255, 255, 255, 1], width: 1 } // White outline
             } as any
          },
          popupTemplate: {
@@ -275,6 +363,50 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       })
       map.add(wellsLayer)
       layersRef.current['wells'] = wellsLayer
+
+      // --- G&G Project Outlines (Local GeoJSON) ---
+      const gngLayer = new GeoJSONLayer({
+         url: '/data/GnG_Project_Data_Outlines.json',
+         copyright: "NDR / AFED Digital",
+         renderer: {
+            type: "simple",
+            symbol: {
+               type: "simple-fill",
+               color: [0, 0, 0, 0.1], // Black with 10% opacity
+               outline: { color: [169, 0, 230, 1], width: 3 } // Purple outline
+            } as any
+         },
+         labelingInfo: [
+            new LabelClass({
+               labelExpressionInfo: { expression: "$feature.PROJECT_NAME" },
+               symbol: new TextSymbol({
+                  color: [169, 0, 230, 1],
+                  haloColor: [255, 255, 255, 0.8],
+                  haloSize: 2,
+                  font: { size: 10, weight: "bold", family: "Arial" }
+               }),
+               minScale: 2000000,
+               maxScale: 0
+            })
+         ],
+         popupTemplate: {
+            title: "{PROJECT_NAME}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "PROJECT_NAME", label: "Project Name" },
+                  { fieldName: "APPLICATION_NAME", label: "Application" },
+                  { fieldName: "INTERPRETATION_YEAR", label: "Year" },
+                  { fieldName: "NO_OF_WELLS", label: "No. of Wells" },
+                  { fieldName: "NO_OF_REPORTS", label: "No. of Reports" }
+               ]
+            }]
+         },
+         visible: activeLayers.includes('gng-projects'),
+         elevationInfo: { mode: "on-the-ground" }
+      })
+      map.add(gngLayer)
+      layersRef.current['gng-projects'] = gngLayer
 
       // (Mining Facilities layer removed per new GIS structure)
 
@@ -470,11 +602,108 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       })
    }, [activeLayers])
 
+   // Focus mode: highlight AI-identified features, hide others
+   useEffect(() => {
+      if (!mounted) return
+
+      if (!focusedFeatures) {
+         // --- RESTORE ---
+         if (originalStateRef.current) {
+            const { layerKey, renderer, definitionExpression, visibilities } = originalStateRef.current
+            const tgt = layersRef.current[layerKey] as unknown as { definitionExpression: string; renderer: unknown; visible: boolean }
+            if (tgt) {
+               tgt.definitionExpression = definitionExpression
+               tgt.renderer = renderer as __esri.Renderer
+               tgt.visible = true
+            }
+            Object.entries(visibilities).forEach(([key, vis]) => {
+               const l = layersRef.current[key]
+               if (l) l.visible = vis
+            })
+            originalStateRef.current = null
+         }
+         setIsFocused(false)
+         return
+      }
+
+      // --- APPLY FOCUS ---
+      const refKey = AI_TO_REF[focusedFeatures.layer] || focusedFeatures.layer
+      const tgtLayer = layersRef.current[refKey] as unknown as {
+         definitionExpression: string
+         renderer: __esri.Renderer
+         visible: boolean
+      }
+      if (!tgtLayer) return
+
+      // Save original state
+      originalStateRef.current = {
+         layerKey: refKey,
+         definitionExpression: (tgtLayer as unknown as { definitionExpression: string }).definitionExpression || '',
+         renderer: (tgtLayer as unknown as { renderer: unknown }).renderer,
+         visibilities: Object.fromEntries(
+            Object.entries(layersRef.current).map(([k, l]) => [k, l ? l.visible : false])
+         ),
+      }
+
+      // Hide all other layers
+      Object.entries(layersRef.current).forEach(([key, l]) => {
+         if (l) l.visible = key === refKey
+      })
+
+      // Build definitionExpression: FIELD_NAME IN ('K06-T','F16-A')
+      const nameField = REF_NAME_FIELD[refKey] || 'OBJECTID'
+      const quotedIds = focusedFeatures.identifiers
+         .filter(Boolean)
+         .map(id => `'${id.replace(/'/g, "''")}'`)
+         .join(', ')
+      if (quotedIds) {
+         ; (tgtLayer as unknown as { definitionExpression: string }).definitionExpression =
+            `${nameField} IN (${quotedIds})`
+      }
+
+      // Apply amber-gold highlight renderer
+      const isLine = refKey === 'seismic-2d'
+      const isPoint = refKey === 'wells'
+      const highlightRenderer = isPoint
+         ? { type: 'simple', symbol: { type: 'simple-marker', color: [255, 185, 0, 1], outline: { color: [200, 100, 0, 1], width: 2 }, size: 12 } }
+         : isLine
+            ? { type: 'simple', symbol: { type: 'simple-line', color: [255, 185, 0, 1], width: 4 } }
+            : {
+               type: 'simple',
+               symbol: {
+                  type: 'simple-fill',
+                  color: [255, 185, 0, 0.45],
+                  outline: { color: [255, 120, 0, 1], width: 3 },
+               },
+            }
+         ; (tgtLayer as unknown as { renderer: unknown }).renderer = highlightRenderer as unknown as __esri.Renderer
+
+      setIsFocused(true)
+   }, [focusedFeatures, mounted])
+
    if (!mounted) return <div className="w-full h-full bg-gray-100 animate-pulse" />
 
    return (
       <div className="w-full h-full relative group">
          <div ref={mapDiv} className="w-full h-full" />
+
+         {/* Return to Original View — shown when AI focus mode is active */}
+         {isFocused && (
+            <div className="absolute top-4 right-4 z-20 animate-in fade-in slide-in-from-top-1 duration-300">
+               <button
+                  onClick={() => {
+                     onClearFocus?.()
+                  }}
+                  className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-lg shadow-lg text-xs font-bold tracking-wide transition-all active:scale-95"
+               >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                     <path d="M3 3v5h5" />
+                  </svg>
+                  Return to full view
+               </button>
+            </div>
+         )}
 
          {/* Return to 2D Mode Overlay */}
          {is3D && (
