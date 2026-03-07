@@ -10,21 +10,25 @@ import TextSymbol from "@arcgis/core/symbols/TextSymbol"
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils"
 import "@arcgis/core/assets/esri/themes/light/main.css"
 
+import { PanelContext } from "./contextual-panel"
+
 // Props to allow parent to listen to map clicks
 type MapAreaProps = {
-   onElementClick?: (type: "polygon" | "play" | "well", data: any) => void
+   onElementClick?: (type: PanelContext, data: any) => void
    activeLayers?: string[]
    is3D?: boolean
    onToggle3D?: () => void
    onViewReady?: (view: __esri.MapView | __esri.SceneView) => void
    focusedFeatures?: { layer: string; identifiers: string[] } | null
    onClearFocus?: () => void
+   selectedElement?: { type: PanelContext; data: any } | null
+   onResetSelection?: () => void
 }
 
 // Map AI layer names → layersRef keys
 const AI_TO_REF: Record<string, string> = {
    wells: 'wells',
-   fields: 'pipeline-infrastructure',
+   fields: 'hc-fields',
    blocks: 'offshore-blocks-detailed',
    seismic2d: 'seismic-2d',
    seismic3d: 'seismic-3d',
@@ -35,7 +39,7 @@ const AI_TO_REF: Record<string, string> = {
 // Name field used in definitionExpression for each layersRef key
 const REF_NAME_FIELD: Record<string, string> = {
    'wells': 'IDENTIFICA',
-   'pipeline-infrastructure': 'FIELD_NAME',
+   'hc-fields': 'FIELD_NAME',
    'offshore-blocks-detailed': 'BlokNummer',
    'seismic-2d': 'line_name',
    'seismic-3d': 'SURVEY_ID',
@@ -43,7 +47,17 @@ const REF_NAME_FIELD: Record<string, string> = {
    'gng-projects': 'PROJECT_NAME'
 }
 
-export function MapArea({ onElementClick, activeLayers = [], is3D = false, onToggle3D, onViewReady, focusedFeatures, onClearFocus }: MapAreaProps = {}) {
+export function MapArea({
+   onElementClick,
+   activeLayers = [],
+   is3D = false,
+   onToggle3D,
+   onViewReady,
+   focusedFeatures,
+   onClearFocus,
+   selectedElement,
+   onResetSelection
+}: MapAreaProps = {}) {
    const mapDiv = useRef<HTMLDivElement>(null)
    const viewRef = useRef<MapView | SceneView | null>(null)
    const mapRef = useRef<Map | null>(null)
@@ -118,6 +132,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                labelPlacement: "always-horizontal"
             })
          ],
+         outFields: ["*"],
          popupTemplate: {
             title: "Block {BlokNummer}",
             content: [{
@@ -129,6 +144,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                ]
             }]
          },
+         popupEnabled: false,
          visible: activeLayers.includes('offshore-blocks-detailed'),
          elevationInfo: { mode: "on-the-ground" }
       })
@@ -306,6 +322,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                maxScale: 0
             })
          ],
+         outFields: ["*"],
          popupTemplate: {
             title: "{FIELD_NAME}",
             content: [{
@@ -320,11 +337,12 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                ]
             }]
          },
+         popupEnabled: false,
          visible: activeLayers.includes('pipeline-infrastructure'),
          elevationInfo: { mode: "on-the-ground" }
       })
       map.add(fieldsLayer)
-      layersRef.current['pipeline-infrastructure'] = fieldsLayer
+      layersRef.current['hc-fields'] = fieldsLayer
 
       // --- Well Locations (Local GeoJSON) ---
       const wellsLayer = new GeoJSONLayer({
@@ -340,6 +358,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                outline: { color: [255, 255, 255, 1], width: 1 } // White outline
             } as any
          },
+         outFields: ["*"],
          popupTemplate: {
             title: "{IDENTIFICA}",
             content: [{
@@ -356,6 +375,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                ]
             }]
          },
+         popupEnabled: false,
          visible: activeLayers.includes('wells'),
          effect: "bloom(1.3, 1px, 0.1)",
          elevationInfo: { mode: "on-the-ground" }
@@ -512,15 +532,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
 
             console.log("🟢 Well Clicked (local):", attr)
 
-            onElementClick?.("well", {
-               name: attr.IDENTIFICA || attr.SHORT_NM || "Unknown Well",
-               field: attr.FIELD_NAME || "",
-               operator: attr.OPERATOR || "",
-               status: attr.STATUS || "",
-               type: attr.WELL_TYPE || "",
-               totalDepth: attr.END_DEPTH_ || null,
-               spudDate: attr.START_DATE || ""
-            })
+            onElementClick?.("well", attr)
             return
          }
 
@@ -549,7 +561,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
          // 3. Check for Hydrocarbon Fields
          const fieldResults = response.results.filter((result: any) =>
             result.type === "graphic" &&
-            result.graphic?.layer === layersRef.current['pipeline-infrastructure']
+            result.graphic?.layer === layersRef.current['hc-fields']
          )
 
          if (fieldResults.length > 0) {
@@ -565,13 +577,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             }
 
             console.log("🟢 HC Field Clicked:", attr)
-
-            onElementClick?.("polygon", {
-               name: attr.FIELD_NAME || "Unknown Field",
-               operator: attr.OPERATOR || "",
-               status: attr.STATUS || "",
-               expiry: attr.DISCOVERY_ ? String(attr.DISCOVERY_) : "-"
-            })
+            onElementClick?.("field", attr)
          }
       })
 
@@ -680,6 +686,7 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
       setIsFocused(true)
    }, [focusedFeatures, mounted])
 
+
    if (!mounted) return <div className="w-full h-full bg-gray-100 animate-pulse" />
 
    return (
@@ -703,6 +710,8 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
                </button>
             </div>
          )}
+
+
 
          {/* Return to 2D Mode Overlay */}
          {is3D && (

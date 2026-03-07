@@ -1,16 +1,15 @@
 "use client"
 
-import { X, ChevronRight, FileDown, Database, GitCompare } from "lucide-react"
+import { X, Database, GitCompare, ChevronRight, FileText, FileDown, Download, ExternalLink, Info } from "lucide-react"
 import { useState, useEffect } from "react"
-import jsPDF from "jspdf"
-import autoTable from "jspdf-autotable"
+import { cn } from "@/lib/utils"
 
 // Define types for different panel contexts
-export type PanelContext = "polygon" | "play" | "basin" | "well" | null
+export type PanelContext = "polygon" | "play" | "basin" | "field" | "well" | null
 
 export type ContextualData = {
     type: PanelContext
-    data: any
+    data: Record<string, any>
 }
 
 type ContextualPanelProps = {
@@ -52,6 +51,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                         {context.type === "polygon" && "Block Investment Details"}
                         {context.type === "play" && "Play Analysis"}
                         {context.type === "basin" && "Basin Overview"}
+                        {context.type === "field" && "Field Overview"}
                         {context.type === "well" && "Well Information"}
                     </span>
                     <button
@@ -77,6 +77,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                     {context.type === "play" && <PlayContent data={context.data} onNavigate={onNavigate} />}
                     {context.type === "basin" && <BasinContent data={context.data} onNavigate={onNavigate} />}
                     {context.type === "well" && <WellDetailsContent data={context.data} />}
+                    {context.type === "field" && <FieldDetailsContent data={context.data} />}
                 </div>
 
                 {/* Panel footer - Powered by attribution */}
@@ -141,7 +142,7 @@ function SeismicViewer() {
 }
 
 import { MOCK_BLOCKS, type BlockCommercialData } from "@/data/investor-data"
-import { Plus, Box, Phone, Mail, Building2, LayoutDashboard, Layers, DollarSign, Lock, ExternalLink } from "lucide-react"
+import { Plus, Box, Phone, Mail, Building2, LayoutDashboard, Layers, DollarSign, Lock } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, ReferenceLine } from "recharts"
 
 // Locked Content component for non-premium users
@@ -967,232 +968,196 @@ function BasinContent({ data, onNavigate }: { data: any, onNavigate: (type: Pane
 }
 
 // Well-specific content
-function WellDetailsContent({ data }: { data: any }) {
-    const [pdfViewerOpen, setPdfViewerOpen] = useState(false)
-    const [selectedPdf, setSelectedPdf] = useState<{ name: string; path: string } | null>(null)
-
-    // Placeholder data mixed with real data
-    const wellData = {
-        name: data.name || "Test Well",
-        field: data.field || "Q1 Field",
-        operator: data.operator || "NAM (Shell/ExxonMobil)",
-        status: data.status || "Active",
-        spudDate: "2023-05-15",
-        completionDate: "2023-08-20",
-        wellType: "Exploration",
-        totalDepth: "3,280 m",
-        waterDepth: "32 m",
-        rigName: "Maersk Resilient",
-        result: "Gas Discovery",
-        coordinates: "52° 41' 12\" N, 4° 18' 55\" E"
-    }
-
-    const handleExportPDF = () => {
-        const doc = new jsPDF()
-
-        // Header
-        doc.setFontSize(20)
-        doc.setTextColor(40, 40, 40)
-        doc.text("Well Report", 14, 22)
-
-        doc.setFontSize(12)
-        doc.setTextColor(100, 100, 100)
-        doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 30)
-
-        // Well Details Table
-        autoTable(doc, {
-            startY: 40,
-            head: [['Attribute', 'Value']],
-            body: [
-                ['Well Name', wellData.name],
-                ['Field', wellData.field],
-                ['Operator', wellData.operator],
-                ['Status', wellData.status],
-                ['Well Type', wellData.wellType],
-                ['Spud Date', wellData.spudDate],
-                ['Completion Date', wellData.completionDate],
-                ['Total Depth', wellData.totalDepth],
-                ['Water Depth', wellData.waterDepth],
-                ['Rig Name', wellData.rigName],
-                ['Result', wellData.result],
-                ['Coordinates', wellData.coordinates],
-            ],
-            theme: 'grid',
-            headStyles: { fillColor: [76, 29, 149] }, // Primary (Purple)
-            styles: { fontSize: 10, cellPadding: 4 },
-        })
-
-        // Footer
-        const pageCount = (doc as any).internal.getNumberOfPages()
-        doc.setFontSize(8)
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i)
-            doc.text('Netherlands VDR - Confidential', 14, doc.internal.pageSize.height - 10)
-        }
-
-        doc.save(`${wellData.name.replace(/\s+/g, '_')}_Report.pdf`)
-    }
-
+// Reusable Attribute Table Component
+function AttributeTable({ items }: { items: { label: string; value: any }[] }) {
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div>
-                <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-xl font-bold text-slate-900">{wellData.name}</h3>
-                    <button
-                        onClick={handleExportPDF}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary/90 text-[10px] font-bold uppercase tracking-wider rounded border border-primary/30 hover:bg-primary/20 transition-colors"
-                    >
-                        <FileDown className="w-3.5 h-3.5" />
-                        Export Report
-                    </button>
+        <div className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+            {items.map((item, idx) => (
+                <div
+                    key={idx}
+                    className="flex flex-col sm:flex-row sm:items-center text-xs py-3 px-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors bg-white"
+                >
+                    <span className="w-full sm:w-1/3 flex-none text-[10px] text-slate-500 uppercase tracking-wider mb-1 sm:mb-0">{item.label}</span>
+                    <span className="flex-1 text-slate-700 text-xs break-words whitespace-normal">{String(item.value || "-")}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-sm ${wellData.status === 'Active' ? 'bg-green-100 text-green-700' :
-                        wellData.status === 'Suspended' ? 'bg-amber-100 text-amber-700' :
-                            'bg-slate-100 text-slate-600'
-                        }`}>
-                        {wellData.status}
-                    </span>
-                    <span className="text-xs text-slate-500 font-medium">{wellData.field} Field</span>
-                </div>
-            </div>
-
-            <div className="h-px bg-gray-200" />
-
-            {/* Key Information Grid */}
-            <div>
-                <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-3 tracking-wider">General Information</h4>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-xs">
-                    <div>
-                        <span className="block text-slate-500 mb-1">Operator</span>
-                        <span className="font-medium text-slate-900">{wellData.operator}</span>
-                    </div>
-                    <div>
-                        <span className="block text-slate-500 mb-1">Well Type</span>
-                        <span className="font-medium text-slate-900">{wellData.wellType}</span>
-                    </div>
-                    <div>
-                        <span className="block text-slate-500 mb-1">Spud Date</span>
-                        <span className="font-medium text-slate-900">{wellData.spudDate}</span>
-                    </div>
-                    <div>
-                        <span className="block text-slate-500 mb-1">Completion Date</span>
-                        <span className="font-medium text-slate-900">{wellData.completionDate}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div className="h-px bg-gray-200" />
-
-            {/* Technical Data */}
-            <div>
-                <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-3 tracking-wider">Technical Data</h4>
-                <div className="bg-slate-50 rounded border border-slate-100 p-3 space-y-3 text-xs">
-                    <div className="flex justify-between">
-                        <span className="text-slate-600">Total Depth (MD)</span>
-                        <span className="font-mono font-medium text-slate-900">{wellData.totalDepth}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-slate-600">Water Depth</span>
-                        <span className="font-mono font-medium text-slate-900">{wellData.waterDepth}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-slate-600">Rig Name</span>
-                        <span className="font-medium text-slate-900">{wellData.rigName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-slate-600">Result</span>
-                        <span className="font-medium text-primary/90">{wellData.result}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div className="h-px bg-gray-200" />
-
-            {/* Location */}
-            <div>
-                <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-3 tracking-wider">Location</h4>
-                <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    <span className="font-mono">{wellData.coordinates}</span>
-                </div>
-            </div>
-
-            <div className="h-px bg-gray-200" />
-
-            {/* Well Reports */}
-            <div>
-                <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-3 tracking-wider">Well Reports</h4>
-                <div className="space-y-2">
-                    {[
-                        { name: "Completion & Workover Report", path: "/pdf/DURI05720 COMPLETION & WORKOVER PROG REPORT.pdf" },
-                        { name: "Downhole Well Log Report", path: "/pdf/PDD-M01-156-Downhole Well Log Report.pdf" },
-                    ].map((report, idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => {
-                                setSelectedPdf(report)
-                                setPdfViewerOpen(true)
-                            }}
-                            className="w-full flex items-center gap-3 p-2.5 bg-slate-50 hover:bg-slate-100 rounded border border-slate-100 hover:border-slate-200 transition-all group text-left"
-                        >
-                            <img
-                                src="/pdf/pdf-icon.png"
-                                alt="PDF"
-                                className="w-8 h-8 object-contain"
-                            />
-                            <div className="flex-1 min-w-0">
-                                <div className="text-xs font-medium text-slate-800 truncate group-hover:text-primary/90 transition-colors">
-                                    {report.name}
-                                </div>
-                                <div className="text-[10px] text-slate-400">Click to view</div>
-                            </div>
-                            <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary transition-colors" />
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Seismic Viewer Reuse */}
-            <div className="pt-2">
-                <SeismicViewer />
-            </div>
-
-            {/* PDF Viewer Modal */}
-            {pdfViewerOpen && selectedPdf && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl border border-gray-200 w-[90vw] max-w-4xl h-[85vh] flex flex-col overflow-hidden">
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
-                            <div className="flex items-center gap-3">
-                                <img src="/pdf/pdf-icon.png" alt="PDF" className="w-6 h-6" />
-                                <div>
-                                    <div className="text-sm font-semibold text-slate-800">{selectedPdf.name}</div>
-                                    <div className="text-[10px] text-slate-500">Well Report Document</div>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    setPdfViewerOpen(false)
-                                    setSelectedPdf(null)
-                                }}
-                                className="p-2 rounded-full hover:bg-gray-200 text-slate-500 hover:text-slate-700 transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        {/* PDF Embed */}
-                        <div className="flex-1 bg-gray-100">
-                            <iframe
-                                src={selectedPdf.path}
-                                className="w-full h-full border-0"
-                                title={selectedPdf.name}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
+            ))}
         </div>
     )
 }
+
+// Documents & Reports Section
+function DocumentsSection() {
+    const docs = [
+        { name: "Completion & Workover Report", type: "PDF", size: "1.0 MB", url: "/pdf/DURI05720 COMPLETION & WORKOVER PROG REPORT.pdf" },
+        { name: "Downhole Well Log Report", type: "PDF", size: "1.1 MB", url: "/pdf/PDD-M01-156-Downhole Well Log Report.pdf" },
+    ]
+
+    return (
+        <div className="space-y-4">
+            <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                <FileText className="w-3 h-3" />
+                Documents & Reports
+            </h4>
+            <div className="space-y-2">
+                {docs.map((doc, idx) => (
+                    <a
+                        key={idx}
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg hover:border-primary hover:shadow-md transition-all group relative overflow-hidden"
+                    >
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 transform -translate-x-1 group-hover:translate-x-0 transition-transform" />
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-red-50 transition-colors">
+                                <FileText className="w-5 h-5 text-red-500" />
+                            </div>
+                            <div>
+                                <div className="text-sm font-bold text-slate-800 group-hover:text-primary transition-colors truncate max-w-[200px]">{doc.name}</div>
+                                <div className="text-[10px] text-slate-500 font-bold uppercase">{doc.type} • {doc.size}</div>
+                            </div>
+                        </div>
+                        <FileDown className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
+                    </a>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+// Well-specific content
+function WellDetailsContent({ data }: { data: any }) {
+    // Case-insensitive attribute getter
+    const getAttr = (key: string) => {
+        if (!data) return "-";
+        const actualKey = Object.keys(data).find(k => k.toLowerCase() === key.toLowerCase());
+        if (actualKey && data[actualKey] !== undefined && data[actualKey] !== null && String(data[actualKey]).trim() !== "") {
+            return String(data[actualKey]);
+        }
+        return "-";
+    };
+
+    const wellItems = [
+        { label: "Well ID", value: getAttr("IDENTIFICA") },
+        { label: "Operator", value: getAttr("OPERATOR") },
+        { label: "Type", value: getAttr("WELL_TYPE") },
+        { label: "Status", value: getAttr("STATUS") },
+        { label: "Result", value: getAttr("WELL_RESUL") },
+        { label: "Depth", value: getAttr("END_DEPTH_") !== "-" ? `${getAttr("END_DEPTH_")}m` : "-" },
+        { label: "Field", value: getAttr("FIELD_NAME") },
+    ]
+
+    const wellName = getAttr("IDENTIFICA");
+    const wellType = getAttr("WELL_TYPE");
+    const wellStatus = getAttr("STATUS");
+
+    return (
+        <div className="space-y-6 pb-10">
+            <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Active Well Selection</span>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-3 truncate">
+                    {wellName !== "-" ? wellName : "Well Properties"}
+                </h3>
+                <div className="flex items-center gap-2">
+                    {wellType !== "-" && (
+                        <span className="px-2 py-1 bg-slate-900 text-white text-[10px] font-medium rounded">
+                            {wellType}
+                        </span>
+                    )}
+                    {wellStatus !== "-" && (
+                        <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium rounded">
+                            {wellStatus}
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            <div className="h-px bg-slate-100" />
+
+            <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                    <Database className="w-3.5 h-3.5" />
+                    Asset Attributes
+                </h4>
+                <AttributeTable items={wellItems} />
+            </div>
+
+            <div className="h-px bg-slate-100" />
+            <DocumentsSection />
+            <div className="h-px bg-slate-100" />
+            <SeismicViewer />
+        </div>
+    )
+}
+
+// Field-specific content
+function FieldDetailsContent({ data }: { data: any }) {
+    // Case-insensitive attribute getter
+    const getAttr = (key: string) => {
+        if (!data) return "-";
+        const actualKey = Object.keys(data).find(k => k.toLowerCase() === key.toLowerCase());
+        if (actualKey && data[actualKey] !== undefined && data[actualKey] !== null && String(data[actualKey]).trim() !== "") {
+            return String(data[actualKey]);
+        }
+        return "-";
+    };
+
+    const fieldItems = [
+        { label: "Field Name", value: getAttr("FIELD_NAME") },
+        { label: "Operator", value: getAttr("OPERATOR") },
+        { label: "Status", value: getAttr("STATUS") },
+        { label: "Result", value: getAttr("RESULT") },
+        { label: "Discovery", value: getAttr("DISCOVERY_") },
+        { label: "Type", value: getAttr("LANDSEA") },
+    ]
+
+    const fieldName = getAttr("FIELD_NAME");
+    const resultStatus = getAttr("RESULT");
+    const fieldStatus = getAttr("STATUS");
+
+    return (
+        <div className="space-y-6 pb-10">
+            <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Selected Field Overview</span>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-3 truncate">
+                    {fieldName !== "-" ? fieldName : "Field Properties"}
+                </h3>
+                <div className="flex items-center gap-2">
+                    {resultStatus !== "-" && (
+                        <span className="px-2 py-1 bg-blue-600 text-white text-[10px] font-medium rounded">
+                            {resultStatus}
+                        </span>
+                    )}
+                    {fieldStatus !== "-" && (
+                        <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium rounded">
+                            {fieldStatus}
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            <div className="h-px bg-slate-100" />
+
+            <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                    <Database className="w-3.5 h-3.5" />
+                    Field Attributes
+                </h4>
+                <AttributeTable items={fieldItems} />
+            </div>
+
+            <div className="h-px bg-slate-100" />
+            <DocumentsSection />
+            <div className="h-px bg-slate-100" />
+            <SeismicViewer />
+        </div>
+    )
+}
+
+
