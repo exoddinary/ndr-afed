@@ -219,7 +219,6 @@ export function MapArea({ onElementClick, activeLayers = [], is3D = false, onTog
             }]
          },
          visible: activeLayers.includes('seismic-3d'),
-         effect: "bloom(1.0, 0.5px, 0)",
          elevationInfo: { mode: "on-the-ground" }
       })
       map.add(seismic3dLayer)
