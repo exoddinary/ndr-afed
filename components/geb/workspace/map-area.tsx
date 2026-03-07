@@ -338,7 +338,7 @@ export function MapArea({
             }]
          },
          popupEnabled: false,
-         visible: activeLayers.includes('pipeline-infrastructure'),
+         visible: activeLayers.includes('hc-fields'),
          elevationInfo: { mode: "on-the-ground" }
       })
       map.add(fieldsLayer)
