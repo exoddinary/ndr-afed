@@ -197,6 +197,9 @@ importers:
       react-hook-form:
         specifier: ^7.60.0
         version: 7.63.0(react@18.3.1)
+      react-is:
+        specifier: ^19.2.4
+        version: 19.2.4
       react-markdown:
         specifier: ^10.1.0
         version: 10.1.0(@types/react@18.3.25)(react@18.3.1)
@@ -4151,6 +4154,9 @@ packages:
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
+
+  react-is@19.2.4:
+    resolution: {integrity: sha512-W+EWGn2v0ApPKgKKCy/7s7WHXkboGcsrXE+2joLyVxkbyVQfO3MUEaUQDHoSmb8TFFrSKYa9mw64WZHNHSDzYA==}
 
   react-markdown@10.1.0:
     resolution: {integrity: sha512-qKxVopLT/TyA6BX3Ue5NwabOsAzm0Q7kAPwq6L+wWDwisYs7R8vZ0nRXqq6rkueboxpkjvLGU9fWifiX/ZZFxQ==}
@@ -9279,6 +9285,8 @@ snapshots:
   react-is@16.13.1: {}
 
   react-is@18.3.1: {}
+
+  react-is@19.2.4: {}
 
   react-markdown@10.1.0(@types/react@18.3.25)(react@18.3.1):
     dependencies:
