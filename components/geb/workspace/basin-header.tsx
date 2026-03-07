@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { LogOut, Crown } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -35,15 +36,19 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
       <div className="h-12 px-4 flex items-center text-sm relative">
         {/* Left Section */}
         <div className="flex-1 flex items-center justify-start gap-6">
-          {/* NDR Logo */}
+          {/* Logo Section */}
           <div className="flex items-center">
-            <div className="flex items-center justify-center bg-primary rounded-lg h-8 w-8 text-white font-black text-xs mr-2">
-              NDR
-            </div>
-            <span className="text-[10px] leading-tight text-slate-500 uppercase font-bold">Offshore & Onshore<br />Netherlands</span>
+            <Image
+              src="/LOGO-VDR.svg"
+              alt="Vibecodes VDR Logo"
+              width={100}
+              height={32}
+              className="h-8 w-auto mr-2"
+              priority
+            />
           </div>
           <div className="h-6 w-px bg-gray-300" />
-          <span className="font-bold text-lg tracking-tight text-slate-900 uppercase">National Data Room</span>
+          <span className="font-bold text-lg tracking-tight text-slate-900 uppercase">Offshore & Onshore Netherlands</span>
 
           {isPremium && (
             <div className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-200 to-yellow-400 rounded text-[10px] font-black text-amber-900 uppercase tracking-wider shadow-sm border border-yellow-500/50">
