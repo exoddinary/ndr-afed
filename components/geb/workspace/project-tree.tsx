@@ -32,7 +32,7 @@ const INITIAL_TREE: TreeNode[] = [
       { id: 'seismic-3d', label: 'Seismic 3D (Polygon)', type: 'layer' },
     ]
   },
-  { id: 'pipeline-infrastructure', label: 'Hydrocarbon Fields', type: 'layer' },
+  { id: 'hc-fields', label: 'Hydrocarbon Fields', type: 'layer' },
   { id: 'gng-projects', label: 'G&G Project Data Outlines', type: 'layer' },
   { id: 'offshore-blocks-detailed', label: 'Offshore Blocks', type: 'layer' },
 ]

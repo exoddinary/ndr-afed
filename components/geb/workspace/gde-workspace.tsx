@@ -24,7 +24,7 @@ export function GDEWorkspace() {
   const [panelData, setPanelData] = useState<ContextualData | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [selectedBlocks, setSelectedBlocks] = useState<BlockCommercialData[]>([])
-  const [activeLayers, setActiveLayers] = useState<string[]>(['offshore-blocks-detailed', 'pipeline-infrastructure', 'wells'])
+  const [activeLayers, setActiveLayers] = useState<string[]>(['offshore-blocks-detailed', 'hc-fields', 'wells'])
   const [is3DMode, setIs3DMode] = useState(false)
   const [activeTab, setActiveTab] = useState<'map' | 'subsurface'>('map')
   const [filteredBlockName, setFilteredBlockName] = useState<string | null>(null)
@@ -44,6 +44,10 @@ export function GDEWorkspace() {
     setIsPanelOpen(false)
     // Clear data after animation completes
     setTimeout(() => setPanelData(null), 300)
+  }
+
+  const handleResetSelection = () => {
+    handlePanelClose()
   }
 
   const handleAddToCompare = (blockOrId: string | BlockCommercialData) => {
@@ -183,6 +187,8 @@ export function GDEWorkspace() {
                   onViewReady={handleViewReady}
                   focusedFeatures={focusedFeatures}
                   onClearFocus={handleClearFocus}
+                  selectedElement={panelData}
+                  onResetSelection={handleResetSelection}
                 />
                 {/* Map Tools Overlay */}
                 <MapTools view={mapView} />
