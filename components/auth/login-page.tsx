@@ -70,12 +70,17 @@ export function LoginPage() {
                 {/* Left Side - Login Form */}
                 <div className="flex w-full flex-col justify-center px-8 py-12 lg:w-1/2 lg:px-16">
                     <div className="mx-auto w-full max-w-[360px]">
-                        {/* Logo */}
-                        <div className="mb-10 flex items-center gap-3">
-                            <div className="flex items-center justify-center bg-primary rounded-xl h-12 w-12 text-white font-black text-xl">
-                                NDR
-                            </div>
-                            <span className="text-2xl font-bold text-slate-900 tracking-tight">National Data Room</span>
+                        <div className="mb-10 flex items-center gap-6">
+                            <Image
+                                src="/LOGO-VDR.svg"
+                                alt="NDR Logo"
+                                width={120}
+                                height={40}
+                                className="h-10 w-auto"
+                                priority
+                            />
+                            <div className="h-8 w-px bg-slate-200" />
+                            <span className="text-xl font-bold text-slate-900 tracking-tight uppercase leading-tight">Offshore & <br />Onshore Netherlands</span>
                         </div>
 
                         <div className="mb-8">
