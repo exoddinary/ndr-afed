@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 
 // Define types for different panel contexts
-export type PanelContext = "polygon" | "play" | "basin" | "field" | "well" | null
+export type PanelContext = "polygon" | "play" | "basin" | "field" | "well" | "license" | null
 
 export type ContextualData = {
     type: PanelContext
@@ -53,6 +53,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                         {context.type === "basin" && "Basin Overview"}
                         {context.type === "field" && "Field Overview"}
                         {context.type === "well" && "Well Information"}
+                        {context.type === "license" && "License Details"}
                     </span>
                     <button
                         onClick={handleClose}
@@ -78,6 +79,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                     {context.type === "basin" && <BasinContent data={context.data} onNavigate={onNavigate} />}
                     {context.type === "well" && <WellDetailsContent data={context.data} />}
                     {context.type === "field" && <FieldDetailsContent data={context.data} />}
+                    {context.type === "license" && <LicenseDetailsContent data={context.data} />}
                 </div>
 
                 {/* Panel footer - Powered by attribution */}
@@ -1025,8 +1027,12 @@ function DocumentsSection() {
     )
 }
 
-// Well-specific content
+// Well-specific content with tabs for Well Info and G&G Project Data
 function WellDetailsContent({ data }: { data: any }) {
+    const [activeTab, setActiveTab] = useState<"well-info" | "gng-data">("well-info")
+    const [gngProjects, setGngProjects] = useState<any[]>([])
+    const [loading, setLoading] = useState(false)
+
     // Case-insensitive attribute getter
     const getAttr = (key: string) => {
         if (!data) return "-";
@@ -1036,6 +1042,35 @@ function WellDetailsContent({ data }: { data: any }) {
         }
         return "-";
     };
+
+    // Fetch G&G projects when tab is selected
+    useEffect(() => {
+        if (activeTab === "gng-data" && data) {
+            fetchGngProjects()
+        }
+    }, [activeTab, data])
+
+    const fetchGngProjects = async () => {
+        setLoading(true)
+        try {
+            // Fetch G&G projects from the GeoJSON file
+            const response = await fetch('/data/GnG_Project_Data_Outlines.json')
+            const geojsonData = await response.json()
+            
+            // Get all projects (or filter by well location if needed)
+            const projects = geojsonData.features?.map((f: any) => ({
+                ...f.properties,
+                id: f.id || f.properties?.OBJECTID
+            })) || []
+            
+            setGngProjects(projects)
+        } catch (error) {
+            console.error("Failed to fetch G&G projects:", error)
+            setGngProjects([])
+        } finally {
+            setLoading(false)
+        }
+    }
 
     const wellItems = [
         { label: "Well ID", value: getAttr("IDENTIFICA") },
@@ -1052,43 +1087,171 @@ function WellDetailsContent({ data }: { data: any }) {
     const wellStatus = getAttr("STATUS");
 
     return (
-        <div className="space-y-6 pb-10">
-            <div>
-                <div className="flex items-center gap-2 mb-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Active Well Selection</span>
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-3 truncate">
-                    {wellName !== "-" ? wellName : "Well Properties"}
-                </h3>
-                <div className="flex items-center gap-2">
-                    {wellType !== "-" && (
-                        <span className="px-2 py-1 bg-slate-900 text-white text-[10px] font-medium rounded">
-                            {wellType}
-                        </span>
-                    )}
-                    {wellStatus !== "-" && (
-                        <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium rounded">
-                            {wellStatus}
-                        </span>
-                    )}
-                </div>
+        <div className="space-y-4 pb-10">
+            {/* Tabs */}
+            <div className="flex items-center gap-1 pb-1">
+                <button
+                    onClick={() => setActiveTab("well-info")}
+                    className={`flex-1 justify-center py-2 text-[10px] font-bold uppercase tracking-wider rounded-sm flex items-center gap-2 transition-all border ${activeTab === "well-info"
+                        ? "bg-slate-800 border-slate-800 text-white shadow-sm"
+                        : "bg-white border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                    }`}
+                >
+                    Well Info
+                </button>
+                <button
+                    onClick={() => setActiveTab("gng-data")}
+                    className={`flex-1 justify-center py-2 text-[10px] font-bold uppercase tracking-wider rounded-sm flex items-center gap-2 transition-all border ${activeTab === "gng-data"
+                        ? "bg-green-600 border-green-600 text-white shadow-sm"
+                        : "bg-white border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                    }`}
+                >
+                    G&G Project Data
+                </button>
             </div>
+            <div className="h-px bg-gray-100 w-full" />
 
-            <div className="h-px bg-slate-100" />
+            {/* Well Info Tab */}
+            {activeTab === "well-info" && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Active Well Selection</span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-900 mb-3 truncate">
+                            {wellName !== "-" ? wellName : "Well Properties"}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                            {wellType !== "-" && (
+                                <span className="px-2 py-1 bg-slate-900 text-white text-[10px] font-medium rounded">
+                                    {wellType}
+                                </span>
+                            )}
+                            {wellStatus !== "-" && (
+                                <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium rounded">
+                                    {wellStatus}
+                                </span>
+                            )}
+                        </div>
+                    </div>
 
-            <div className="space-y-3">
-                <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
-                    <Database className="w-3.5 h-3.5" />
-                    Asset Attributes
-                </h4>
-                <AttributeTable items={wellItems} />
-            </div>
+                    <div className="h-px bg-slate-100" />
 
-            <div className="h-px bg-slate-100" />
-            <DocumentsSection />
-            <div className="h-px bg-slate-100" />
-            <SeismicViewer />
+                    <div className="space-y-3">
+                        <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                            <Database className="w-3.5 h-3.5" />
+                            Asset Attributes
+                        </h4>
+                        <AttributeTable items={wellItems} />
+                    </div>
+
+                    <div className="h-px bg-slate-100" />
+                    <DocumentsSection />
+                    <div className="h-px bg-slate-100" />
+                    <SeismicViewer />
+                </div>
+            )}
+
+            {/* G&G Project Data Tab */}
+            {activeTab === "gng-data" && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                            <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">G&G Project Data</span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-900 mb-1 truncate">
+                            {wellName !== "-" ? wellName : "Associated Projects"}
+                        </h3>
+                        <p className="text-xs text-slate-500">Netherlands data with summary from attributes table</p>
+                    </div>
+
+                    <div className="h-px bg-slate-100" />
+
+                    {loading ? (
+                        <div className="flex items-center justify-center py-8">
+                            <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                    ) : gngProjects.length > 0 ? (
+                        <div className="space-y-3">
+                            <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                                <Database className="w-3.5 h-3.5" />
+                                Project Summary ({gngProjects.length} projects)
+                            </h4>
+                            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                                {gngProjects.slice(0, 10).map((project, index) => {
+                                    const appName = (project.APPLICATION_NAME || "").toLowerCase()
+                                    const appLogos: Record<string, string> = {
+                                        "petrel": "https://www.gopaysoft.com/wp-content/uploads/image-396.png",
+                                        "openworks": "https://usoftly.ir/wp-content/uploads/2021/10/Openworks.png",
+                                        "opendtect": "https://avatars.githubusercontent.com/u/11555490?s=280&v=4",
+                                        "paleoscan": "https://usoftly.ir/wp-content/uploads/2021/10/PaleoScan_202010_r29391_x64_0.png"
+                                    }
+                                    const logoUrl = appLogos[appName]
+                                    
+                                    return (
+                                        <div key={project.id || index} className="p-3 bg-slate-50 rounded border border-slate-200">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    {logoUrl && (
+                                                        <img 
+                                                            src={logoUrl} 
+                                                            alt={project.APPLICATION_NAME || ""}
+                                                            className="w-6 h-6 rounded object-contain"
+                                                        />
+                                                    )}
+                                                    <span className="font-semibold text-sm text-slate-800">
+                                                        {project.PROJECT_NAME || "Unnamed Project"}
+                                                    </span>
+                                                </div>
+                                                {project.INTERPRETATION_YEAR && (
+                                                    <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">
+                                                        {project.INTERPRETATION_YEAR}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-600 pl-8">
+                                                {project.APPLICATION_NAME && (
+                                                    <div>
+                                                        <span className="text-slate-400">App: </span>
+                                                        {project.APPLICATION_NAME}
+                                                    </div>
+                                                )}
+                                                {project.NO_OF_WELLS !== undefined && (
+                                                    <div>
+                                                        <span className="text-slate-400">Wells: </span>
+                                                        {project.NO_OF_WELLS}
+                                                    </div>
+                                                )}
+                                                {project.NO_OF_REPORTS !== undefined && (
+                                                    <div>
+                                                        <span className="text-slate-400">Reports: </span>
+                                                        {project.NO_OF_REPORTS}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                                {gngProjects.length > 10 && (
+                                    <p className="text-[10px] text-slate-400 text-center py-2">
+                                        ... and {gngProjects.length - 10} more projects
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <Database className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                            <p className="text-sm text-slate-500">No G&G projects found</p>
+                        </div>
+                    )}
+
+                    <div className="h-px bg-slate-100" />
+                    <DocumentsSection />
+                </div>
+            )}
         </div>
     )
 }
@@ -1161,3 +1324,94 @@ function FieldDetailsContent({ data }: { data: any }) {
 }
 
 
+
+// License-specific content
+function LicenseDetailsContent({ data }: { data: any }) {
+    // Case-insensitive attribute getter
+    const getAttr = (key: string) => {
+        if (!data) return "-";
+        const actualKey = Object.keys(data).find(k => k.toLowerCase() === key.toLowerCase());
+        if (actualKey && data[actualKey] !== undefined && data[actualKey] !== null && String(data[actualKey]).trim() !== "") {
+            return String(data[actualKey]);
+        }
+        return "-";
+    };
+
+    const licenseItems = [
+        { label: "License Code", value: getAttr("licence_cd") },
+        { label: "License Name", value: getAttr("licence_nm") },
+        { label: "License Type", value: getAttr("licence_ty") },
+        { label: "Status", value: getAttr("licence_st") },
+        { label: "Resource", value: getAttr("licence_re") },
+        { label: "Licensed Area", value: getAttr("licenced_a") },
+    ]
+
+    const licenseName = getAttr("licence_nm");
+    const licenseCode = getAttr("licence_cd");
+    const licenseType = getAttr("licence_ty");
+    const licenseStatus = getAttr("licence_st");
+    const licenseResource = getAttr("licence_re");
+
+    // Type color mapping
+    const typeColors: Record<string, string> = {
+        "STR": "bg-red-100 text-red-700 border-red-200",  // Storage
+        "GEA": "bg-green-100 text-green-700 border-green-200",  // Geothermal
+        "GFL": "bg-blue-100 text-blue-700 border-blue-200",  // Gas Field
+    };
+    const typeLabels: Record<string, string> = {
+        "STR": "Storage",
+        "GEA": "Geothermal",
+        "GFL": "Gas Field",
+    };
+
+    // Status color mapping
+    const statusColors: Record<string, string> = {
+        "EFFECTIVE": "bg-emerald-100 text-emerald-700 border-emerald-200",
+    };
+
+    return (
+        <div className="space-y-6 pb-10">
+            <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                    <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">License Information</span>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-3 truncate">
+                    {licenseName !== "-" ? licenseName : "License Properties"}
+                </h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                    {licenseType !== "-" && (
+                        <span className={`px-2 py-1 text-[10px] font-medium rounded border ${typeColors[licenseType] || "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                            {typeLabels[licenseType] || licenseType}
+                        </span>
+                    )}
+                    {licenseStatus !== "-" && (
+                        <span className={`px-2 py-1 text-[10px] font-medium rounded border ${statusColors[licenseStatus] || "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                            {licenseStatus}
+                        </span>
+                    )}
+                    {licenseResource !== "-" && (
+                        <span className="px-2 py-1 bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-medium rounded">
+                            {licenseResource}
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            <div className="h-px bg-slate-100" />
+
+            <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                    <Database className="w-3.5 h-3.5" />
+                    License Attributes
+                </h4>
+                <AttributeTable items={licenseItems} />
+            </div>
+
+            <div className="h-px bg-slate-100" />
+            <DocumentsSection />
+            <div className="h-px bg-slate-100" />
+            <SeismicViewer />
+        </div>
+    )
+}

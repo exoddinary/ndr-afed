@@ -34,6 +34,11 @@ export type SpatialResult = {
         layer: string
         identifiers: string[]
         geometry?: object
+        radiusInfo?: {
+            originLayer: string
+            originId: string
+            radiusKm: number
+        }
     }[]
 }
 
@@ -57,30 +62,42 @@ function extractRadius(query: string): number {
     return m ? parseInt(m[1]) : 25
 }
 
-function detectLayerFromQuery(query: string): LayerName {
+function detectLayerFromQuery(query: string, fallback: LayerName = 'fields'): LayerName {
     const q = query.toLowerCase()
     if (q.includes('well') || q.includes('borehole')) return 'wells'
     if (q.includes('field')) return 'fields'
     if (q.includes('block')) return 'blocks'
     if (q.includes('seismic 3d') || q.includes('3d survey')) return 'seismic3d'
     if (q.includes('seismic 2d') || q.includes('2d line')) return 'seismic2d'
-    return 'fields'
+    return fallback
 }
 
-export async function runSpatialReasoningAgent(userQuery: string, context: AgentContext): Promise<SpatialResult> {
+export async function runSpatialReasoningAgent(userQuery: string, _context: AgentContext): Promise<SpatialResult> {
     const toolResults: Record<string, unknown> = {}
     const q = userQuery.toLowerCase()
     const mapActions: SpatialResult['mapActions'] = []
 
     const featureName = extractFeatureName(userQuery)
     const radiusKm = extractRadius(userQuery)
-    const originLayer = detectLayerFromQuery(userQuery)
 
-    // Detect target layer for nearby search
+    // Better layer detection for nearby
+    const pivotIdx = Math.max(
+        q.indexOf('near'),
+        q.indexOf('within'),
+        q.indexOf('around'),
+        q.indexOf('close to')
+    )
+
+    let originLayer: LayerName = 'fields'
     let targetLayer: LayerName = 'wells'
-    if (q.includes('well')) targetLayer = 'wells'
-    if (q.includes('field') && originLayer !== 'fields') targetLayer = 'fields'
-    if (q.includes('seismic')) targetLayer = q.includes('3d') ? 'seismic3d' : 'seismic2d'
+
+    if (pivotIdx !== -1) {
+        targetLayer = detectLayerFromQuery(q.substring(0, pivotIdx), 'wells')
+        originLayer = detectLayerFromQuery(q.substring(pivotIdx), 'fields')
+    } else {
+        targetLayer = detectLayerFromQuery(q, 'wells')
+        originLayer = detectLayerFromQuery(q, 'fields')
+    }
 
     try {
         if (featureName && (q.includes('near') || q.includes('within') || q.includes('around') || q.includes('close to'))) {
@@ -95,7 +112,16 @@ export async function runSpatialReasoningAgent(userQuery: string, context: Agent
                     return String(r.IDENTIFICA || r.FIELD_NAME || r.BlokNummer || r.SURVEY_ID || '')
                 }).filter(Boolean)
                 if (ids.length > 0) {
-                    mapActions.push({ action: 'highlight', layer: targetLayer, identifiers: ids })
+                    mapActions.push({
+                        action: 'highlight',
+                        layer: targetLayer,
+                        identifiers: ids,
+                        radiusInfo: {
+                            originLayer,
+                            originId: featureName,
+                            radiusKm
+                        }
+                    })
                 }
             }
         } else if (q.includes('within') && (q.includes('area') || q.includes('region') || q.includes('netherlands'))) {

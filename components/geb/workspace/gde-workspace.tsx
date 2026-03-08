@@ -31,7 +31,11 @@ export function GDEWorkspace() {
 
   const [isAIChatOpen, setIsAIChatOpen] = useState(false)
   const [mapView, setMapView] = useState<__esri.MapView | __esri.SceneView | null>(null)
-  const [focusedFeatures, setFocusedFeatures] = useState<{ layer: string; identifiers: string[] } | null>(null)
+  const [focusedFeatures, setFocusedFeatures] = useState<{
+    layer: string;
+    identifiers: string[];
+    radiusInfo?: { originLayer: string; originId: string; radiusKm: number }
+  } | null>(null)
 
   const handleElementClick = (type: PanelContext, data: any) => {
     setPanelData({ type, data })
@@ -99,10 +103,15 @@ export function GDEWorkspace() {
 
   // Handle AI map actions (zoom/highlight from AI responses)
   const handleMapAction = useCallback(async (
-    action: { action: string; layer: string; identifiers: string[] }
+    action: {
+      action: string;
+      layer: string;
+      identifiers: string[];
+      radiusInfo?: { originLayer: string; originId: string; radiusKm: number }
+    }
   ) => {
     // Apply highlight on map immediately
-    setFocusedFeatures({ layer: action.layer, identifiers: action.identifiers })
+    setFocusedFeatures({ layer: action.layer, identifiers: action.identifiers, radiusInfo: action.radiusInfo })
 
     // Also zoom to the features
     if (!mapView) return
@@ -116,7 +125,7 @@ export function GDEWorkspace() {
       const { points } = await res.json() as { points: { lat: number; lon: number }[] }
       if (!points || points.length === 0) return
 
-      if (points.length === 1) {
+      if (points.length === 1 && !action.radiusInfo) {
         await (mapView as __esri.MapView).goTo(
           { center: [points[0].lon, points[0].lat], zoom: 10 },
           { animate: true, duration: 1500 }
@@ -126,8 +135,22 @@ export function GDEWorkspace() {
         const maxLon = Math.max(...points.map(p => p.lon))
         const minLat = Math.min(...points.map(p => p.lat))
         const maxLat = Math.max(...points.map(p => p.lat))
+
+        let marginX = 0.05
+        let marginY = 0.05
+
+        // Convert radiusKm roughly into degrees (1 deg ~ 111km)
+        if (action.radiusInfo) {
+          const radiusDeg = (action.radiusInfo.radiusKm / 111.0) * 1.5 // 1.5 multiplier for padding
+          marginX = Math.max(marginX, radiusDeg)
+          // For longitude, we adjust for latitude distortion
+          const centerLat = (minLat + maxLat) / 2
+          const radiusLonDeg = radiusDeg / Math.cos(centerLat * (Math.PI / 180))
+          marginY = Math.max(marginY, radiusLonDeg)
+        }
+
         await (mapView as __esri.MapView).goTo(
-          { target: { type: 'extent', xmin: minLon - 0.5, xmax: maxLon + 0.5, ymin: minLat - 0.5, ymax: maxLat + 0.5, spatialReference: { wkid: 4326 } } },
+          { target: { type: 'extent', xmin: minLon - marginX, xmax: maxLon + marginX, ymin: minLat - marginY, ymax: maxLat + marginY, spatialReference: { wkid: 4326 } } },
           { animate: true, duration: 1500 }
         )
       }

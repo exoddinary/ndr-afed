@@ -11,7 +11,16 @@ type Message = {
     content: string
     timestamp: Date
     agents?: string[]
-    mapActions?: { action: string; layer: string; identifiers: string[] }[]
+    mapActions?: {
+        action: string;
+        layer: string;
+        identifiers: string[]
+        radiusInfo?: {
+            originLayer: string
+            originId: string
+            radiusKm: number
+        }
+    }[]
     followUpQuestions?: string[]
     latencyMs?: number
 }
@@ -19,7 +28,16 @@ type Message = {
 type AIChatPanelProps = {
     isOpen: boolean
     onClose: () => void
-    onMapAction?: (action: { action: string; layer: string; identifiers: string[] }) => void
+    onMapAction?: (action: {
+        action: string;
+        layer: string;
+        identifiers: string[]
+        radiusInfo?: {
+            originLayer: string
+            originId: string
+            radiusKm: number
+        }
+    }) => void
 }
 
 const SUGGESTED_QUESTIONS = [

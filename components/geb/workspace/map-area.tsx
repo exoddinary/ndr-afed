@@ -7,6 +7,8 @@ import SceneView from "@arcgis/core/views/SceneView"
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer"
 import LabelClass from "@arcgis/core/layers/support/LabelClass"
 import TextSymbol from "@arcgis/core/symbols/TextSymbol"
+import Circle from "@arcgis/core/geometry/Circle"
+import Graphic from "@arcgis/core/Graphic"
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils"
 import "@arcgis/core/assets/esri/themes/light/main.css"
 
@@ -19,7 +21,11 @@ type MapAreaProps = {
    is3D?: boolean
    onToggle3D?: () => void
    onViewReady?: (view: __esri.MapView | __esri.SceneView) => void
-   focusedFeatures?: { layer: string; identifiers: string[] } | null
+   focusedFeatures?: {
+      layer: string;
+      identifiers: string[];
+      radiusInfo?: { originLayer: string; originId: string; radiusKm: number }
+   } | null
    onClearFocus?: () => void
    selectedElement?: { type: PanelContext; data: any } | null
    onResetSelection?: () => void
@@ -33,7 +39,8 @@ const AI_TO_REF: Record<string, string> = {
    seismic2d: 'seismic-2d',
    seismic3d: 'seismic-3d',
    trajectories: 'well-trajectories',
-   gng_projects: 'gng-projects'
+   gng_projects: 'gng-projects',
+   licenses: 'licenses'
 }
 
 // Name field used in definitionExpression for each layersRef key
@@ -44,7 +51,8 @@ const REF_NAME_FIELD: Record<string, string> = {
    'seismic-2d': 'line_name',
    'seismic-3d': 'SURVEY_ID',
    'well-trajectories': 'SHORT_NM',
-   'gng-projects': 'PROJECT_NAME'
+   'gng-projects': 'PROJECT_NAME',
+   'licenses': 'licence_nm'
 }
 
 export function MapArea({
@@ -126,10 +134,8 @@ export function MapArea({
                   haloColor: [50, 50, 50, 0.9],
                   haloSize: 2,
                   font: { size: 10, weight: "bold", family: "Arial" }
-               }),
-               minScale: 2000000,
-               maxScale: 0,
-               labelPlacement: "always-horizontal"
+               })
+               // No minScale or maxScale - labels always visible per requirements
             })
          ],
          outFields: ["*"],
@@ -189,8 +195,8 @@ export function MapArea({
             field: "YEAR",
             defaultSymbol: {
                type: "simple-fill",
-               color: [130, 130, 130, 0.7],
-               outline: { color: [110, 110, 110, 0.7], width: 0.7 }
+               color: [130, 130, 130, 0.3], // 30% transparency
+               outline: { color: [110, 110, 110, 0.3], width: 0.7 }
             } as any,
             classBreakInfos: [
                {
@@ -198,8 +204,8 @@ export function MapArea({
                   maxValue: 1993,
                   symbol: {
                      type: "simple-fill",
-                     color: [230, 238, 207, 0.7],
-                     outline: { color: [110, 110, 110, 0.7], width: 0.7 }
+                     color: [230, 238, 207, 0.3], // 30% transparency
+                     outline: { color: [110, 110, 110, 0.3], width: 0.7 }
                   } as any
                },
                {
@@ -207,8 +213,8 @@ export function MapArea({
                   maxValue: 2007,
                   symbol: {
                      type: "simple-fill",
-                     color: [105, 168, 183, 0.7],
-                     outline: { color: [110, 110, 110, 0.7], width: 0.7 }
+                     color: [105, 168, 183, 0.3], // 30% transparency
+                     outline: { color: [110, 110, 110, 0.3], width: 0.7 }
                   } as any
                },
                {
@@ -216,8 +222,8 @@ export function MapArea({
                   maxValue: 2030,
                   symbol: {
                      type: "simple-fill",
-                     color: [46, 85, 122, 0.7],
-                     outline: { color: [110, 110, 110, 0.7], width: 0.7 }
+                     color: [46, 85, 122, 0.3], // 30% transparency
+                     outline: { color: [110, 110, 110, 0.3], width: 0.7 }
                   } as any
                }
             ]
@@ -235,7 +241,8 @@ export function MapArea({
             }]
          },
          visible: activeLayers.includes('seismic-3d'),
-         elevationInfo: { mode: "on-the-ground" }
+         elevationInfo: { mode: "on-the-ground" },
+         maxScale: 1500000 // Maximum zoom-out scale (1:1,500,000)
       })
       map.add(seismic3dLayer)
       layersRef.current['seismic-3d'] = seismic3dLayer
@@ -265,7 +272,8 @@ export function MapArea({
             }]
          },
          visible: activeLayers.includes('seismic-2d'),
-         elevationInfo: { mode: "on-the-ground" }
+         elevationInfo: { mode: "on-the-ground" },
+         maxScale: 500000 // Maximum zoom-out scale (1:500,000)
       })
       map.add(seismicLayer)
       layersRef.current['seismic-2d'] = seismicLayer
@@ -279,7 +287,7 @@ export function MapArea({
             field: "RESULT",
             defaultSymbol: {
                type: "simple-fill",
-               color: [130, 130, 130, 0.7],
+               color: [130, 130, 130, 0.3], // 30% transparency
                outline: { color: [110, 110, 110, 1], width: 0.7 }
             } as any,
             uniqueValueInfos: [
@@ -287,7 +295,7 @@ export function MapArea({
                   value: "Gas",
                   symbol: {
                      type: "simple-fill",
-                     color: [255, 127, 127, 0.7],
+                     color: [255, 127, 127, 0.3], // 30% transparency
                      outline: { color: [255, 190, 190, 1], width: 1.5 }
                   } as any
                },
@@ -295,7 +303,7 @@ export function MapArea({
                   value: "Olie",
                   symbol: {
                      type: "simple-fill",
-                     color: [85, 255, 0, 0.7],
+                     color: [85, 255, 0, 0.3], // 30% transparency
                      outline: { color: [211, 255, 190, 1], width: 1.5 }
                   } as any
                },
@@ -303,7 +311,7 @@ export function MapArea({
                   value: "Olie en Gas",
                   symbol: {
                      type: "simple-fill",
-                     color: [255, 170, 0, 0.7],
+                     color: [255, 170, 0, 0.3], // 30% transparency
                      outline: { color: [255, 235, 175, 1], width: 1.5 }
                   } as any
                }
@@ -319,7 +327,7 @@ export function MapArea({
                   font: { size: 9, weight: "bold", family: "Arial" }
                }),
                minScale: 2000000,
-               maxScale: 0
+               maxScale: 500000 // Label visible up to 1:500,000
             })
          ],
          outFields: ["*"],
@@ -339,12 +347,13 @@ export function MapArea({
          },
          popupEnabled: false,
          visible: activeLayers.includes('hc-fields'),
-         elevationInfo: { mode: "on-the-ground" }
+         elevationInfo: { mode: "on-the-ground" },
+         maxScale: 500000 // Maximum zoom-out scale (1:500,000)
       })
       map.add(fieldsLayer)
       layersRef.current['hc-fields'] = fieldsLayer
 
-      // --- Well Locations (Local GeoJSON) ---
+      // --- Wells Layer (Local GeoJSON) ---
       const wellsLayer = new GeoJSONLayer({
          url: '/data/Wells.json',
          copyright: "NDR / AFED Digital",
@@ -354,10 +363,23 @@ export function MapArea({
                type: "simple-marker",
                style: "circle",
                color: [0, 0, 0, 1], // Black
-               size: 4,
-               outline: { color: [255, 255, 255, 1], width: 1 } // White outline
+               size: 4
+               // No outline - removed per requirements
             } as any
          },
+         labelingInfo: [
+            new LabelClass({
+               labelExpressionInfo: { expression: "$feature.IDENTIFICA" },
+               symbol: new TextSymbol({
+                  color: [0, 0, 0, 1],
+                  haloColor: [255, 255, 255, 0.8],
+                  haloSize: 1,
+                  font: { size: 8, weight: "normal", family: "Arial" }
+               }),
+               minScale: 100000,
+               maxScale: 500000 // Label visible up to 1:500,000 per requirements
+            })
+         ],
          outFields: ["*"],
          popupTemplate: {
             title: "{IDENTIFICA}",
@@ -377,8 +399,9 @@ export function MapArea({
          },
          popupEnabled: false,
          visible: activeLayers.includes('wells'),
-         effect: "bloom(1.3, 1px, 0.1)",
-         elevationInfo: { mode: "on-the-ground" }
+         // Bloom effect removed per requirements
+         elevationInfo: { mode: "on-the-ground" },
+         maxScale: 500000 // Maximum zoom-out scale (1:500,000)
       })
       map.add(wellsLayer)
       layersRef.current['wells'] = wellsLayer
@@ -391,7 +414,7 @@ export function MapArea({
             type: "simple",
             symbol: {
                type: "simple-fill",
-               color: [0, 0, 0, 0.1], // Black with 10% opacity
+               color: [0, 0, 0, 0.3], // 30% transparency per requirements
                outline: { color: [169, 0, 230, 1], width: 3 } // Purple outline
             } as any
          },
@@ -405,7 +428,7 @@ export function MapArea({
                   font: { size: 10, weight: "bold", family: "Arial" }
                }),
                minScale: 2000000,
-               maxScale: 0
+               maxScale: 500000 // Label visible up to 1:500,000 per requirements
             })
          ],
          popupTemplate: {
@@ -423,9 +446,84 @@ export function MapArea({
          },
          visible: activeLayers.includes('gng-projects'),
          elevationInfo: { mode: "on-the-ground" }
+         // No maxScale - always display per requirements
       })
       map.add(gngLayer)
       layersRef.current['gng-projects'] = gngLayer
+
+      // --- Licenses (Local GeoJSON) ---
+      const licensesLayer = new GeoJSONLayer({
+         url: '/data/Licenses.json',
+         copyright: "NDR / AFED Digital",
+         renderer: {
+            type: "unique-value",
+            field: "licence_ty",
+            defaultSymbol: {
+               type: "simple-fill",
+               color: [128, 128, 128, 0.4],
+               outline: { color: [100, 100, 100, 1], width: 1.5 }
+            } as any,
+            uniqueValueInfos: [
+               {
+                  value: "STR",
+                  symbol: {
+                     type: "simple-fill",
+                     color: [255, 99, 71, 0.5], // Tomato red for Storage
+                     outline: { color: [200, 50, 50, 1], width: 2 }
+                  } as any
+               },
+               {
+                  value: "GEA",
+                  symbol: {
+                     type: "simple-fill",
+                     color: [50, 205, 50, 0.5], // Lime green for Geothermal
+                     outline: { color: [34, 139, 34, 1], width: 2 }
+                  } as any
+               },
+               {
+                  value: "GFL",
+                  symbol: {
+                     type: "simple-fill",
+                     color: [30, 144, 255, 0.5], // Dodger blue for Gas Field
+                     outline: { color: [0, 100, 200, 1], width: 2 }
+                  } as any
+               }
+            ]
+         } as any,
+         labelingInfo: [
+            new LabelClass({
+               labelExpressionInfo: { expression: "$feature.licence_nm" },
+               symbol: new TextSymbol({
+                  color: [50, 50, 50, 1],
+                  haloColor: [255, 255, 255, 0.8],
+                  haloSize: 2,
+                  font: { size: 9, weight: "bold", family: "Arial" }
+               }),
+               minScale: 1000000,
+               maxScale: 0
+            })
+         ],
+         outFields: ["*"],
+         popupTemplate: {
+            title: "{licence_nm}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "licence_cd", label: "License Code" },
+                  { fieldName: "licence_nm", label: "License Name" },
+                  { fieldName: "licence_ty", label: "License Type" },
+                  { fieldName: "licence_st", label: "Status" },
+                  { fieldName: "licence_re", label: "Resource" },
+                  { fieldName: "licenced_a", label: "Licensed Area" }
+               ]
+            }]
+         },
+         popupEnabled: false,
+         visible: activeLayers.includes('licenses'),
+         elevationInfo: { mode: "on-the-ground" }
+      })
+      map.add(licensesLayer)
+      layersRef.current['licenses'] = licensesLayer
 
       // (Mining Facilities layer removed per new GIS structure)
 
@@ -578,6 +676,29 @@ export function MapArea({
 
             console.log("🟢 HC Field Clicked:", attr)
             onElementClick?.("field", attr)
+            return
+         }
+
+         // 4. Check for Licenses
+         const licenseResults = response.results.filter((result: any) =>
+            result.type === "graphic" &&
+            result.graphic?.layer === layersRef.current['licenses']
+         )
+
+         if (licenseResults.length > 0) {
+            const graphic = (licenseResults[0] as any).graphic
+            const attr = graphic.attributes
+
+            if (graphic.geometry && graphic.geometry.type === "polygon") {
+               const polygon = graphic.geometry as __esri.Polygon
+               const extent = polygon.extent
+               if (extent) {
+                  view.goTo({ target: extent.expand(1.67), tilt: is3D ? 45 : 0 }, { duration: 400, easing: "ease-in-out" })
+               }
+            }
+
+            console.log("📜 License Clicked:", attr)
+            onElementClick?.("license", attr)
          }
       })
 
@@ -627,8 +748,16 @@ export function MapArea({
             })
             originalStateRef.current = null
          }
+         if (viewRef.current) {
+            viewRef.current.graphics.removeAll()
+         }
          setIsFocused(false)
          return
+      }
+
+      // Clear any previous graphics
+      if (viewRef.current) {
+         viewRef.current.graphics.removeAll()
       }
 
       // --- APPLY FOCUS ---
@@ -650,9 +779,9 @@ export function MapArea({
          ),
       }
 
-      // Hide all other layers
+      // Keep other layers visible instead of hiding them
       Object.entries(layersRef.current).forEach(([key, l]) => {
-         if (l) l.visible = key === refKey
+         if (l) l.visible = true // Ensure they stay visible
       })
 
       // Build definitionExpression: FIELD_NAME IN ('K06-T','F16-A')
@@ -682,6 +811,55 @@ export function MapArea({
                },
             }
          ; (tgtLayer as unknown as { renderer: unknown }).renderer = highlightRenderer as unknown as __esri.Renderer
+
+      // Draw Radius if requested
+      if (focusedFeatures.radiusInfo) {
+         const { originLayer, originId, radiusKm } = focusedFeatures.radiusInfo
+         // Fetch the origin geometry to draw the circle
+         fetch('/api/ndr-ai/resolve-geometry', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ layer: originLayer, identifiers: [originId] })
+         })
+            .then(res => res.json())
+            .then((data: { points?: { lat: number; lon: number }[] }) => {
+               if (data.points && data.points.length > 0 && viewRef.current) {
+                  // Approximate centroid
+                  const minLat = Math.min(...data.points.map(p => p.lat))
+                  const maxLat = Math.max(...data.points.map(p => p.lat))
+                  const minLon = Math.min(...data.points.map(p => p.lon))
+                  const maxLon = Math.max(...data.points.map(p => p.lon))
+
+                  const centerLat = (minLat + maxLat) / 2
+                  const centerLon = (minLon + maxLon) / 2
+
+                  const circle = new Circle({
+                     center: [centerLon, centerLat],
+                     radius: radiusKm,
+                     radiusUnit: "kilometers"
+                  })
+
+                  const graphic = new Graphic({
+                     geometry: circle,
+                     symbol: {
+                        type: "simple-fill",
+                        color: [147, 51, 234, 0.15], // Purple with low opacity
+                        outline: {
+                           color: [147, 51, 234, 0.8],
+                           width: 2,
+                           style: "dash"
+                        }
+                     } as any
+                  })
+
+                  viewRef.current.graphics.add(graphic)
+
+                  // Optional: zoom to the circle buffer rather than just the points
+                  // viewRef.current.goTo(circle.extent.expand(1.2))
+               }
+            })
+            .catch(err => console.error("Failed to draw radius circle:", err))
+      }
 
       setIsFocused(true)
    }, [focusedFeatures, mounted])

@@ -37,6 +37,11 @@ export type OrchestratorResponse = {
         action: 'highlight' | 'zoom'
         layer: string
         identifiers: string[]
+        radiusInfo?: {
+            originLayer: string
+            originId: string
+            radiusKm: number
+        }
     }[]
     metadata: {
         routing: string[]
