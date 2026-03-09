@@ -213,6 +213,7 @@ export function GDEWorkspace() {
                   onClearFocus={handleClearFocus}
                   selectedElement={panelData}
                   onResetSelection={handleResetSelection}
+                  aiActive={isAIChatOpen}
                 />
                 {/* Map Tools Overlay */}
                 <MapTools view={mapView} />
@@ -259,7 +260,7 @@ export function GDEWorkspace() {
       </div>
 
       {/* AI Chat Floating Trigger */}
-      <AIChatTrigger onClick={handleOpenAIChat} isOpen={isAIChatOpen} isPanelOpen={isPanelOpen} />
+      <AIChatTrigger onClick={handleOpenAIChat} isOpen={isAIChatOpen} isActive={isAIChatOpen} isPanelOpen={isPanelOpen} />
 
       {/* Knowledge Graph Preview - Hidden */}
       {/* <GraphPreview /> */}

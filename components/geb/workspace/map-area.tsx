@@ -14,6 +14,7 @@ import "@arcgis/core/assets/esri/themes/light/main.css"
 
 import { PanelContext } from "./contextual-panel"
 import { GNGProjectFloatingPanel } from "./gng-floating-panel"
+import { AnalysisMarkerManager } from "./analysis-marker-manager"
 
 // Props to allow parent to listen to map clicks
 type MapAreaProps = {
@@ -30,6 +31,7 @@ type MapAreaProps = {
    onClearFocus?: () => void
    selectedElement?: { type: PanelContext; data: any } | null
    onResetSelection?: () => void
+   aiActive?: boolean
 }
 
 // Map AI layer names → layersRef keys
@@ -65,7 +67,8 @@ export function MapArea({
    focusedFeatures,
    onClearFocus,
    selectedElement,
-   onResetSelection
+   onResetSelection,
+   aiActive = false
 }: MapAreaProps = {}) {
    const mapDiv = useRef<HTMLDivElement>(null)
    const viewRef = useRef<MapView | SceneView | null>(null)
@@ -1095,6 +1098,19 @@ export function MapArea({
       <div className="w-full h-full relative group">
          <div ref={mapDiv} className="w-full h-full" />
 
+         {/* AI Active Canvas Highlight - pointer-events-none allows map clicks */}
+         {aiActive && (
+            <div className="absolute inset-0 z-[5] pointer-events-none animate-in fade-in duration-300">
+               <div className="absolute inset-0 border-[3px] border-purple-500/40 rounded-lg" />
+               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                  <div className="bg-purple-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wider">
+                     AI Assistant Active
+                  </div>
+               </div>
+               <div className="absolute inset-0 bg-purple-500/5" />
+            </div>
+         )}
+
          {/* Watermark Overlay - 5 AFED logos: corners + center */}
          <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden">
             {/* Top Left */}
@@ -1123,6 +1139,11 @@ export function MapArea({
          <GNGProjectFloatingPanel
             onProjectClick={handleGNGProjectClick}
             isRightPanelOpen={isRightPanelOpen}
+         />
+
+         {/* Analysis Marker Manager - interactive spatial analysis tool */}
+         <AnalysisMarkerManager
+            view={viewRef.current}
          />
 
          {/* Return to Original View — shown when AI focus mode is active */}

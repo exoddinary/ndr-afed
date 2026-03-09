@@ -2,19 +2,16 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { v4 as uuidv4 } from "uuid"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Activity,
-  BarChart3,
+  Asterisk,
   Bot,
   MessageSquare,
-  Plus,
   X,
-  ChevronDown,
-  ChevronUp,
   Move,
-  Settings,
   Trash2,
-  MoreVertical
+  Plus
 } from "lucide-react"
 import type MapView from "@arcgis/core/views/MapView"
 import type SceneView from "@arcgis/core/views/SceneView"
@@ -57,6 +54,20 @@ const MARKER_COLORS = [
   "#F97316", // orange
 ]
 
+// Helper to convert hex color to RGB array
+function hexToRgb(hex: string): [number, number, number] {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  if (!result) {
+    // Return default gray if invalid hex
+    return [128, 128, 128]
+  }
+  return [
+    parseInt(result[1], 16),
+    parseInt(result[2], 16),
+    parseInt(result[3], 16)
+  ]
+}
+
 export function AnalysisMarkerManager({
   view,
   onMarkerCreate,
@@ -74,6 +85,48 @@ export function AnalysisMarkerManager({
     seismic2d?: GeoJSON.FeatureCollection
     seismic3d?: GeoJSON.FeatureCollection
   }>({})
+
+  // Design configuration constants
+  const designConfig = {
+    // Orbital button settings
+    orbitalDistance: 70,
+    orbitalButtonSize: 40,
+    orbitalButtonSpacing: 45, // degrees between buttons
+    
+    // Radius ring settings
+    radiusRingDashSize: 6,
+    radiusRingGapSize: 4,
+    radiusRingThickness: 2,
+    radiusRingOpacity: 0.08,
+    
+    // Drag handle settings
+    dragHandleSize: 28,
+    dragHandleOffset: 14, // pixels from ring edge
+    
+    // Delete button settings
+    deleteButtonSize: 32,
+    deleteButtonOffset: 16, // pixels from ring bottom
+    
+    // Close button settings
+    closeButtonDistance: 100, // pixels above center
+    
+    // Radial visualization settings
+    vizSize: 140,
+    vizArcRadius: 50,
+    vizArcDashSize: 4,
+    vizArcGapSize: 2,
+    vizLineThickness: 3,
+    vizDotSize: 4,
+    vizMaxLineLength: 40,
+    vizLabelOffset: 8,
+    
+    // Label settings
+    labelOffset: 24, // pixels below center point
+    
+    // Panel positioning
+    miniViewOffset: 80, // horizontal offset from center
+    miniViewWidth: 256,
+  }
 
   const graphicsRef = useRef<Map<string, Graphic[]>>(new Map())
 
@@ -115,7 +168,7 @@ export function AnalysisMarkerManager({
       createdBy: "user",
       timestamp: Date.now(),
       isExpanded: true,
-      activeMode: "stats"
+      activeMode: null
     }
 
     setMarkers(prev => [...prev, newMarker])
@@ -231,11 +284,12 @@ export function AnalysisMarkerManager({
       })
       graphics.push(pointGraphic)
 
-      // Radius circle
+      // Radius circle - using geodesic for true circular shape on map
       const circle = new Circle({
         center: point,
-        radius: marker.radiusKm * 1000, // Convert to meters
-        radiusUnit: "meters"
+        geodesic: true,
+        radius: marker.radiusKm,
+        radiusUnit: "kilometers"
       })
 
       const circleGraphic = new Graphic({
@@ -312,51 +366,67 @@ export function AnalysisMarkerManager({
 
   return (
     <>
-      {/* Control Panel */}
-      <div className="absolute bottom-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-3 max-w-xs">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-slate-800">Analysis Markers</h3>
-          <button
-            onClick={() => setIsCreating(!isCreating)}
-            className={`p-2 rounded-lg transition-colors ${
-              isCreating 
-                ? "bg-blue-100 text-blue-600" 
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
-            title={isCreating ? "Cancel creation" : "Create new marker"}
-          >
-            {isCreating ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          </button>
-        </div>
-
-        {isCreating && (
-          <p className="text-xs text-slate-500 mb-3">
-            Click on the map to place a marker
-          </p>
-        )}
-
-        {/* Marker List */}
-        <div className="space-y-2 max-h-48 overflow-y-auto">
-          {markers.length === 0 ? (
-            <p className="text-xs text-slate-400 italic">
-              No markers. Click + to create one.
-            </p>
+      {/* Create Marker Button - Floating above AI button */}
+      <div className="fixed bottom-[104px] right-6 z-30 transition-all duration-300 ease-in-out">
+        <button
+          onClick={() => setIsCreating(!isCreating)}
+          className={`group relative w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center border-2 ${
+            isCreating 
+              ? "bg-blue-600 text-white border-blue-400 shadow-blue-500/40" 
+              : "bg-white text-blue-600 border-slate-100 hover:border-blue-300 shadow-slate-200/50 hover:scale-105"
+          }`}
+          title={isCreating ? "Cancel creation" : "Create analysis marker"}
+        >
+          {isCreating ? (
+            <X className="w-6 h-6" />
           ) : (
-            markers.map(marker => (
-              <div
+            <>
+              {/* Pulse effect when inactive */}
+              <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-10" />
+              <Asterisk className="w-7 h-7 relative z-10 group-hover:rotate-90 transition-transform duration-500" />
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Marker List - Bottom left panel */}
+      {markers.length > 0 && (
+        <motion.div 
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="absolute bottom-4 left-4 z-[1000] bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-3 w-64 border border-slate-200/50"
+        >
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              Active Analysis
+            </h3>
+            <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md border border-slate-200">
+              {markers.length}
+            </span>
+          </div>
+
+          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+            {markers.map(marker => (
+              <motion.div
+                layout
                 key={marker.id}
-                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                className={`group flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all border ${
                   selectedMarkerId === marker.id
-                    ? "bg-blue-50 border border-blue-200"
-                    : "bg-slate-50 hover:bg-slate-100"
+                    ? "bg-blue-600 border-blue-500 shadow-blue-200 shadow-lg translate-x-1"
+                    : "bg-white border-slate-100 hover:border-blue-200 hover:shadow-md"
                 }`}
                 onClick={() => setSelectedMarkerId(marker.id)}
               >
                 <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: marker.color }}
+                  className={`w-2 h-2 rounded-full ring-2 ring-offset-2 transition-all ${
+                    selectedMarkerId === marker.id ? "ring-white bg-white" : "ring-transparent"
+                  }`}
+                  style={{ backgroundColor: selectedMarkerId === marker.id ? undefined : marker.color }}
                 />
-                <span className="text-xs font-medium text-slate-700 flex-1 truncate">
+                <span className={`text-xs font-bold flex-1 truncate ${
+                  selectedMarkerId === marker.id ? "text-white" : "text-slate-700"
+                }`}>
                   {marker.label}
                 </span>
                 <button
@@ -364,15 +434,36 @@ export function AnalysisMarkerManager({
                     e.stopPropagation()
                     deleteMarker(marker.id)
                   }}
-                  className="p-1 rounded hover:bg-red-100 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className={`p-1 rounded-md transition-all ${
+                    selectedMarkerId === marker.id 
+                      ? "text-blue-200 hover:text-white hover:bg-white/10" 
+                      : "opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                  }`}
+                  title="Delete marker"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
-              </div>
-            ))
+              </motion.div>
+            ))}
+          </div>
+          
+          {isCreating && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              className="mt-3 pt-3 border-t border-slate-100"
+            >
+              <p className="text-[10px] text-blue-600 font-bold text-center flex items-center justify-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                Click on map to drop marker
+              </p>
+            </motion.div>
           )}
-        </div>
-      </div>
+        </motion.div>
+      )}
 
       {/* Selected Marker Panel */}
       {selectedMarkerId && (
@@ -385,6 +476,8 @@ export function AnalysisMarkerManager({
             setSelectedMarkerId(null)
             onMarkerSelect?.(null)
           }}
+          view={view}
+          designConfig={designConfig}
         />
       )}
     </>
@@ -404,6 +497,32 @@ interface AnalysisMarkerPanelProps {
   onUpdate: (id: string, updates: Partial<AnalysisMarker>) => void
   onDelete: (id: string) => void
   onClose: () => void
+  view: MapView | SceneView | null
+  designConfig: {
+    orbitalDistance: number
+    orbitalButtonSize: number
+    orbitalButtonSpacing: number
+    radiusRingDashSize: number
+    radiusRingGapSize: number
+    radiusRingThickness: number
+    radiusRingOpacity: number
+    dragHandleSize: number
+    dragHandleOffset: number
+    deleteButtonSize: number
+    deleteButtonOffset: number
+    closeButtonDistance: number
+    vizSize: number
+    vizArcRadius: number
+    vizArcDashSize: number
+    vizArcGapSize: number
+    vizLineThickness: number
+    vizDotSize: number
+    vizMaxLineLength: number
+    vizLabelOffset: number
+    labelOffset: number
+    miniViewOffset: number
+    miniViewWidth: number
+  }
 }
 
 function AnalysisMarkerPanel({
@@ -411,7 +530,9 @@ function AnalysisMarkerPanel({
   geoData,
   onUpdate,
   onDelete,
-  onClose
+  onClose,
+  view,
+  designConfig
 }: AnalysisMarkerPanelProps) {
   const [spatialContext, setSpatialContext] = useState<SpatialContext | null>(null)
   const [stats, setStats] = useState<MarkerStats | null>(null)
@@ -509,530 +630,576 @@ function AnalysisMarkerPanel({
     setNewComment("")
   }
 
-  return (
-    <div className="absolute top-4 right-4 z-[1000] w-96 max-h-[80vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
-      {/* Header */}
-      <div 
-        className="px-4 py-3 flex items-center gap-3"
-        style={{ backgroundColor: marker.color + "20" }} // 20 = ~12% opacity
-      >
-        <div 
-          className="w-4 h-4 rounded-full"
-          style={{ backgroundColor: marker.color }}
-        />
-        
-        {isEditingLabel ? (
-          <input
-            type="text"
-            value={editedLabel}
-            onChange={(e) => setEditedLabel(e.target.value)}
-            onBlur={() => {
-              onUpdate(marker.id, { label: editedLabel })
-              setIsEditingLabel(false)
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                onUpdate(marker.id, { label: editedLabel })
-                setIsEditingLabel(false)
-              }
-            }}
-            className="flex-1 text-sm font-semibold bg-transparent border-b border-slate-400 outline-none"
-            autoFocus
-          />
-        ) : (
-          <span 
-            className="flex-1 text-sm font-semibold cursor-pointer hover:underline"
-            onClick={() => setIsEditingLabel(true)}
-          >
-            {marker.label}
-          </span>
-        )}
-        
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+  const [screenPos, setScreenPos] = useState<{ x: number; y: number } | null>(null)
 
-      {/* Radius Control */}
-      <div className="px-4 py-3 border-b border-slate-100">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium text-slate-600">Radius</span>
-          <span className="text-xs font-semibold text-slate-800">{marker.radiusKm} km</span>
-        </div>
-        <input
-          type="range"
-          min={1}
-          max={50}
-          value={marker.radiusKm}
-          onChange={(e) => handleRadiusChange(Number(e.target.value))}
-          className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
-        />
-        <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-          <span>1km</span>
-          <span>50km</span>
-        </div>
-      </div>
+  // Track marker screen position
+  useEffect(() => {
+    if (!view) return
 
-      {/* Mode Tabs */}
-      <div className="flex border-b border-slate-100">
-        {[
-          { mode: "stats" as const, icon: Activity, label: "Stats" },
-          { mode: "graph" as const, icon: BarChart3, label: "Graph" },
-          { mode: "ai" as const, icon: Bot, label: "Ask AI" },
-          { mode: "comment" as const, icon: MessageSquare, label: "Comments" },
-        ].map(({ mode, icon: Icon, label }) => (
-          <button
-            key={mode}
-            onClick={() => handleModeChange(mode)}
-            className={`flex-1 py-2 px-2 flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
-              marker.activeMode === mode
-                ? "bg-blue-50 text-blue-600 border-b-2 border-blue-500"
-                : "text-slate-500 hover:bg-slate-50"
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-          </button>
-        ))}
-      </div>
+    const updatePosition = () => {
+      const point = new Point({
+        longitude: marker.position.longitude,
+        latitude: marker.position.latitude
+      })
+      const screen = view.toScreen(point)
+      if (screen) {
+        setScreenPos({ x: screen.x, y: screen.y })
+      }
+    }
 
-      {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {/* Stats Mode */}
-        {marker.activeMode === "stats" && stats && spatialContext && (
-          <StatsView stats={stats} spatialContext={spatialContext} />
-        )}
+    updatePosition()
+    const handle = view.watch("extent", updatePosition)
+    const resizeHandle = () => updatePosition()
+    window.addEventListener("resize", resizeHandle)
+    
+    return () => {
+      handle.remove()
+      window.removeEventListener("resize", resizeHandle)
+    }
+  }, [view, marker.position])
 
-        {/* Graph Mode */}
-        {marker.activeMode === "graph" && stats && (
-          <GraphView stats={stats} color={marker.color} />
-        )}
+  if (!screenPos) return null
 
-        {/* AI Mode */}
-        {marker.activeMode === "ai" && (
-          <AIMode
-            aiResult={aiResult}
-            isLoading={isLoadingAI}
-            onAsk={handleAskAI}
-            hasSpatialContext={!!spatialContext}
-          />
-        )}
-
-        {/* Comment Mode */}
-        {marker.activeMode === "comment" && (
-          <CommentMode
-            comments={comments}
-            newComment={newComment}
-            onNewCommentChange={setNewComment}
-            onAddComment={handleAddComment}
-          />
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Stats View Component
-function StatsView({
-  stats,
-  spatialContext
-}: {
-  stats: MarkerStats
-  spatialContext: SpatialContext
-}) {
-  return (
-    <div className="space-y-4">
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-2">
-        <StatCard
-          label="Wells"
-          value={stats.wells.total.toString()}
-          subtext={`${stats.wells.gas} gas, ${stats.wells.oil} oil`}
-          color="blue"
-        />
-        <StatCard
-          label="Fields"
-          value={stats.fields.total.toString()}
-          subtext={`${stats.fields.gas} gas, ${stats.fields.oil} oil`}
-          color="emerald"
-        />
-        <StatCard
-          label="Operators"
-          value={Object.keys(stats.wells.byOperator).length.toString()}
-          subtext="active"
-          color="amber"
-        />
-        <StatCard
-          label="Blocks"
-          value={stats.blocks.total.toString()}
-          subtext="intersecting"
-          color="violet"
-        />
-      </div>
-
-      {/* Well Results Breakdown */}
-      {stats.wells.total > 0 && (
-        <div className="bg-slate-50 rounded-lg p-3">
-          <h4 className="text-xs font-semibold text-slate-700 mb-2">Well Results</h4>
-          <div className="space-y-1">
-            <ResultBar label="Gas" value={stats.wells.gas} total={stats.wells.total} color="bg-emerald-500" />
-            <ResultBar label="Oil" value={stats.wells.oil} total={stats.wells.total} color="bg-amber-500" />
-            <ResultBar label="Dry" value={stats.wells.dry} total={stats.wells.total} color="bg-red-400" />
-            <ResultBar label="Unknown" value={stats.wells.unknown} total={stats.wells.total} color="bg-slate-300" />
-          </div>
-        </div>
-      )}
-
-      {/* Top Operators */}
-      {Object.keys(stats.wells.byOperator).length > 0 && (
-        <div className="bg-slate-50 rounded-lg p-3">
-          <h4 className="text-xs font-semibold text-slate-700 mb-2">Top Operators</h4>
-          <div className="space-y-1">
-            {Object.entries(stats.wells.byOperator)
-              .sort(([,a], [,b]) => b - a)
-              .slice(0, 5)
-              .map(([operator, count]) => (
-                <div key={operator} className="flex items-center justify-between text-xs">
-                  <span className="text-slate-600">{operator}</span>
-                  <span className="font-medium text-slate-800">{count} wells</span>
-                </div>
-              ))
-            }
-          </div>
-        </div>
-      )}
-
-      {/* Seismic Coverage */}
-      <div className="bg-slate-50 rounded-lg p-3">
-        <h4 className="text-xs font-semibold text-slate-700 mb-2">Seismic Coverage</h4>
-        <div className="flex items-center justify-between text-xs mb-1">
-          <span className="text-slate-600">2D Lines</span>
-          <span className="font-medium text-slate-800">{spatialContext.featuresInside.seismic2d.length}</span>
-        </div>
-        <div className="flex items-center justify-between text-xs mb-1">
-          <span className="text-slate-600">3D Surveys</span>
-          <span className="font-medium text-slate-800">{spatialContext.featuresInside.seismic3d.length}</span>
-        </div>
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-slate-600">Coverage</span>
-          <span className={`font-medium ${
-            spatialContext.statsSummary.seismicCoverage === 'high' ? 'text-emerald-600' :
-            spatialContext.statsSummary.seismicCoverage === 'moderate' ? 'text-amber-600' :
-            'text-red-500'
-          }`}>
-            {spatialContext.statsSummary.seismicCoverage}
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function StatCard({
-  label,
-  value,
-  subtext,
-  color
-}: {
-  label: string
-  value: string
-  subtext: string
-  color: string
-}) {
-  const colorClasses: Record<string, string> = {
-    blue: "bg-blue-50 border-blue-200 text-blue-700",
-    emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
-    amber: "bg-amber-50 border-amber-200 text-amber-700",
-    violet: "bg-violet-50 border-violet-200 text-violet-700",
-  }
+  const radiusInPixels = view ? (marker.radiusKm * 1000) / view.resolution : 100
 
   return (
-    <div className={`rounded-lg p-3 border ${colorClasses[color] || colorClasses.blue}`}>
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-[10px] font-medium opacity-70">{label}</div>
-      <div className="text-[10px] opacity-60">{subtext}</div>
-    </div>
-  )
-}
-
-function ResultBar({
-  label,
-  value,
-  total,
-  color
-}: {
-  label: string
-  value: number
-  total: number
-  color: string
-}) {
-  const percentage = total > 0 ? (value / total) * 100 : 0
-  
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10px] text-slate-600 w-12">{label}</span>
-      <div className="flex-1 h-4 bg-slate-200 rounded-full overflow-hidden">
-        <div 
-          className={`h-full ${color} transition-all duration-300`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-      <span className="text-[10px] font-medium text-slate-700 w-6">{value}</span>
-    </div>
-  )
-}
-
-// Graph View Component
-function GraphView({
-  stats,
-  color
-}: {
-  stats: MarkerStats
-  color: string
-}) {
-  const maxValue = Math.max(
-    stats.wells.total,
-    stats.fields.total,
-    Object.keys(stats.wells.byOperator).length,
-    stats.blocks.total,
-    stats.seismic.surveys
-  ) || 1
-
-  const data = [
-    { label: "Wells", value: stats.wells.total },
-    { label: "Fields", value: stats.fields.total },
-    { label: "Operators", value: Object.keys(stats.wells.byOperator).length },
-    { label: "Blocks", value: stats.blocks.total },
-    { label: "Seismic", value: stats.seismic.surveys },
-  ]
-
-  return (
-    <div className="space-y-4">
-      <h4 className="text-xs font-semibold text-slate-700">Activity Overview</h4>
-      
-      <div className="space-y-3">
-        {data.map(({ label, value }) => (
-          <div key={label} className="flex items-center gap-3">
-            <span className="text-xs text-slate-600 w-20">{label}</span>
-            <div className="flex-1 h-6 bg-slate-100 rounded-md overflow-hidden">
-              <div
-                className="h-full rounded-md transition-all duration-500"
-                style={{
-                  width: `${(value / maxValue) * 100}%`,
-                  backgroundColor: color,
-                  opacity: 0.8
-                }}
+    <div 
+      className="absolute pointer-events-none z-[1001]"
+      style={{ 
+        left: screenPos.x, 
+        top: screenPos.y
+      }}
+    >
+      <div className="relative w-0 h-0 pointer-events-auto">
+        {/* Orbital Menu */}
+        <AnimatePresence>
+          {marker.isExpanded && (
+            <>
+              {/* Delete Button - following the bottom radius */}
+              <OrbitalButton
+                icon={Trash2}
+                label="Delete"
+                angle={90}
+                distance={Math.max(designConfig.orbitalDistance + 40, radiusInPixels)}
+                isActive={false}
+                onClick={() => onDelete(marker.id)}
+                color="#EF4444"
+                buttonSize={24}
               />
-            </div>
-            <span className="text-xs font-semibold text-slate-700 w-8">{value}</span>
-          </div>
-        ))}
-      </div>
 
-      {/* Operator Distribution */}
-      {Object.keys(stats.wells.byOperator).length > 0 && (
-        <div className="mt-4">
-          <h4 className="text-xs font-semibold text-slate-700 mb-2">Operator Distribution</h4>
-          <div className="space-y-2">
-            {Object.entries(stats.wells.byOperator)
-              .sort(([,a], [,b]) => b - a)
-              .slice(0, 5)
-              .map(([operator, count]) => {
-                const opPercentage = (count / stats.wells.total) * 100
-                return (
-                  <div key={operator} className="flex items-center gap-2">
-                    <span className="text-[10px] text-slate-600 w-16 truncate">{operator}</span>
-                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${opPercentage}%`,
-                          backgroundColor: color,
-                          opacity: 0.6
-                        }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-slate-500 w-6">{count}</span>
-                  </div>
-                )
+              {/* Action Buttons Orbiting - using design config */}
+              <OrbitalButton
+                icon={Activity}
+                label="Data"
+                angle={-140}
+                distance={designConfig.orbitalDistance}
+                isActive={marker.activeMode === "data"}
+                onClick={() => handleModeChange(marker.activeMode === "data" ? null : "data")}
+                color={marker.color}
+                buttonSize={designConfig.orbitalButtonSize}
+              />
+              <OrbitalButton
+                icon={Bot}
+                label="Ask AI"
+                angle={-90}
+                distance={designConfig.orbitalDistance}
+                isActive={marker.activeMode === "ai"}
+                onClick={() => handleModeChange(marker.activeMode === "ai" ? null : "ai")}
+                color={marker.color}
+                buttonSize={designConfig.orbitalButtonSize}
+              />
+              <OrbitalButton
+                icon={MessageSquare}
+                label="Chat"
+                angle={-40}
+                distance={designConfig.orbitalDistance}
+                isActive={marker.activeMode === "comment"}
+                onClick={() => handleModeChange(marker.activeMode === "comment" ? null : "comment")}
+                color={marker.color}
+                buttonSize={designConfig.orbitalButtonSize}
+              />
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Radius Slider - under the marker */}
+        <AnimatePresence>
+          {marker.isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-full mt-[28px] left-1/2 -translate-x-1/2 bg-white rounded-lg shadow-lg border border-slate-200 p-2 flex items-center gap-2 z-[1003]"
+            >
+              <span className="text-[10px] font-bold text-slate-500">1km</span>
+              <input
+                type="range"
+                min={1}
+                max={50}
+                value={marker.radiusKm}
+                onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
+                onKeyDown={(e) => {
+                  if (e.metaKey && e.key === 'Enter') {
+                    e.preventDefault()
+                    // Trigger data analysis or apply action
+                    if (marker.activeMode !== 'data') {
+                      handleModeChange('data')
+                    }
+                  }
+                }}
+                className="w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <span className="text-[10px] font-bold text-slate-500">50km</span>
+              <span className="text-[10px] font-bold text-blue-600 ml-1">{marker.radiusKm}km</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Center Point - Pulsing with Label - Draggable */}
+        <div className="absolute left-0 top-0">
+          <motion.div 
+            animate={{ 
+              scale: marker.activeMode === "data" ? 0 : [1, 1.2, 1], 
+              opacity: marker.activeMode === "data" ? 0 : [0.8, 1, 0.8] 
+            }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="w-5 h-5 rounded-full shadow-lg border-2 border-white cursor-grab active:cursor-grabbing -translate-x-1/2 -translate-y-1/2"
+            style={{ backgroundColor: marker.color }}
+            onClick={() => onUpdate(marker.id, { isExpanded: !marker.isExpanded })}
+            onMouseDown={(e) => {
+              if (!view || !view.container) return
+              e.preventDefault()
+              e.stopPropagation()
+              
+              const rect = view.container.getBoundingClientRect()
+              const startX = e.clientX
+              const startY = e.clientY
+              
+              // Get current screen position of marker
+              const point = new Point({
+                longitude: marker.position.longitude,
+                latitude: marker.position.latitude
               })
-            }
-          </div>
+              const initialScreenPos = view.toScreen(point)
+              if (!initialScreenPos) return
+
+              const handleMouseMove = (moveEvent: MouseEvent) => {
+                // Calculate how far the mouse has moved from the start
+                const dx = moveEvent.clientX - startX
+                const dy = moveEvent.clientY - startY
+                
+                // Calculate the new screen position for the marker
+                // relative to the map view container
+                const targetX = initialScreenPos.x + dx
+                const targetY = initialScreenPos.y + dy
+                
+                const mapPoint = view.toMap({ x: targetX, y: targetY })
+                
+                if (mapPoint && typeof mapPoint.longitude === 'number' && typeof mapPoint.latitude === 'number') {
+                  onUpdate(marker.id, { 
+                    position: { 
+                      longitude: mapPoint.longitude, 
+                      latitude: mapPoint.latitude 
+                    } 
+                  })
+                }
+              }
+              
+              const handleMouseUp = () => {
+                window.removeEventListener("mousemove", handleMouseMove)
+                window.removeEventListener("mouseup", handleMouseUp)
+              }
+              
+              window.addEventListener("mousemove", handleMouseMove)
+              window.addEventListener("mouseup", handleMouseUp)
+            }}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: marker.activeMode === "data" ? 0 : 1, y: 0 }}
+            className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/90 px-2 py-0.5 rounded shadow-sm border border-slate-200"
+          >
+            <span className="text-[10px] font-bold text-slate-800 uppercase tracking-tight">{marker.label}</span>
+          </motion.div>
         </div>
-      )}
+
+        {/* Floating Radial Data Visualization */}
+        <AnimatePresence>
+          {marker.activeMode === "data" && stats && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+            >
+              <RadialDataVisualization 
+                stats={stats} 
+                color={marker.color} 
+                config={designConfig}
+                dynamicRadius={Math.max(designConfig.orbitalDistance + 40, radiusInPixels)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Mini-View Wings (Data Display) - only for non-data modes */}
+        <AnimatePresence>
+          {marker.activeMode && marker.activeMode !== "data" && (
+            <motion.div
+              initial={{ x: screenPos.x > (window.innerWidth / 2) ? -20 : 20, opacity: 0, scale: 0.95 }}
+              animate={{ 
+                x: screenPos.x > (window.innerWidth / 2) ? -300 : 80, 
+                opacity: 1, 
+                scale: 1 
+              }}
+              exit={{ x: screenPos.x > (window.innerWidth / 2) ? -20 : 20, opacity: 0, scale: 0.95 }}
+              className="absolute top-0 w-64 bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-100"
+              style={{ transform: "translateY(-50%)" }}
+            >
+              <div className="p-3 border-b border-slate-50 flex items-center justify-between" style={{ backgroundColor: `${marker.color}15` }}>
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  {marker.activeMode}
+                </span>
+                <button onClick={() => handleModeChange(null)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+              <div className="p-3 max-h-80 overflow-y-auto">
+                {marker.activeMode === "stats" && stats && spatialContext && (
+                  <StatsMiniView stats={stats} spatialContext={spatialContext} />
+                )}
+                {marker.activeMode === "graph" && stats && (
+                  <GraphMiniView stats={stats} color={marker.color} />
+                )}
+                {marker.activeMode === "ai" && (
+                  <AIMiniView
+                    aiResult={aiResult}
+                    isLoading={isLoadingAI}
+                    onAsk={handleAskAI}
+                  />
+                )}
+                {marker.activeMode === "comment" && (
+                  <CommentMiniView
+                    comments={comments}
+                    newComment={newComment}
+                    onNewCommentChange={setNewComment}
+                    onAddComment={handleAddComment}
+                  />
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }
 
-// AI Mode Component
-function AIMode({
-  aiResult,
-  isLoading,
-  onAsk,
-  hasSpatialContext
-}: {
+interface OrbitalButtonProps {
+  icon: any
+  label: string
+  angle: number
+  distance: number
+  isActive: boolean
+  onClick: () => void
+  color: string
+  className?: string
+  buttonSize?: number
+}
+
+function OrbitalButton({ icon: Icon, label, angle, distance, isActive, onClick, color, className = "", buttonSize = 40 }: OrbitalButtonProps) {
+  const x = Math.cos((angle * Math.PI) / 180) * distance
+  const y = Math.sin((angle * Math.PI) / 180) * distance
+  const halfSize = buttonSize / 2
+
+  const isDelete = label === "Delete"
+  const bgColor = isDelete ? "bg-red-500" : (isActive ? "bg-white" : "bg-white")
+  const textColor = isDelete ? "text-white" : (isActive ? color : "text-slate-400")
+  const borderColor = isDelete ? "border-red-600" : (isActive ? color : "transparent")
+
+  return (
+    <motion.button
+      initial={{ scale: 0, opacity: 0, x: 0, y: 0 }}
+      animate={{ scale: 1, opacity: 1, x: x - halfSize, y: y - halfSize }}
+      exit={{ scale: 0, opacity: 0, x: 0, y: 0 }}
+      whileHover={{ scale: 1.15, zIndex: 1002 }}
+      whileTap={{ scale: 0.9 }}
+      onClick={onClick}
+      className={`absolute rounded-full flex items-center justify-center shadow-lg transition-colors border-2 ${bgColor} ${textColor} ${borderColor} ${className}`}
+      style={{
+        left: "50%",
+        top: "50%",
+        width: buttonSize,
+        height: buttonSize,
+      }}
+      title={label}
+    >
+      <Icon style={{ width: buttonSize * 0.5, height: buttonSize * 0.5 }} />
+    </motion.button>
+  )
+}
+
+// Mini Stats View
+function StatsMiniView({ stats, spatialContext }: { stats: MarkerStats; spatialContext: SpatialContext }) {
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-blue-50 p-2 rounded-lg border border-blue-100">
+          <div className="text-lg font-bold text-blue-700">{stats.wells.total}</div>
+          <div className="text-[10px] text-blue-600 font-medium">Wells</div>
+        </div>
+        <div className="bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+          <div className="text-lg font-bold text-emerald-700">{stats.fields.total}</div>
+          <div className="text-[10px] text-emerald-600 font-medium">Fields</div>
+        </div>
+      </div>
+      
+      {/* Mini Progress Bars for Well Results */}
+      <div className="space-y-1.5 bg-slate-50 p-2 rounded-lg">
+        <MiniResultBar label="Gas" value={stats.wells.gas} total={stats.wells.total} color="bg-emerald-500" />
+        <MiniResultBar label="Oil" value={stats.wells.oil} total={stats.wells.total} color="bg-amber-500" />
+        <MiniResultBar label="Dry" value={stats.wells.dry} total={stats.wells.total} color="bg-red-400" />
+      </div>
+
+      <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
+        <span>Seismic: <span className="font-bold text-slate-700 uppercase">{spatialContext.statsSummary.seismicCoverage}</span></span>
+        <span>Ops: <span className="font-bold text-slate-700">{Object.keys(stats.wells.byOperator).length}</span></span>
+      </div>
+    </div>
+  )
+}
+
+function MiniResultBar({ label, value, total, color }: any) {
+  const percentage = total > 0 ? (value / total) * 100 : 0
+  return (
+    <div className="flex items-center gap-2 text-[9px]">
+      <span className="w-6 text-slate-500">{label}</span>
+      <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+        <motion.div 
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          className={`h-full ${color}`} 
+        />
+      </div>
+      <span className="w-3 text-right font-bold text-slate-700">{value}</span>
+    </div>
+  )
+}
+
+// Mini Graph View
+function GraphMiniView({ stats, color }: { stats: MarkerStats; color: string }) {
+  const data = [
+    { label: "Wells", val: stats.wells.total },
+    { label: "Fields", val: stats.fields.total },
+    { label: "Blocks", val: stats.blocks.total }
+  ]
+  const max = Math.max(...data.map(d => d.val)) || 1
+
+  return (
+    <div className="space-y-2">
+      {data.map(d => (
+        <div key={d.label}>
+          <div className="flex justify-between text-[10px] mb-0.5">
+            <span className="text-slate-500">{d.label}</span>
+            <span className="font-bold text-slate-700">{d.val}</span>
+          </div>
+          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${(d.val / max) * 100}%` }}
+              className="h-full rounded-full"
+              style={{ backgroundColor: color }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Mini AI View
+interface AIMiniViewProps {
   aiResult: AIResult | null
   isLoading: boolean
   onAsk: () => void
-  hasSpatialContext: boolean
-}) {
-  return (
-    <div className="space-y-4">
-      {!aiResult && !isLoading && (
-        <div className="text-center py-8">
-          <Bot className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm text-slate-600 mb-4">
-            Ask AI to analyze this area for exploration opportunities
-          </p>
-          <button
-            onClick={onAsk}
-            disabled={!hasSpatialContext}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-          >
-            Analyze Area
-          </button>
-          {!hasSpatialContext && (
-            <p className="text-xs text-slate-400 mt-2">
-              Move marker or adjust radius to get data
-            </p>
-          )}
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="text-center py-8">
-          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-slate-600">Analyzing area...</p>
-        </div>
-      )}
-
-      {aiResult && !isLoading && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-slate-700">AI Analysis</h4>
-            <span className="text-[10px] text-slate-400">
-              {new Date(aiResult.timestamp).toLocaleTimeString()}
-            </span>
-          </div>
-
-          <div className="prose prose-sm max-w-none">
-            <div className="bg-blue-50 rounded-lg p-3 text-sm text-slate-700 whitespace-pre-wrap">
-              {aiResult.insights}
-            </div>
-          </div>
-
-          {aiResult.followUpQuestions.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold text-slate-700 mb-2">Follow-up Questions</h4>
-              <div className="space-y-1">
-                {aiResult.followUpQuestions.map((q, i) => (
-                  <div key={i} className="text-xs text-slate-600 bg-slate-50 rounded px-2 py-1.5">
-                    • {q}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {aiResult.dataGaps.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold text-slate-700 mb-2">Data Gaps</h4>
-              <div className="space-y-1">
-                {aiResult.dataGaps.map((gap, i) => (
-                  <div key={i} className="text-xs text-amber-600 bg-amber-50 rounded px-2 py-1.5">
-                    ⚠ {gap}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={onAsk}
-            className="w-full py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
-          >
-            Refresh Analysis
-          </button>
-        </div>
-      )}
-    </div>
-  )
 }
 
-// Comment Mode Component
-function CommentMode({
-  comments,
-  newComment,
-  onNewCommentChange,
-  onAddComment
-}: {
+function AIMiniView({ aiResult, isLoading, onAsk }: AIMiniViewProps) {
+  if (isLoading) return <div className="text-center py-4 text-xs text-slate-500 animate-pulse">Analyzing spatial context...</div>
+  if (!aiResult) return (
+    <div className="text-center space-y-3">
+      <Bot className="w-8 h-8 text-blue-200 mx-auto" />
+      <button 
+        onClick={onAsk}
+        className="w-full py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm"
+      >
+        Ask AI Analysis
+      </button>
+    </div>
+  )
+  return <div className="text-[11px] text-slate-600 leading-relaxed italic line-clamp-6">{aiResult.insights}</div>
+}
+
+// Mini Comment View
+interface CommentMiniViewProps {
   comments: MarkerComment[]
   newComment: string
   onNewCommentChange: (text: string) => void
   onAddComment: () => void
-}) {
+}
+
+function CommentMiniView({ comments, newComment, onNewCommentChange, onAddComment }: CommentMiniViewProps) {
   return (
-    <div className="space-y-4">
-      {/* Comment Input */}
-      <div className="flex gap-2">
-        <input
-          type="text"
+    <div className="space-y-3">
+      <div className="flex gap-1.5">
+        <input 
           value={newComment}
-          onChange={(e) => onNewCommentChange(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onAddComment()}
-          placeholder="Add a comment..."
-          className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onChange={e => onNewCommentChange(e.target.value)}
+          placeholder="Add comment..."
+          className="flex-1 text-xs px-2 py-1.5 border border-slate-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none"
         />
-        <button
-          onClick={onAddComment}
+        <button 
+          onClick={onAddComment} 
           disabled={!newComment.trim()}
-          className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+          className="bg-blue-600 text-white p-1.5 rounded-md disabled:bg-slate-300"
         >
-          Add
+          <Plus className="w-3 h-3"/>
         </button>
       </div>
-
-      {/* Comments List */}
-      {comments.length === 0 ? (
-        <div className="text-center py-8 text-slate-400">
-          <MessageSquare className="w-10 h-10 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">No comments yet</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {comments.map(comment => (
-            <div key={comment.id} className="bg-slate-50 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                  <span className="text-[10px] font-medium text-white">
-                    {comment.user[0].toUpperCase()}
-                  </span>
-                </div>
-                <span className="text-xs font-medium text-slate-700">{comment.user}</span>
-                <span className="text-[10px] text-slate-400">
-                  {new Date(comment.timestamp).toLocaleDateString()}
-                </span>
-              </div>
-              <p className="text-sm text-slate-700">{comment.text}</p>
+      <div className="space-y-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+        {comments.length === 0 ? (
+          <div className="text-[10px] text-slate-400 text-center py-2">No comments yet</div>
+        ) : (
+          comments.map((c: any) => (
+            <div key={c.id} className="text-[10px] bg-slate-50 p-1.5 rounded border border-slate-100">
+              <span className="font-bold text-slate-700">{c.user}: </span>
+              <span className="text-slate-600">{c.text}</span>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   )
 }
 
-// Utility: Convert hex color to RGB array
-function hexToRgb(hex: string): [number, number, number] {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result
-    ? [
-        parseInt(result[1], 16),
-        parseInt(result[2], 16),
-        parseInt(result[3], 16),
-      ]
-    : [59, 130, 246] // default blue
+function RadialDataVisualization({ stats, color, config, dynamicRadius }: { stats: MarkerStats; color: string; config: any; dynamicRadius: number }) {
+  const radius = dynamicRadius;
+  const size = (radius + config.vizMaxLineLength + 40) * 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const thickness = config.vizLineThickness * 3;
+
+  // 1. Corrected Polar helper: Align 0 degrees with TOP (12 o'clock)
+  const polarToCartesian = (centerX: number, centerY: number, r: number, angleInDegrees: number) => {
+    const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+    return {
+      x: centerX + (r * Math.cos(angleInRadians)),
+      y: centerY + (r * Math.sin(angleInRadians))
+    };
+  };
+
+  const describeArc = (x: number, y: number, r: number, startAngle: number, endAngle: number) => {
+    const start = polarToCartesian(x, y, r, endAngle);
+    const end = polarToCartesian(x, y, r, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+  };
+
+  // 2. Data mapping with normalization logic
+  const rawData = [
+    { label: "Wells", value: stats.wells.total, color: "#9333EA", angle: -55 },
+    { label: "Fields", value: stats.fields.total, color: "#9333EA", angle: -35 },
+    { label: "Blocks", value: stats.blocks.total, color: "#9333EA", angle: -15 },
+    { label: "Gas", value: stats.wells.gas, color: "#EAB308", angle: 15 },
+    { label: "Oil", value: stats.wells.oil, color: "#EAB308", angle: 35 },
+    { label: "Dry", value: stats.wells.dry, color: "#EAB308", angle: 55 },
+  ];
+
+  // Find the highest value to scale the bars correctly
+  const maxDataValue = Math.max(...rawData.map(d => d.value), 1);
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
+        
+        {/* 3. Radiating Bars - draw first so arc appears on top */}
+        {rawData.map((item, i) => {
+          // Normalize height: (current value / max value) * max length from config
+          const barLength = (item.value / maxDataValue) * config.vizMaxLineLength + 5;
+          
+          // Convert angle to radians for trigonometry
+          // Note: SVG Y axis is inverted, so we negate the angle calculation
+          const angleRad = (item.angle * Math.PI) / 180;
+          
+          // Calculate inner point (on arc edge) using trigonometry
+          // At angle 0 (top), sin(0)=0, cos(0)=1, so we get (cx, cy - radius)
+          const innerX = cx + radius * Math.sin(angleRad);
+          const innerY = cy - radius * Math.cos(angleRad);
+          
+          // Calculate outer point (extended by barLength along same angle)
+          const outerX = cx + (radius + barLength) * Math.sin(angleRad);
+          const outerY = cy - (radius + barLength) * Math.cos(angleRad);
+
+          return (
+            <g key={item.label}>
+              {/* The Bar - from arc edge outward along angle */}
+              <line
+                x1={innerX}
+                y1={innerY}
+                x2={outerX}
+                y2={outerY}
+                stroke={item.color}
+                strokeWidth={thickness}
+                strokeLinecap="butt"
+              />
+              
+              {/* Value Label: at outer end of bar, perfectly upright */}
+              <text
+                x={outerX}
+                y={outerY - 8}
+                textAnchor="middle"
+                fontSize="9"
+                fontWeight="bold"
+                fill="#1e293b"
+              >
+                {item.value}
+              </text>
+
+              {/* Category Label: at inner base of bar, perfectly upright */}
+              <text
+                x={innerX}
+                y={innerY + 12}
+                textAnchor="middle"
+                fontSize="7"
+                fill="#94a3b8"
+                fontWeight="bold"
+              >
+                {item.label}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* 1. Dynamic Arc: Split into Purple (Left) and Yellow (Right) */}
+        <path
+          d={describeArc(cx, cy, radius, -60, 0)}
+          fill="none"
+          stroke="#9333EA"
+          strokeWidth={Math.max(8, thickness * 1.5)}
+          strokeLinecap="butt"
+          opacity="0.9"
+        />
+        <path
+          d={describeArc(cx, cy, radius, 0, 60)}
+          fill="none"
+          stroke="#EAB308"
+          strokeWidth={Math.max(8, thickness * 1.5)}
+          strokeLinecap="butt"
+          opacity="0.9"
+        />
+      </svg>
+    </div>
+  );
 }
+
