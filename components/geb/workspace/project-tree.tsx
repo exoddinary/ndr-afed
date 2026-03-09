@@ -264,6 +264,34 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
       <div className="h-8 flex items-center px-3 border-b border-gray-200 bg-gray-50">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Project Tree</span>
       </div>
+      
+      {/* Color Legend */}
+      <div className="px-3 py-2 border-b border-gray-100 bg-slate-50/50">
+        <div className="text-[10px] text-slate-400 uppercase tracking-wide font-bold mb-1.5">Legend</div>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-sm bg-[#e5e5e5] border border-gray-300" />
+            <span className="text-[10px] text-slate-600">Offshore Block</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-sm bg-[#55ff00] border border-green-400" />
+            <span className="text-[10px] text-slate-600">Oil Field</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-sm bg-[#ff7f7f] border border-red-300" />
+            <span className="text-[10px] text-slate-600">Gas Field</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-sm bg-[#ffaa00] border border-orange-300" />
+            <span className="text-[10px] text-slate-600">Oil & Gas Field</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-black" />
+            <span className="text-[10px] text-slate-600">Well</span>
+          </div>
+        </div>
+      </div>
+      
       <div className="flex-1 overflow-y-auto">
         <div className="py-2">
           {INITIAL_TREE.map(node => renderNode(node))}

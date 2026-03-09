@@ -195,9 +195,7 @@ export function MapArea({
             new LabelClass({
                labelExpressionInfo: { expression: "$feature.BlokNummer" },
                symbol: new TextSymbol({
-                  color: "white",
-                  haloColor: [50, 50, 50, 0.9],
-                  haloSize: 2,
+                  color: "black",
                   font: { size: 10, weight: "bold", family: "Arial" }
                })
                // No minScale or maxScale - labels always visible per requirements
@@ -362,7 +360,7 @@ export function MapArea({
                   value: "Gas",
                   symbol: {
                      type: "simple-fill",
-                     color: [255, 127, 127, 0.7], // 70% transparency
+                     color: [255, 127, 127, 0.8], // 80% transparency
                      outline: { color: [255, 190, 190, 1], width: 1.5 }
                   } as any
                },
@@ -370,7 +368,7 @@ export function MapArea({
                   value: "Olie",
                   symbol: {
                      type: "simple-fill",
-                     color: [85, 255, 0, 0.7], // 70% transparency
+                     color: [85, 255, 0, 0.8], // 80% transparency
                      outline: { color: [211, 255, 190, 1], width: 1.5 }
                   } as any
                },
@@ -378,7 +376,7 @@ export function MapArea({
                   value: "Olie en Gas",
                   symbol: {
                      type: "simple-fill",
-                     color: [255, 170, 0, 0.7], // 70% transparency
+                     color: [255, 170, 0, 0.8], // 80% transparency
                      outline: { color: [255, 235, 175, 1], width: 1.5 }
                   } as any
                }
@@ -388,9 +386,9 @@ export function MapArea({
             new LabelClass({
                labelExpressionInfo: { expression: "$feature.FIELD_NAME" },
                symbol: new TextSymbol({
-                  color: [34, 197, 94, 1],
-                  haloColor: [0, 0, 0, 0.8],
-                  haloSize: 1.5,
+                  color: "blue",
+                  haloColor: "white",
+                  haloSize: 2,
                   font: { size: 9, weight: "bold", family: "Arial" }
                }),
                minScale: 2000000,
@@ -438,8 +436,8 @@ export function MapArea({
             new LabelClass({
                labelExpressionInfo: { expression: "$feature.IDENTIFICA" },
                symbol: new TextSymbol({
-                  color: [0, 0, 0, 1],
-                  haloColor: [255, 255, 255, 0.8],
+                  color: "white",
+                  haloColor: "black",
                   haloSize: 1,
                   font: { size: 8, weight: "normal", family: "Arial" }
                }),
