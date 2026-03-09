@@ -183,7 +183,7 @@ export function MapArea({
          },
          visible: activeLayers.includes('well-trajectories'),
          elevationInfo: { mode: "on-the-ground" },
-         maxScale: 500000 // Hide beyond 1:500,000
+         minScale: 500000 // Hide when zoomed out beyond 1:500,000
       })
       map.add(wellTrajLayer)
       layersRef.current['well-trajectories'] = wellTrajLayer
@@ -244,7 +244,7 @@ export function MapArea({
          },
          visible: activeLayers.includes('seismic-3d'),
          elevationInfo: { mode: "on-the-ground" },
-         maxScale: 1500000 // Maximum zoom-out scale (1:1,500,000)
+         minScale: 1500000 // Hide when zoomed out beyond 1:1,500,000
       })
       map.add(seismic3dLayer)
       layersRef.current['seismic-3d'] = seismic3dLayer
@@ -350,7 +350,7 @@ export function MapArea({
          popupEnabled: false,
          visible: activeLayers.includes('hc-fields'),
          elevationInfo: { mode: "on-the-ground" },
-         maxScale: 500000 // Maximum zoom-out scale (1:500,000)
+         minScale: 500000 // Hide when zoomed out beyond 1:500,000
       })
       map.add(fieldsLayer)
       layersRef.current['hc-fields'] = fieldsLayer
@@ -403,7 +403,7 @@ export function MapArea({
          visible: activeLayers.includes('wells'),
          // Bloom effect removed per requirements
          elevationInfo: { mode: "on-the-ground" },
-         maxScale: 500000 // Maximum zoom-out scale (1:500,000)
+         minScale: 500000 // Hide when zoomed out beyond 1:500,000
       })
       map.add(wellsLayer)
       layersRef.current['wells'] = wellsLayer
