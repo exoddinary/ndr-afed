@@ -142,27 +142,46 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
               <span className="w-4" /> // Spacer
             )}
 
-            {/* Icon or Color indicator */}
-            <span className="mr-2">
-              {node.id === 'offshore-blocks-detailed' ? (
-                <div className="w-3 h-3 rounded-sm bg-[#e5e5e5] border border-gray-300" />
-              ) : node.id === 'wells' ? (
-                <div className="w-3 h-3 rounded-full bg-black" />
-              ) : node.id === 'hc-fields' ? (
-                <div className="flex flex-col gap-0.5">
-                  <div className="w-3 h-1.5 rounded-sm bg-[#55ff00]" />
-                  <div className="w-3 h-1.5 rounded-sm bg-[#ff7f7f]" />
-                </div>
-              ) : node.icon ? (
-                <span className="text-slate-400">{node.icon}</span>
-              ) : (
-                <span className="text-slate-400">
-                  {node.type === 'folder' ? <Folder className="w-3 h-3" /> :
-                    node.type === 'layer' ? <Layers className="w-3 h-3" /> :
-                      <Database className="w-3 h-3" />}
-                </span>
+            {/* Icon */}
+            <span className="mr-1.5 text-slate-400">
+              {node.icon ? node.icon : (
+                node.type === 'folder' ? <Folder className="w-3 h-3" /> :
+                  node.type === 'layer' ? <Layers className="w-3 h-3" /> :
+                    <Database className="w-3 h-3" />
               )}
             </span>
+
+            {/* Color strip indicator */}
+            {node.id === 'offshore-blocks-detailed' && (
+              <div className="w-1 h-3 rounded-sm bg-[#e5e5e5] mr-1.5" />
+            )}
+            {node.id === 'wells' && (
+              <div className="w-1 h-3 rounded-sm bg-black mr-1.5" />
+            )}
+            {node.id === 'well-trajectories' && (
+              <div className="w-1 h-3 rounded-sm bg-yellow-300 mr-1.5" />
+            )}
+            {node.id === 'hc-fields' && (
+              <div className="flex flex-col gap-px mr-1.5">
+                <div className="w-1 h-1.5 rounded-sm bg-[#55ff00]" />
+                <div className="w-1 h-1.5 rounded-sm bg-[#ff7f7f]" />
+              </div>
+            )}
+            {node.id === 'licenses' && (
+              <div className="w-1 h-3 rounded-sm bg-amber-400 mr-1.5" />
+            )}
+            {node.id === 'gng-projects' && (
+              <div className="w-1 h-3 rounded-sm bg-purple-500 mr-1.5" />
+            )}
+            {node.id === 'seismic-2d' && (
+              <div className="w-1 h-3 rounded-sm bg-yellow-400 mr-1.5" />
+            )}
+            {node.id === 'seismic-3d' && (
+              <div className="w-1 h-3 rounded-sm bg-red-400 mr-1.5" />
+            )}
+            {node.id === 'analysis-markers' && (
+              <div className="w-1 h-3 rounded-sm bg-blue-500 mr-1.5" />
+            )}
 
             <span className={cn(
               "text-xs truncate font-medium",

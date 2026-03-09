@@ -20,9 +20,10 @@ type ContextualPanelProps = {
     onAddToCompare?: (block: any) => void
     onToggle3D?: () => void
     onViewSubsurface?: (blockId: string) => void
+    onViewGNGData?: () => void
 }
 
-export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToCompare, onToggle3D, onViewSubsurface }: ContextualPanelProps) {
+export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToCompare, onToggle3D, onViewSubsurface, onViewGNGData }: ContextualPanelProps) {
     const [isAnimating, setIsAnimating] = useState(false)
     const [showSubsurfaceComingSoon, setShowSubsurfaceComingSoon] = useState(false)
 
@@ -82,7 +83,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                     {context.type === "well" && <WellDetailsContent data={context.data} />}
                     {context.type === "field" && <FieldDetailsContent data={context.data} />}
                     {context.type === "license" && <LicenseDetailsContent data={context.data} />}
-                    {context.type === "gng-project" && <GNGProjectContent data={context.data} onToggle3D={onToggle3D} />}
+                    {context.type === "gng-project" && <GNGProjectContent data={context.data} onToggle3D={onToggle3D} onViewGNGData={onViewGNGData} />}
                     {context.type === "seismic-2d" && <Seismic2DContent data={context.data} />}
                 </div>
 
@@ -1419,7 +1420,7 @@ function LicenseDetailsContent({ data }: { data: any }) {
 }
 
 // G&G Project-specific content - no tabs, prominent app card
-function GNGProjectContent({ data, onToggle3D }: { data: any, onToggle3D?: () => void }) {
+function GNGProjectContent({ data, onToggle3D, onViewGNGData }: { data: any, onToggle3D?: () => void, onViewGNGData?: () => void }) {
     // Handle both direct properties and nested properties (GeoJSON format)
     const props = data?.properties || data || {};
 
@@ -1534,6 +1535,17 @@ function GNGProjectContent({ data, onToggle3D }: { data: any, onToggle3D?: () =>
                 <Box className="w-4 h-4" />
                 Launch 3D Viewer
             </button>
+
+            {/* View Other G&G Data Button */}
+            {onViewGNGData && (
+                <button
+                    onClick={onViewGNGData}
+                    className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg shadow-md transition-colors flex items-center justify-center gap-2"
+                >
+                    <Layers className="w-4 h-4" />
+                    View Other G&G Data
+                </button>
+            )}
 
             <div className="h-px bg-slate-100" />
 

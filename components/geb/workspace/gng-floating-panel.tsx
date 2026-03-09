@@ -16,6 +16,8 @@ interface GNGProject {
 interface GNGProjectFloatingPanelProps {
   onProjectClick?: (projectName: string) => void
   isRightPanelOpen?: boolean
+  isExpanded?: boolean
+  onExpandChange?: (expanded: boolean) => void
 }
 
 const appLogos: Record<string, string> = {
@@ -25,11 +27,22 @@ const appLogos: Record<string, string> = {
   "paleoscan": "https://usoftly.ir/wp-content/uploads/2021/10/PaleoScan_202010_r29391_x64_0.png"
 }
 
-export function GNGProjectFloatingPanel({ onProjectClick, isRightPanelOpen }: GNGProjectFloatingPanelProps) {
+export function GNGProjectFloatingPanel({ 
+  onProjectClick, 
+  isRightPanelOpen,
+  isExpanded: controlledExpanded,
+  onExpandChange 
+}: GNGProjectFloatingPanelProps) {
+  const [internalExpanded, setInternalExpanded] = useState(false)
+  const isExpanded = controlledExpanded ?? internalExpanded
+  const setIsExpanded = (value: boolean) => {
+    setInternalExpanded(value)
+    onExpandChange?.(value)
+  }
+  const hasAutoCollapsed = useRef(false)
+
   const [projects, setProjects] = useState<GNGProject[]>([])
   const [loading, setLoading] = useState(true)
-  const [isExpanded, setIsExpanded] = useState(true)
-  const hasAutoCollapsed = useRef(false)
 
   // Collapse panel only on first right panel open
   useEffect(() => {

@@ -12,7 +12,8 @@ import {
   Move,
   Trash2,
   Plus,
-  Send
+  Send,
+  BarChart3
 } from "lucide-react"
 import type MapView from "@arcgis/core/views/MapView"
 import type SceneView from "@arcgis/core/views/SceneView"
@@ -44,6 +45,7 @@ interface AnalysisMarkerManagerProps {
   onMarkerCreate?: (marker: AnalysisMarker) => void
   onMarkerDelete?: (markerId: string) => void
   onMarkerSelect?: (marker: AnalysisMarker | null) => void
+  onJumpToMainAI?: (question: string, spatialContext: SpatialContext) => void
 }
 
 const MARKER_COLORS = [
@@ -76,7 +78,8 @@ export function AnalysisMarkerManager({
   visible = true,
   onMarkerCreate,
   onMarkerDelete,
-  onMarkerSelect
+  onMarkerSelect,
+  onJumpToMainAI
 }: AnalysisMarkerManagerProps) {
   const [markers, setMarkers] = useState<AnalysisMarker[]>([])
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null)
@@ -370,10 +373,8 @@ export function AnalysisMarkerManager({
 
   return (
     <>
-      {visible && (
-        <>
-          {/* Create Marker Button - Floating above AI button */}
-          <div className="fixed bottom-[104px] right-6 z-30 transition-all duration-300 ease-in-out">
+      {/* Create Marker Button - Always visible, floating above AI button */}
+      <div className="fixed bottom-[104px] right-6 z-30 transition-all duration-300 ease-in-out">
         <button
           onClick={() => setIsCreating(!isCreating)}
           className={`group relative w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center border-2 ${
@@ -395,8 +396,10 @@ export function AnalysisMarkerManager({
         </button>
       </div>
 
-      {/* Marker List - Bottom left panel */}
-      {markers.length > 0 && (
+      {visible && (
+        <>
+          {/* Marker List - Bottom left panel */}
+          {markers.length > 0 && (
         <motion.div 
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -484,10 +487,12 @@ export function AnalysisMarkerManager({
           }}
           view={view}
           designConfig={designConfig}
+          onJumpToMainAI={onJumpToMainAI}
         />
       )}
-    </> )}
     </>
+  )}
+  </>
   )
 }
 
@@ -530,6 +535,7 @@ interface AnalysisMarkerPanelProps {
     miniViewOffset: number
     miniViewWidth: number
   }
+  onJumpToMainAI?: (question: string, spatialContext: SpatialContext) => void
 }
 
 function AnalysisMarkerPanel({
@@ -539,7 +545,8 @@ function AnalysisMarkerPanel({
   onDelete,
   onClose,
   view,
-  designConfig
+  designConfig,
+  onJumpToMainAI
 }: AnalysisMarkerPanelProps) {
   const [spatialContext, setSpatialContext] = useState<SpatialContext | null>(null)
   const [stats, setStats] = useState<MarkerStats | null>(null)
@@ -725,13 +732,13 @@ function AnalysisMarkerPanel({
 
               {/* Action Buttons Orbiting - using design config */}
               <OrbitalButton
-                icon={Activity}
+                icon={BarChart3}
                 label="Data"
                 angle={-140}
                 distance={designConfig.orbitalDistance}
                 isActive={marker.activeMode === "data"}
                 onClick={() => handleModeChange(marker.activeMode === "data" ? null : "data")}
-                color={marker.color}
+                color="#9333EA"
                 buttonSize={designConfig.orbitalButtonSize}
               />
               <OrbitalButton
@@ -783,10 +790,10 @@ function AnalysisMarkerPanel({
                     }
                   }
                 }}
-                className="w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
               />
               <span className="text-[10px] font-bold text-slate-500">50km</span>
-              <span className="text-[10px] font-bold text-blue-600 ml-1">{marker.radiusKm}km</span>
+              <span className="text-[10px] font-bold text-purple-600 ml-1">{marker.radiusKm}km</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -916,6 +923,7 @@ function AnalysisMarkerPanel({
                     onAsk={handleAskAI}
                     newMessage={newAIMessage}
                     onNewMessageChange={setNewAIMessage}
+                    onJumpToMainAI={onJumpToMainAI}
                   />
                 )}
                 {marker.activeMode === "comment" && (
@@ -1065,20 +1073,40 @@ interface AIMiniViewProps {
   onAsk: (customQuery?: string) => void
   newMessage: string
   onNewMessageChange: (text: string) => void
+  onJumpToMainAI?: (question: string, spatialContext: SpatialContext) => void
 }
 
-function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage, onNewMessageChange }: AIMiniViewProps) {
+function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage, onNewMessageChange, onJumpToMainAI }: AIMiniViewProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && newMessage.trim()) {
-      onAsk(newMessage.trim())
-      onNewMessageChange('')
+      if (onJumpToMainAI) {
+        onJumpToMainAI(newMessage.trim(), spatialContext)
+        onNewMessageChange('')
+      } else {
+        onAsk(newMessage.trim())
+        onNewMessageChange('')
+      }
     }
   }
 
   const handleSend = () => {
     if (newMessage.trim()) {
-      onAsk(newMessage.trim())
-      onNewMessageChange('')
+      if (onJumpToMainAI) {
+        onJumpToMainAI(newMessage.trim(), spatialContext)
+        onNewMessageChange('')
+      } else {
+        onAsk(newMessage.trim())
+        onNewMessageChange('')
+      }
+    }
+  }
+
+  const handleQuickAnalysis = () => {
+    if (onJumpToMainAI) {
+      const contextDescription = `Analyze this ${spatialContext.radiusKm}km radius around ${spatialContext.center[1].toFixed(4)}, ${spatialContext.center[0].toFixed(4)} with ${spatialContext.statsSummary.wellsCount} wells, ${spatialContext.statsSummary.fieldsCount} fields, ${spatialContext.statsSummary.blocksCount} blocks`
+      onJumpToMainAI(contextDescription, spatialContext)
+    } else {
+      onAsk()
     }
   }
 
@@ -1142,7 +1170,7 @@ function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage
       {/* Quick Analysis Button (when no messages) */}
       {chatMessages.length === 0 && !isLoading && (
         <button 
-          onClick={() => onAsk()}
+          onClick={handleQuickAnalysis}
           className="w-full py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm"
         >
           Ask AI Analysis

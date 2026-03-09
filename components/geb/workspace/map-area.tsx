@@ -32,6 +32,9 @@ type MapAreaProps = {
    selectedElement?: { type: PanelContext; data: any } | null
    onResetSelection?: () => void
    aiActive?: boolean
+   onJumpToMainAI?: (question: string, spatialContext: any) => void
+   isGNGPanelExpanded?: boolean
+   onGNGPanelExpandChange?: (expanded: boolean) => void
 }
 
 // Map AI layer names → layersRef keys
@@ -68,7 +71,10 @@ export function MapArea({
    onClearFocus,
    selectedElement,
    onResetSelection,
-   aiActive = false
+   aiActive = false,
+   onJumpToMainAI,
+   isGNGPanelExpanded,
+   onGNGPanelExpandChange
 }: MapAreaProps = {}) {
    const mapDiv = useRef<HTMLDivElement>(null)
    const viewRef = useRef<MapView | SceneView | null>(null)
@@ -245,7 +251,21 @@ export function MapArea({
          },
          visible: activeLayers.includes('well-trajectories'),
          elevationInfo: { mode: "on-the-ground" },
-         minScale: 600000 // Hide when zoomed out beyond 1:600,000
+         minScale: 600000,
+         outFields: ["SHORT_NM", "BOREHOLE_D", "Shape_Length"],
+         labelingInfo: [
+            new LabelClass({
+               labelExpressionInfo: { expression: "$feature.SHORT_NM" },
+               symbol: new TextSymbol({
+                  color: "white",
+                  haloColor: "black",
+                  haloSize: 1,
+                  font: { size: 8, weight: "normal", family: "Arial" }
+               }),
+               minScale: 600000,
+               maxScale: 0 // Label visible when zoomed in closer than 1:600,000
+            })
+         ]
       })
       map.add(wellTrajLayer)
       layersRef.current['well-trajectories'] = wellTrajLayer
@@ -391,8 +411,8 @@ export function MapArea({
                   haloSize: 2,
                   font: { size: 9, weight: "bold", family: "Arial" }
                }),
-               minScale: 2000000,
-               maxScale: 600000 // Label visible up to 1:600,000
+               minScale: 600000,
+               maxScale: 0 // Label visible when zoomed in closer than 1:600,000
             })
          ],
          outFields: ["*"],
@@ -441,8 +461,8 @@ export function MapArea({
                   haloSize: 1,
                   font: { size: 8, weight: "normal", family: "Arial" }
                }),
-               minScale: 100000,
-               maxScale: 600000 // Label visible up to 1:600,000 per requirements
+               minScale: 600000,
+               maxScale: 0 // Label visible when zoomed in closer than 1:600,000
             })
          ],
          outFields: ["*"],
@@ -1133,10 +1153,12 @@ export function MapArea({
             </div>
          </div>
 
-         {/* G&G Project Floating Panel - always rendered, manages its own state */}
+         {/* G&G Project Floating Panel - hidden by default, shown via View Other G&G Data button */}
          <GNGProjectFloatingPanel
             onProjectClick={handleGNGProjectClick}
             isRightPanelOpen={isRightPanelOpen}
+            isExpanded={isGNGPanelExpanded}
+            onExpandChange={onGNGPanelExpandChange}
          />
 
          {/* Analysis Marker Manager - interactive spatial analysis tool */}

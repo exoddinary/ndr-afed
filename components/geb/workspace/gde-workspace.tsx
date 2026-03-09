@@ -31,7 +31,9 @@ export function GDEWorkspace() {
   const [filteredBlockName, setFilteredBlockName] = useState<string | null>(null)
 
   const [isAIChatOpen, setIsAIChatOpen] = useState(false)
+  const [aiInitialQuestion, setAiInitialQuestion] = useState<string | undefined>(undefined)
   const [mapView, setMapView] = useState<__esri.MapView | __esri.SceneView | null>(null)
+  const [isGNGPanelExpanded, setIsGNGPanelExpanded] = useState(false)
   const [focusedFeatures, setFocusedFeatures] = useState<{
     layer: string;
     identifiers: string[];
@@ -173,7 +175,21 @@ export function GDEWorkspace() {
 
   const handleCloseAIChat = () => {
     setIsAIChatOpen(false)
+    // Clear initial question when closing
+    setTimeout(() => setAiInitialQuestion(undefined), 300)
   }
+
+  const handleJumpToMainAI = useCallback((question: string, spatialContext: any) => {
+    // Open the main AI panel
+    setIsAIChatOpen(true)
+    // Set the initial question to be sent
+    setAiInitialQuestion(question)
+  }, [])
+
+  const handleViewGNGData = useCallback(() => {
+    // Open the G&G Project Floating Panel
+    setIsGNGPanelExpanded(true)
+  }, [])
 
   return (
     <div className="flex flex-col h-full w-full bg-gray-50 text-slate-900 overflow-hidden font-sans selection:bg-primary/20 selection:text-primary/70">
@@ -214,6 +230,9 @@ export function GDEWorkspace() {
                   selectedElement={panelData}
                   onResetSelection={handleResetSelection}
                   aiActive={isAIChatOpen}
+                  onJumpToMainAI={handleJumpToMainAI}
+                  isGNGPanelExpanded={isGNGPanelExpanded}
+                  onGNGPanelExpandChange={setIsGNGPanelExpanded}
                 />
                 {/* Map Tools Overlay */}
                 <MapTools view={mapView} />
@@ -244,6 +263,7 @@ export function GDEWorkspace() {
             isOpen={isAIChatOpen}
             onClose={handleCloseAIChat}
             onMapAction={handleMapAction}
+            initialQuestion={aiInitialQuestion}
           />
         ) : (
           <ContextualPanel
@@ -254,6 +274,7 @@ export function GDEWorkspace() {
             onAddToCompare={handleAddToCompare}
             onToggle3D={handleToggle3D}
             onViewSubsurface={handleViewSubsurface}
+            onViewGNGData={handleViewGNGData}
           />
         )}
 

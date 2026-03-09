@@ -39,6 +39,7 @@ type AIChatPanelProps = {
         }
     }) => void
     mapView?: __esri.MapView | __esri.SceneView | null
+    initialQuestion?: string
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -58,7 +59,7 @@ const AGENT_COLORS: Record<string, string> = {
     INSIGHT: 'bg-amber-100 text-amber-700',
 }
 
-export function AIChatPanel({ isOpen, onClose, onMapAction, mapView }: AIChatPanelProps) {
+export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQuestion }: AIChatPanelProps) {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: "welcome",
@@ -77,18 +78,30 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView }: AIChatPan
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
     }, [messages])
 
+    const hasProcessedInitialQuestion = useRef(false)
+
     useEffect(() => {
-        if (isOpen) setTimeout(() => inputRef.current?.focus(), 300)
+        if (isOpen && initialQuestion && !hasProcessedInitialQuestion.current) {
+            hasProcessedInitialQuestion.current = true
+            handleSendMessage(initialQuestion, true) // true = derived context
+        }
+    }, [isOpen, initialQuestion])
+
+    // Reset the flag when panel closes
+    useEffect(() => {
+        if (!isOpen) {
+            hasProcessedInitialQuestion.current = false
+        }
     }, [isOpen])
 
-    const handleSendMessage = async (messageText?: string) => {
+    const handleSendMessage = async (messageText?: string, isDerivedContext = false) => {
         const text = messageText || inputValue.trim()
         if (!text || isLoading) return
 
         const userMessage: Message = {
             id: `user-${Date.now()}`,
             role: "user",
-            content: text,
+            content: isDerivedContext ? `[Derived from Spatial Analysis] ${text}` : text,
             timestamp: new Date()
         }
 
