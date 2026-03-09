@@ -181,7 +181,8 @@ export function MapArea({
             }]
          },
          visible: activeLayers.includes('well-trajectories'),
-         elevationInfo: { mode: "on-the-ground" }
+         elevationInfo: { mode: "on-the-ground" },
+         maxScale: 500000 // Hide beyond 1:500,000
       })
       map.add(wellTrajLayer)
       layersRef.current['well-trajectories'] = wellTrajLayer
@@ -287,7 +288,7 @@ export function MapArea({
             field: "RESULT",
             defaultSymbol: {
                type: "simple-fill",
-               color: [130, 130, 130, 0.3], // 30% transparency
+               color: [130, 130, 130, 0.1], // 10% transparency
                outline: { color: [110, 110, 110, 1], width: 0.7 }
             } as any,
             uniqueValueInfos: [
@@ -295,7 +296,7 @@ export function MapArea({
                   value: "Gas",
                   symbol: {
                      type: "simple-fill",
-                     color: [255, 127, 127, 0.3], // 30% transparency
+                     color: [255, 127, 127, 0.1], // 10% transparency
                      outline: { color: [255, 190, 190, 1], width: 1.5 }
                   } as any
                },
@@ -303,7 +304,7 @@ export function MapArea({
                   value: "Olie",
                   symbol: {
                      type: "simple-fill",
-                     color: [85, 255, 0, 0.3], // 30% transparency
+                     color: [85, 255, 0, 0.1], // 10% transparency
                      outline: { color: [211, 255, 190, 1], width: 1.5 }
                   } as any
                },
@@ -311,7 +312,7 @@ export function MapArea({
                   value: "Olie en Gas",
                   symbol: {
                      type: "simple-fill",
-                     color: [255, 170, 0, 0.3], // 30% transparency
+                     color: [255, 170, 0, 0.1], // 10% transparency
                      outline: { color: [255, 235, 175, 1], width: 1.5 }
                   } as any
                }
