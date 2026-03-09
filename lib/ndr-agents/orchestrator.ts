@@ -2,6 +2,7 @@ import Groq from 'groq-sdk'
 import { runAssetQueryAgent, type AssetQueryResult } from './asset-query-agent'
 import { runSpatialReasoningAgent, type SpatialResult } from './spatial-agent'
 import { runInsightAgent, type InsightResult } from './insight-agent'
+import { buildKnowledgeGraph, getGraphRagContextString, getKnowledgeGraph } from './tools/graph-index'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 const MODEL = 'llama-3.3-70b-versatile'
