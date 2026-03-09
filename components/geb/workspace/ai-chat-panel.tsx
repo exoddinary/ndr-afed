@@ -38,6 +38,7 @@ type AIChatPanelProps = {
             radiusKm: number
         }
     }) => void
+    mapView?: __esri.MapView | __esri.SceneView | null
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -57,7 +58,7 @@ const AGENT_COLORS: Record<string, string> = {
     INSIGHT: 'bg-amber-100 text-amber-700',
 }
 
-export function AIChatPanel({ isOpen, onClose, onMapAction }: AIChatPanelProps) {
+export function AIChatPanel({ isOpen, onClose, onMapAction, mapView }: AIChatPanelProps) {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: "welcome",
@@ -97,10 +98,27 @@ export function AIChatPanel({ isOpen, onClose, onMapAction }: AIChatPanelProps) 
         setShowSuggestions(false)
 
         try {
+            // Get current map view extent for spatial context
+            const extentContext = mapView?.extent ? {
+                xmin: mapView.extent.xmin,
+                ymin: mapView.extent.ymin,
+                xmax: mapView.extent.xmax,
+                ymax: mapView.extent.ymax,
+                center: {
+                    lat: mapView.center?.latitude,
+                    lon: mapView.center?.longitude
+                },
+                scale: mapView.scale,
+                zoom: mapView.zoom
+            } : undefined
+
             const res = await fetch('/api/ndr-ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: text, context: {} })
+                body: JSON.stringify({ 
+                    message: text, 
+                    context: extentContext ? { extent: extentContext } : {}
+                })
             })
 
             if (!res.ok) {

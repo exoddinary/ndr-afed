@@ -10,7 +10,7 @@ const ROUTING_PROMPT = `You are the NDR AI Orchestrator. Analyze the user query 
 
 Available agents:
 - ASSET: Query and filter structured feature attributes (operators, statuses, results, counts)
-- SPATIAL: Spatial relationships, proximity, distances, areas
+- SPATIAL: Spatial relationships, proximity, distances, areas, filtering by map view
 - INSIGHT: Synthesize and interpret data, generate exploration insights
 
 Respond with a JSON object like:
@@ -21,7 +21,8 @@ Respond with a JSON object like:
 }
 
 Rules:
-- If query mentions proximity, distance, nearby, within → include SPATIAL
+- If query mentions proximity, distance, nearby, within, around, this area → include SPATIAL
+- If query mentions filtering, listing, counting, operators in this area → include SPATIAL + ASSET
 - If query mentions filtering, listing, counting, operators → include ASSET
 - If query asks "what is interesting", opportunities, summary, recommend → include INSIGHT
 - Most queries need at least ASSET + INSIGHT
@@ -62,12 +63,28 @@ export async function runOrchestrator(
         primary: 'ASSET'
     }
 
+    // If we have spatial context (map extent) and query mentions area, include SPATIAL
+    const hasSpatialContext = context?.extent && 
+        typeof context.extent === 'object' &&
+        'xmin' in context.extent &&
+        'xmax' in context.extent
+    
+    const mentionsArea = /\b(this area|current view|visible area|on the map)\b/i.test(userQuery)
+    
+    if (hasSpatialContext && mentionsArea) {
+        routing = {
+            agents: ['ASSET', 'SPATIAL', 'INSIGHT'],
+            reasoning: 'Query about current map area with spatial context available',
+            primary: 'SPATIAL'
+        }
+    }
+
     try {
         const routeCompletion = await groq.chat.completions.create({
             model: MODEL,
             messages: [
                 { role: 'system', content: ROUTING_PROMPT },
-                { role: 'user', content: userQuery }
+                { role: 'user', content: hasSpatialContext ? `${userQuery}\n\n[Context: User is viewing map area with bounds ${JSON.stringify(context.extent)}]` : userQuery }
             ],
             temperature: 0,
             max_tokens: 200,

@@ -211,9 +211,63 @@ export async function runSpatialReasoningAgent(userQuery: string, _context: Agen
     
     console.log('[Spatial Agent] Extracted featureName:', featureName, 'radius:', radiusKm)
 
+    // Check if we have map extent context for "this area" queries
+    const hasExtentContext = _context?.extent && 
+        typeof _context.extent === 'object' &&
+        'xmin' in _context.extent &&
+        'xmax' in _context.extent &&
+        'ymin' in _context.extent &&
+        'ymax' in _context.extent
+    
+    const mentionsThisArea = /\b(this area|current view|visible area|on the map)\b/i.test(userQuery)
+    
+    console.log('[Spatial Agent] Context check - hasExtent:', hasExtentContext, 'mentionsArea:', mentionsThisArea)
+
     try {
+        // SPECIAL CASE: Query about features in current map view area
+        if (hasExtentContext && mentionsThisArea) {
+            console.log('[Spatial Agent] Processing "this area" query with map extent')
+            
+            // Convert extent to our bbox format (note: ArcGIS extent is [xmin, ymin, xmax, ymax] in lon/lat)
+            const extent = _context.extent as { xmin: number; ymin: number; xmax: number; ymax: number; center?: { lat?: number; lon?: number } }
+            const bbox = {
+                minLon: extent.xmin,
+                maxLon: extent.xmax,
+                minLat: extent.ymin,
+                maxLat: extent.ymax
+            }
+            
+            console.log('[Spatial Agent] Using bbox:', bbox)
+            
+            // Get features within the current view
+            const featuresInView = await tool_get_features_within_area(targetLayer, bbox, 50)
+            toolResults['features_in_view'] = featuresInView
+            toolResults['view_bbox'] = bbox
+            toolResults['feature_count'] = featuresInView.length
+            
+            console.log(`[Spatial Agent] Found ${featuresInView.length} features in view`)
+            
+            // Create map action to highlight features and stay in current view
+            if (featuresInView.length > 0) {
+                const ids = featuresInView.slice(0, 10).map((f: object) => {
+                    const record = f as Record<string, unknown>
+                    return String(record.IDENTIFICA || record.FIELD_NAME || record.BlokNummer || record.SURVEY_ID || record.licence_nm || '')
+                }).filter(Boolean)
+                
+                console.log('[Spatial Agent] IDs for highlighting in view:', ids)
+                
+                if (ids.length > 0) {
+                    mapActions.push({
+                        action: 'highlight',
+                        layer: targetLayer,
+                        identifiers: ids
+                        // No radiusInfo - just highlight in current view
+                    })
+                }
+            }
+        }
         // 1. Temporal-Spatial Query
-        if (yearRange && (q.includes('seismic') || q.includes('project') || q.includes('survey'))) {
+        else if (yearRange && (q.includes('seismic') || q.includes('project') || q.includes('survey'))) {
             const temporalLayer: LayerName = q.includes('3d') ? 'seismic3d' : 
                                              q.includes('2d') ? 'seismic2d' : 
                                              q.includes('project') ? 'gng_projects' : 'seismic3d'
