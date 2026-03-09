@@ -2,6 +2,7 @@ import Groq from 'groq-sdk'
 import { runAssetQueryAgent, type AssetQueryResult } from './asset-query-agent'
 import { runSpatialReasoningAgent, type SpatialResult } from './spatial-agent'
 import { runInsightAgent, type InsightResult } from './insight-agent'
+import { runGraphAgent, type GraphQueryResult } from './graph-agent'
 import { buildKnowledgeGraph, getKnowledgeGraph, getGraphRagContextString } from './tools/graph-index'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
@@ -12,11 +13,12 @@ const ROUTING_PROMPT = `You are the NDR AI Orchestrator. Analyze the user query 
 Available agents:
 - ASSET: Query and filter structured feature attributes (operators, statuses, results, counts)
 - SPATIAL: Spatial relationships, proximity, distances, areas, filtering by map view
+- GRAPH: Entity relationships, operator-block associations, provenance explanation
 - INSIGHT: Synthesize and interpret data, generate exploration insights
 
 Respond with a JSON object like:
 {
-  "agents": ["ASSET", "SPATIAL", "INSIGHT"],
+  "agents": ["ASSET", "SPATIAL", "GRAPH", "INSIGHT"],
   "reasoning": "brief explanation",
   "primary": "ASSET"
 }
@@ -25,8 +27,11 @@ Rules:
 - If query mentions proximity, distance, nearby, within, around, this area → include SPATIAL
 - If query mentions filtering, listing, counting, operators in this area → include SPATIAL + ASSET
 - If query mentions filtering, listing, counting, operators → include ASSET
+- If query asks about relationships, associations, "which operator in block", reliability, provenance, explain → include GRAPH
+- If query mentions "reliability of", "how was this derived", "confidence" → include GRAPH
 - If query asks "what is interesting", opportunities, summary, recommend → include INSIGHT
 - Most queries need at least ASSET + INSIGHT
+- Relationship queries: GRAPH + ASSET + INSIGHT
 - Spatial queries usually go SPATIAL + ASSET + INSIGHT
 - Simple factual lookups: ASSET only
 Only return valid JSON, nothing else.`
@@ -101,10 +106,19 @@ export async function runOrchestrator(
 
     const agents = routing.agents || ['ASSET', 'INSIGHT']
 
+    // Check for graph/relationship query patterns
+    const isGraphQuery = /\b(reliability|confidence|how was|derived|explain|association|relationship|provenance)\b/i.test(userQuery) ||
+                        /\b(operator.*block|block.*operator)\b/i.test(userQuery)
+    
+    if (isGraphQuery && !agents.includes('GRAPH')) {
+        agents.push('GRAPH')
+    }
+
     // Step 2: Run specialist agents in parallel where possible
     const results: {
         asset?: AssetQueryResult
         spatial?: SpatialResult
+        graph?: GraphQueryResult
         insight?: InsightResult
     } = {}
 
@@ -126,6 +140,14 @@ export async function runOrchestrator(
         )
     }
 
+    if (agents.includes('GRAPH')) {
+        parallelTasks.push(
+            runGraphAgent(userQuery, context).then(r => { results.graph = r }).catch(e => {
+                console.error('[Graph Agent Error]', e)
+            })
+        )
+    }
+
     await Promise.all(parallelTasks)
 
     // Step 3: Build Knowledge Graph context for richer insights
@@ -139,7 +161,8 @@ export async function runOrchestrator(
                 userQuery,
                 results.asset?.answer || '',
                 results.spatial?.answer || '',
-                graphContext
+                graphContext,
+                results.graph?.answer || ''
             )
         } catch (e) {
             console.error('[Insight Agent Error]', e)
@@ -155,8 +178,13 @@ export async function runOrchestrator(
     // Step 5: Synthesize final answer
     let finalAnswer = ''
 
-    if (results.insight?.answer) {
+    if (results.graph?.answer && !results.asset?.answer && !results.spatial?.answer) {
+        // Pure graph query - use graph answer directly
+        finalAnswer = results.graph.answer
+    } else if (results.insight?.answer) {
         finalAnswer = results.insight.answer
+    } else if (results.graph?.answer && (results.asset?.answer || results.spatial?.answer)) {
+        finalAnswer = `**Relationship Analysis:**\n${results.graph.answer}\n\n${results.asset?.answer ? `**Asset Data:**\n${results.asset.answer}` : ''}\n${results.spatial?.answer ? `**Spatial Context:**\n${results.spatial.answer}` : ''}`
     } else if (results.asset?.answer && results.spatial?.answer) {
         finalAnswer = `**Asset Analysis:**\n${results.asset.answer}\n\n**Spatial Context:**\n${results.spatial.answer}`
     } else if (results.asset?.answer) {
