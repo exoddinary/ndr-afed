@@ -104,3 +104,10 @@ export interface AIResult {
   followUpQuestions: string[]
   timestamp: number
 }
+
+export interface AIChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: number
+}

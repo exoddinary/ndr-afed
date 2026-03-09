@@ -11,7 +11,8 @@ import {
   X,
   Move,
   Trash2,
-  Plus
+  Plus,
+  Send
 } from "lucide-react"
 import type MapView from "@arcgis/core/views/MapView"
 import type SceneView from "@arcgis/core/views/SceneView"
@@ -28,7 +29,8 @@ import type {
   MarkerStats,
   AIPayload,
   AIResult,
-  MarkerComment
+  MarkerComment,
+  AIChatMessage
 } from "./analysis-marker-types"
 import {
   calculateSpatialContext,
@@ -537,6 +539,8 @@ function AnalysisMarkerPanel({
   const [spatialContext, setSpatialContext] = useState<SpatialContext | null>(null)
   const [stats, setStats] = useState<MarkerStats | null>(null)
   const [aiResult, setAiResult] = useState<AIResult | null>(null)
+  const [chatMessages, setChatMessages] = useState<AIChatMessage[]>([])
+  const [newAIMessage, setNewAIMessage] = useState("")
   const [comments, setComments] = useState<MarkerComment[]>([])
   const [newComment, setNewComment] = useState("")
   const [isLoadingAI, setIsLoadingAI] = useState(false)
@@ -562,9 +566,21 @@ function AnalysisMarkerPanel({
     onUpdate(marker.id, { activeMode: mode })
   }
 
-  // Handle AI query
-  const handleAskAI = async () => {
+  // Handle AI query with custom message
+  const handleAskAI = async (customQuery?: string) => {
     if (!spatialContext) return
+    
+    const query = customQuery || `Analyze this ${marker.radiusKm}km radius around ${marker.label}`
+    
+    // Add user message to chat
+    if (customQuery) {
+      setChatMessages(prev => [...prev, {
+        id: uuidv4(),
+        role: 'user',
+        content: customQuery,
+        timestamp: Date.now()
+      }])
+    }
     
     setIsLoadingAI(true)
     try {
@@ -580,7 +596,7 @@ function AnalysisMarkerPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: `Analyze this ${marker.radiusKm}km radius around ${marker.label}`,
+          query: query,
           context: {
             marker: payload,
             spatialContext: spatialContext
@@ -599,15 +615,30 @@ function AnalysisMarkerPanel({
       }
       
       setAiResult(result)
+      
+      // Add assistant response to chat
+      setChatMessages(prev => [...prev, {
+        id: uuidv4(),
+        role: 'assistant',
+        content: data.answer,
+        timestamp: Date.now()
+      }])
     } catch (error) {
       console.error("AI query failed:", error)
+      const errorMsg = "Failed to get AI insights. Please try again."
       setAiResult({
-        insights: "Failed to get AI insights. Please try again.",
+        insights: errorMsg,
         opportunities: [],
         dataGaps: ["AI service unavailable"],
         followUpQuestions: [],
         timestamp: Date.now()
       })
+      setChatMessages(prev => [...prev, {
+        id: uuidv4(),
+        role: 'assistant',
+        content: errorMsg,
+        timestamp: Date.now()
+      }])
     } finally {
       setIsLoadingAI(false)
     }
@@ -847,13 +878,13 @@ function AnalysisMarkerPanel({
         <AnimatePresence>
           {marker.activeMode && marker.activeMode !== "data" && (
             <motion.div
-              initial={{ x: screenPos.x > (window.innerWidth / 2) ? -20 : 20, opacity: 0, scale: 0.95 }}
+              initial={{ x: 20, opacity: 0, scale: 0.95 }}
               animate={{ 
-                x: screenPos.x > (window.innerWidth / 2) ? -300 : 80, 
+                x: 120, 
                 opacity: 1, 
                 scale: 1 
               }}
-              exit={{ x: screenPos.x > (window.innerWidth / 2) ? -20 : 20, opacity: 0, scale: 0.95 }}
+              exit={{ x: 20, opacity: 0, scale: 0.95 }}
               className="absolute top-0 w-64 bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-100"
               style={{ transform: "translateY(-50%)" }}
             >
@@ -872,11 +903,14 @@ function AnalysisMarkerPanel({
                 {marker.activeMode === "graph" && stats && (
                   <GraphMiniView stats={stats} color={marker.color} />
                 )}
-                {marker.activeMode === "ai" && (
+                {marker.activeMode === "ai" && spatialContext && (
                   <AIMiniView
-                    aiResult={aiResult}
+                    chatMessages={chatMessages}
+                    spatialContext={spatialContext}
                     isLoading={isLoadingAI}
                     onAsk={handleAskAI}
+                    newMessage={newAIMessage}
+                    onNewMessageChange={setNewAIMessage}
                   />
                 )}
                 {marker.activeMode === "comment" && (
@@ -1020,25 +1054,115 @@ function GraphMiniView({ stats, color }: { stats: MarkerStats; color: string }) 
 
 // Mini AI View
 interface AIMiniViewProps {
-  aiResult: AIResult | null
+  chatMessages: AIChatMessage[]
+  spatialContext: SpatialContext
   isLoading: boolean
-  onAsk: () => void
+  onAsk: (customQuery?: string) => void
+  newMessage: string
+  onNewMessageChange: (text: string) => void
 }
 
-function AIMiniView({ aiResult, isLoading, onAsk }: AIMiniViewProps) {
-  if (isLoading) return <div className="text-center py-4 text-xs text-slate-500 animate-pulse">Analyzing spatial context...</div>
-  if (!aiResult) return (
-    <div className="text-center space-y-3">
-      <Bot className="w-8 h-8 text-blue-200 mx-auto" />
-      <button 
-        onClick={onAsk}
-        className="w-full py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm"
-      >
-        Ask AI Analysis
-      </button>
+function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage, onNewMessageChange }: AIMiniViewProps) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && newMessage.trim()) {
+      onAsk(newMessage.trim())
+      onNewMessageChange('')
+    }
+  }
+
+  const handleSend = () => {
+    if (newMessage.trim()) {
+      onAsk(newMessage.trim())
+      onNewMessageChange('')
+    }
+  }
+
+  // Build context summary
+  const { featuresInside, statsSummary } = spatialContext
+  const contextItems = [
+    statsSummary.wellsCount > 0 && `${statsSummary.wellsCount} wells`,
+    statsSummary.fieldsCount > 0 && `${statsSummary.fieldsCount} fields`,
+    statsSummary.blocksCount > 0 && `${statsSummary.blocksCount} blocks`,
+  ].filter(Boolean)
+
+  return (
+    <div className="space-y-3">
+      {/* Context Summary */}
+      <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+        <div className="text-[10px] text-slate-500 uppercase tracking-wide font-bold mb-1">Current Context</div>
+        <div className="flex flex-wrap gap-1">
+          {contextItems.length > 0 ? (
+            contextItems.map((item, i) => (
+              <span key={i} className="text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">
+                {item}
+              </span>
+            ))
+          ) : (
+            <span className="text-[10px] text-slate-400">No features in range</span>
+          )}
+        </div>
+      </div>
+
+      {/* Chat Messages */}
+      <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+        {chatMessages.length === 0 ? (
+          <div className="text-center py-4">
+            <Bot className="w-8 h-8 text-blue-200 mx-auto mb-2" />
+            <p className="text-[10px] text-slate-400">Ask about the current analysis area</p>
+          </div>
+        ) : (
+          chatMessages.map((msg) => (
+            <div 
+              key={msg.id} 
+              className={`text-[11px] p-2 rounded-lg ${
+                msg.role === 'user' 
+                  ? 'bg-blue-50 text-blue-900 ml-4 border border-blue-100' 
+                  : 'bg-slate-50 text-slate-700 mr-4 border border-slate-100'
+              }`}
+            >
+              <div className="font-bold text-[9px] uppercase tracking-wide mb-0.5 opacity-70">
+                {msg.role === 'user' ? 'You' : 'AI'}
+              </div>
+              <div className="leading-relaxed">{msg.content}</div>
+            </div>
+          ))
+        )}
+        {isLoading && (
+          <div className="text-[11px] text-slate-500 italic animate-pulse bg-slate-50 p-2 rounded-lg mr-4 border border-slate-100">
+            AI is analyzing...
+          </div>
+        )}
+      </div>
+
+      {/* Quick Analysis Button (when no messages) */}
+      {chatMessages.length === 0 && !isLoading && (
+        <button 
+          onClick={() => onAsk()}
+          className="w-full py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm"
+        >
+          Ask AI Analysis
+        </button>
+      )}
+
+      {/* Chat Input */}
+      <div className="flex gap-1.5 pt-2 border-t border-slate-100">
+        <input 
+          value={newMessage}
+          onChange={e => onNewMessageChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask about these features..."
+          className="flex-1 text-xs px-2 py-1.5 border border-slate-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none"
+        />
+        <button 
+          onClick={handleSend}
+          disabled={!newMessage.trim() || isLoading}
+          className="bg-blue-600 text-white p-1.5 rounded-md disabled:bg-slate-300"
+        >
+          <Send className="w-3 h-3"/>
+        </button>
+      </div>
     </div>
   )
-  return <div className="text-[11px] text-slate-600 leading-relaxed italic line-clamp-6">{aiResult.insights}</div>
 }
 
 // Mini Comment View
@@ -1050,12 +1174,19 @@ interface CommentMiniViewProps {
 }
 
 function CommentMiniView({ comments, newComment, onNewCommentChange, onAddComment }: CommentMiniViewProps) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && newComment.trim()) {
+      onAddComment()
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex gap-1.5">
         <input 
           value={newComment}
           onChange={e => onNewCommentChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Add comment..."
           className="flex-1 text-xs px-2 py-1.5 border border-slate-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none"
         />
@@ -1064,7 +1195,7 @@ function CommentMiniView({ comments, newComment, onNewCommentChange, onAddCommen
           disabled={!newComment.trim()}
           className="bg-blue-600 text-white p-1.5 rounded-md disabled:bg-slate-300"
         >
-          <Plus className="w-3 h-3"/>
+          <Send className="w-3 h-3"/>
         </button>
       </div>
       <div className="space-y-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
@@ -1123,7 +1254,7 @@ function RadialDataVisualization({ stats, color, config, dynamicRadius }: { stat
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
         
-        {/* 3. Radiating Bars - draw first so arc appears on top */}
+        {/* 1. Radiating Bars - draw first */}
         {rawData.map((item, i) => {
           // Normalize height: (current value / max value) * max length from config
           const barLength = (item.value / maxDataValue) * config.vizMaxLineLength + 5;
@@ -1142,7 +1273,7 @@ function RadialDataVisualization({ stats, color, config, dynamicRadius }: { stat
           const outerY = cy - (radius + barLength) * Math.cos(angleRad);
 
           return (
-            <g key={item.label}>
+            <g key={`bar-${item.label}`}>
               {/* The Bar - from arc edge outward along angle */}
               <line
                 x1={innerX}
@@ -1154,34 +1285,25 @@ function RadialDataVisualization({ stats, color, config, dynamicRadius }: { stat
                 strokeLinecap="butt"
               />
               
-              {/* Value Label: at outer end of bar, perfectly upright */}
+              {/* Value Label: at outer end of bar, with white stroke outline */}
               <text
                 x={outerX}
                 y={outerY - 8}
                 textAnchor="middle"
                 fontSize="9"
                 fontWeight="bold"
-                fill="#1e293b"
+                fill="#0f172a"
+                stroke="white"
+                strokeWidth="2"
+                paintOrder="stroke"
               >
                 {item.value}
-              </text>
-
-              {/* Category Label: at inner base of bar, perfectly upright */}
-              <text
-                x={innerX}
-                y={innerY + 12}
-                textAnchor="middle"
-                fontSize="7"
-                fill="#94a3b8"
-                fontWeight="bold"
-              >
-                {item.label}
               </text>
             </g>
           );
         })}
 
-        {/* 1. Dynamic Arc: Split into Purple (Left) and Yellow (Right) */}
+        {/* 2. Dynamic Arc: Split into Purple (Left) and Yellow (Right) */}
         <path
           d={describeArc(cx, cy, radius, -60, 0)}
           fill="none"
@@ -1198,6 +1320,39 @@ function RadialDataVisualization({ stats, color, config, dynamicRadius }: { stat
           strokeLinecap="butt"
           opacity="0.9"
         />
+
+        {/* 3. Category Labels - draw LAST so they appear on top */}
+        {rawData.map((item, i) => {
+          const angleRad = (item.angle * Math.PI) / 180;
+          const innerX = cx + radius * Math.sin(angleRad);
+          const innerY = cy - radius * Math.cos(angleRad);
+
+          return (
+            <g key={`label-${item.label}`}>
+              {/* Category Label: at inner base of bar, with white bg on top of arc */}
+              <rect
+                x={innerX - 14}
+                y={innerY + 6}
+                width="28"
+                height="12"
+                rx="2"
+                fill="white"
+                stroke="#e2e8f0"
+                strokeWidth="1"
+              />
+              <text
+                x={innerX}
+                y={innerY + 14}
+                textAnchor="middle"
+                fontSize="7"
+                fill="#334155"
+                fontWeight="bold"
+              >
+                {item.label}
+              </text>
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
