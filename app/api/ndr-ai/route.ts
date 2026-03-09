@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runOrchestrator } from '@/lib/ndr-agents/orchestrator'
+import { buildKnowledgeGraph, getKnowledgeGraph } from '@/lib/ndr-agents/tools/graph-index'
+
+let graphInitialized = false
+
+async function ensureGraph() {
+  if (!graphInitialized) {
+    console.log('[NDR AI] Initializing knowledge graph...')
+    await buildKnowledgeGraph()
+    const stats = getKnowledgeGraph().getStats()
+    console.log('[NDR AI] Knowledge graph ready:', stats)
+    graphInitialized = true
+  }
+}
 
 export async function POST(req: NextRequest) {
     try {
+        await ensureGraph()
+        
         const body = await req.json()
         const { message, context } = body
 

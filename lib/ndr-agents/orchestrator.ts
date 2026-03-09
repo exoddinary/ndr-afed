@@ -2,7 +2,7 @@ import Groq from 'groq-sdk'
 import { runAssetQueryAgent, type AssetQueryResult } from './asset-query-agent'
 import { runSpatialReasoningAgent, type SpatialResult } from './spatial-agent'
 import { runInsightAgent, type InsightResult } from './insight-agent'
-import { buildKnowledgeGraph, getGraphRagContextString, getKnowledgeGraph } from './tools/graph-index'
+import { buildKnowledgeGraph, getKnowledgeGraph, getGraphRagContextString } from './tools/graph-index'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 const MODEL = 'llama-3.3-70b-versatile'
@@ -128,13 +128,18 @@ export async function runOrchestrator(
 
     await Promise.all(parallelTasks)
 
-    // Step 3: Run Insight agent with combined outputs
+    // Step 3: Build Knowledge Graph context for richer insights
+    const graphContext = getGraphRagContextString(userQuery)
+    console.log('[Orchestrator] Graph context length:', graphContext.length)
+
+    // Step 4: Run Insight agent with combined outputs + graph context
     if (agents.includes('INSIGHT')) {
         try {
             results.insight = await runInsightAgent(
                 userQuery,
                 results.asset?.answer || '',
-                results.spatial?.answer || ''
+                results.spatial?.answer || '',
+                graphContext
             )
         } catch (e) {
             console.error('[Insight Agent Error]', e)

@@ -31,7 +31,8 @@ export type InsightResult = {
 export async function runInsightAgent(
     userQuery: string,
     assetData: string,
-    spatialData: string
+    spatialData: string,
+    graphContext?: string
 ): Promise<InsightResult> {
     const completion = await groq.chat.completions.create({
         model: MODEL,
@@ -47,11 +48,15 @@ ${assetData || '(none)'}
 Spatial analysis data:
 ${spatialData || '(none)'}
 
+Knowledge Graph Context (entity relationships & provenance):
+${graphContext || '(none)'}
+
 Based on this data, provide:
 1. An interpretation of what this means for exploration or analysis
 2. Key insights about the assets or spatial context
-3. 3 concise follow-up questions the analyst should consider
-4. If applicable, rank the top 3 assets by exploration interest with a brief reason
+3. Note any data provenance issues (e.g., "operator-block relationship is inferred from wells")
+4. 3 concise follow-up questions the analyst should consider
+5. If applicable, rank the top 3 assets by exploration interest with a brief reason
 
 Format the follow-up questions as a plain list, each prefixed with "FOLLOWUP:" so they can be parsed.`
             }
