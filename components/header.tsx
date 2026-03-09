@@ -42,13 +42,12 @@ export function Header({ showNavigation = false, titleOverride }: HeaderProps) {
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <Image 
-              src="/seek-logo.png" 
-              alt="SEEK Logo" 
-              width={32} 
-              height={32}
-              className="w-8 h-8"
+              src="/vdr-logo.png?v=2" 
+              alt="VDR Logo" 
+              width={120} 
+              height={40}
+              className="h-10 w-auto"
             />
-            <span className="text-white font-semibold text-xl font-inter tracking-wide">{titleOverride ?? "SEEK"}</span>
           </Link>
 
           {/* Navigation hidden as requested */}

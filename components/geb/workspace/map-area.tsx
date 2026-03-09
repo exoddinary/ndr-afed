@@ -13,6 +13,7 @@ import * as reactiveUtils from "@arcgis/core/core/reactiveUtils"
 import "@arcgis/core/assets/esri/themes/light/main.css"
 
 import { PanelContext } from "./contextual-panel"
+import { GNGProjectFloatingPanel } from "./gng-floating-panel"
 
 // Props to allow parent to listen to map clicks
 type MapAreaProps = {
@@ -74,12 +75,72 @@ export function MapArea({
    const [basemapStyle, setBasemapStyle] = useState<'oceans' | 'light-gray'>('oceans')
    const [isFocused, setIsFocused] = useState(false)
    const [currentScale, setCurrentScale] = useState<number | null>(null)
+   const [selectedProject, setSelectedProject] = useState<string | null>(null)
+   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false)
    const originalStateRef = useRef<{
       layerKey: string
       definitionExpression: string
       renderer: unknown
       visibilities: Record<string, boolean>
    } | null>(null)
+
+   // Handle G&G project click from floating panel
+   const handleGNGProjectClick = (projectName: string) => {
+      setSelectedProject(projectName)
+      
+      // Find and highlight the project polygon
+      const gngLayer = layersRef.current['gng-projects'] as __esri.GeoJSONLayer
+      if (!gngLayer || !viewRef.current) return
+
+      // Query the layer for the project
+      gngLayer.queryFeatures({
+         where: `PROJECT_NAME = '${projectName.replace(/'/g, "''")}'`,
+         returnGeometry: true,
+         outFields: ["*"]
+      }).then((result: __esri.FeatureSet) => {
+         if (result.features.length > 0) {
+            const feature = result.features[0]
+            const geometry = feature.geometry as __esri.Polygon
+            
+            if (!geometry || !geometry.extent) return
+            
+            // Flash/highlight the polygon with a yellow highlight
+            const highlightGraphic = new Graphic({
+               geometry: geometry,
+               symbol: {
+                  type: "simple-fill",
+                  color: [255, 255, 0, 0.4], // Yellow fill
+                  outline: {
+                     color: [255, 200, 0, 1],
+                     width: 4
+                  }
+               } as any
+            })
+
+            // Add highlight graphic
+            viewRef.current!.graphics.add(highlightGraphic)
+
+            // Zoom to the polygon
+            viewRef.current!.goTo({
+               target: geometry.extent.expand(1.2),
+               tilt: is3D ? 45 : 0
+            }, {
+               duration: 500,
+               easing: "ease-in-out"
+            })
+
+            // Remove highlight after 2 seconds
+            setTimeout(() => {
+               viewRef.current!.graphics.remove(highlightGraphic)
+            }, 2000)
+
+            // Also trigger the element click to show the panel
+            onElementClick?.("gng-project", feature.attributes)
+         }
+      }).catch((err: Error) => {
+         console.error("Failed to highlight G&G project:", err)
+      })
+   }
 
 
    useEffect(() => {
@@ -261,6 +322,7 @@ export function MapArea({
                width: 0.5
             } as any
          },
+         outFields: ["*"], // Return all fields on hitTest
          popupTemplate: {
             title: "{line_name}",
             content: [{
@@ -420,6 +482,8 @@ export function MapArea({
                outline: { color: [169, 0, 230, 1], width: 3 } // Purple outline
             } as any
          },
+         outFields: ["*"], // Return all fields on hitTest
+         popupEnabled: false, // Disable default popup
          labelingInfo: [
             new LabelClass({
                labelExpressionInfo: { expression: "$feature.PROJECT_NAME" },
@@ -610,21 +674,33 @@ export function MapArea({
       })
       setCurrentScale(view.scale)
 
-      // Dock popup so it doesn't sit on top of the block geometry
-      // Applies to both 2D and 3D views
-      if ((view as any).popup) {
-         const popup: any = (view as any).popup
-         popup.dockEnabled = true
-         popup.collapseEnabled = true
-         popup.dockOptions = {
-            position: "top-right",
-            breakpoint: false
+         // Dock popup so it doesn't sit on top of the block geometry
+         // Applies to both 2D and 3D views
+         if ((view as any).popup) {
+            const popup: any = (view as any).popup
+            popup.dockEnabled = true
+            popup.collapseEnabled = true
+            popup.dockOptions = {
+               position: "top-right",
+               breakpoint: false
+            }
+            // Disable default popup behavior - we use custom right panel instead
+            popup.autoOpenEnabled = false
          }
-      }
+
+         // Disable popups on all layers to prevent ArcGIS default popups
+         Object.values(layersRef.current).forEach((layer: any) => {
+            if (layer) {
+               layer.popupEnabled = false
+            }
+         })
 
       // Setup handlers (including safe hitTest)
       view.on("click", async (event: any) => {
          const response = await view.hitTest(event)
+
+         // Clear previous highlight graphics
+         view.graphics.removeAll()
 
          // 1. Check for Wells first (points usually on top)
          const wellResults = response.results.filter((result: any) =>
@@ -638,7 +714,26 @@ export function MapArea({
 
             console.log("🟢 Well Clicked (local):", attr)
 
+            // Add yellow highlight circle around the well
+            if (graphic.geometry) {
+               const highlightPoint = new Graphic({
+                  geometry: graphic.geometry,
+                  symbol: {
+                     type: "simple-marker",
+                     style: "circle",
+                     color: [255, 255, 0, 0.6], // Yellow with transparency
+                     size: 14,
+                     outline: {
+                        color: [255, 200, 0, 1],
+                        width: 3
+                     }
+                  } as any
+               })
+               view.graphics.add(highlightPoint)
+            }
+
             onElementClick?.("well", attr)
+            setIsRightPanelOpen(true)
             return
          }
 
@@ -654,6 +749,22 @@ export function MapArea({
 
             console.log("🟡 Offshore Block Clicked:", attr)
 
+            // Add yellow highlight outline for the block
+            if (graphic.geometry) {
+               const highlightGraphic = new Graphic({
+                  geometry: graphic.geometry,
+                  symbol: {
+                     type: "simple-fill",
+                     color: [255, 255, 0, 0.3],
+                     outline: {
+                        color: [255, 200, 0, 1],
+                        width: 4
+                     }
+                  } as any
+               })
+               view.graphics.add(highlightGraphic)
+            }
+
             onElementClick?.("polygon", {
                name: attr.BlokNummer || "Unknown Block",
                operator: attr.Field || "N/A",
@@ -661,6 +772,7 @@ export function MapArea({
                expiry: "N/A",
                area: attr.Area_sqkm
             })
+            setIsRightPanelOpen(true)
             return
          }
 
@@ -674,6 +786,22 @@ export function MapArea({
             const graphic = (fieldResults[0] as any).graphic
             const attr = graphic.attributes
 
+            // Add yellow highlight for field
+            if (graphic.geometry) {
+               const highlightGraphic = new Graphic({
+                  geometry: graphic.geometry,
+                  symbol: {
+                     type: "simple-fill",
+                     color: [255, 255, 0, 0.3],
+                     outline: {
+                        color: [255, 200, 0, 1],
+                        width: 4
+                     }
+                  } as any
+               })
+               view.graphics.add(highlightGraphic)
+            }
+
             if (graphic.geometry && graphic.geometry.type === "polygon") {
                const polygon = graphic.geometry as __esri.Polygon
                const extent = polygon.extent
@@ -684,6 +812,7 @@ export function MapArea({
 
             console.log("🟢 HC Field Clicked:", attr)
             onElementClick?.("field", attr)
+            setIsRightPanelOpen(true)
             return
          }
 
@@ -697,6 +826,22 @@ export function MapArea({
             const graphic = (licenseResults[0] as any).graphic
             const attr = graphic.attributes
 
+            // Add yellow highlight for license
+            if (graphic.geometry) {
+               const highlightGraphic = new Graphic({
+                  geometry: graphic.geometry,
+                  symbol: {
+                     type: "simple-fill",
+                     color: [255, 255, 0, 0.3],
+                     outline: {
+                        color: [255, 200, 0, 1],
+                        width: 4
+                     }
+                  } as any
+               })
+               view.graphics.add(highlightGraphic)
+            }
+
             if (graphic.geometry && graphic.geometry.type === "polygon") {
                const polygon = graphic.geometry as __esri.Polygon
                const extent = polygon.extent
@@ -707,6 +852,7 @@ export function MapArea({
 
             console.log("📜 License Clicked:", attr)
             onElementClick?.("license", attr)
+            setIsRightPanelOpen(true)
             return
          }
 
@@ -720,8 +866,25 @@ export function MapArea({
             const graphic = (gngResults[0] as any).graphic
             const attr = graphic.attributes
 
+            // Add yellow highlight for G&G project
+            if (graphic.geometry) {
+               const highlightGraphic = new Graphic({
+                  geometry: graphic.geometry,
+                  symbol: {
+                     type: "simple-fill",
+                     color: [255, 255, 0, 0.3],
+                     outline: {
+                        color: [255, 200, 0, 1],
+                        width: 4
+                     }
+                  } as any
+               })
+               view.graphics.add(highlightGraphic)
+            }
+
             console.log("📊 G&G Project Clicked:", attr)
             onElementClick?.("gng-project", attr)
+            setIsRightPanelOpen(true)
             return
          }
 
@@ -735,8 +898,22 @@ export function MapArea({
             const graphic = (seismic2dResults[0] as any).graphic
             const attr = graphic.attributes
 
+            // Add yellow highlight for seismic line
+            if (graphic.geometry) {
+               const highlightGraphic = new Graphic({
+                  geometry: graphic.geometry,
+                  symbol: {
+                     type: "simple-line",
+                     color: [255, 255, 0, 1],
+                     width: 6
+                  } as any
+               })
+               view.graphics.add(highlightGraphic)
+            }
+
             console.log("📈 Seismic 2D Clicked:", attr)
             onElementClick?.("seismic-2d", attr)
+            setIsRightPanelOpen(true)
          }
       })
 
@@ -917,6 +1094,36 @@ export function MapArea({
    return (
       <div className="w-full h-full relative group">
          <div ref={mapDiv} className="w-full h-full" />
+
+         {/* Watermark Overlay - 5 AFED logos: corners + center */}
+         <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden">
+            {/* Top Left */}
+            <div className="absolute top-[10%] left-[10%] opacity-[0.12]">
+               <img src="/watermark-afed.png" alt="" className="w-52 h-auto" />
+            </div>
+            {/* Top Right */}
+            <div className="absolute top-[10%] right-[10%] opacity-[0.12]">
+               <img src="/watermark-afed.png" alt="" className="w-52 h-auto" />
+            </div>
+            {/* Center */}
+            <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 opacity-[0.12]">
+               <img src="/watermark-afed.png" alt="" className="w-52 h-auto" />
+            </div>
+            {/* Bottom Left */}
+            <div className="absolute bottom-[10%] left-[10%] opacity-[0.12]">
+               <img src="/watermark-afed.png" alt="" className="w-52 h-auto" />
+            </div>
+            {/* Bottom Right */}
+            <div className="absolute bottom-[10%] right-[10%] opacity-[0.12]">
+               <img src="/watermark-afed.png" alt="" className="w-52 h-auto" />
+            </div>
+         </div>
+
+         {/* G&G Project Floating Panel - always rendered, manages its own state */}
+         <GNGProjectFloatingPanel
+            onProjectClick={handleGNGProjectClick}
+            isRightPanelOpen={isRightPanelOpen}
+         />
 
          {/* Return to Original View — shown when AI focus mode is active */}
          {isFocused && (

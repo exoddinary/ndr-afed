@@ -82,7 +82,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                     {context.type === "well" && <WellDetailsContent data={context.data} />}
                     {context.type === "field" && <FieldDetailsContent data={context.data} />}
                     {context.type === "license" && <LicenseDetailsContent data={context.data} />}
-                    {context.type === "gng-project" && <GNGProjectContent data={context.data} />}
+                    {context.type === "gng-project" && <GNGProjectContent data={context.data} onToggle3D={onToggle3D} />}
                     {context.type === "seismic-2d" && <Seismic2DContent data={context.data} />}
                 </div>
 
@@ -421,8 +421,6 @@ function BlockDetailsContent({
                                                 <XAxis
                                                     dataKey="year"
                                                     axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fontSize: 9, fill: '#64748b' }}
                                                 />
                                                 <YAxis
                                                     yAxisId="left"
@@ -1420,28 +1418,60 @@ function LicenseDetailsContent({ data }: { data: any }) {
     )
 }
 
-// G&G Project-specific content
-function GNGProjectContent({ data }: { data: any }) {
+// G&G Project-specific content - no tabs, prominent app card
+function GNGProjectContent({ data, onToggle3D }: { data: any, onToggle3D?: () => void }) {
+    // Handle both direct properties and nested properties (GeoJSON format)
+    const props = data?.properties || data || {};
+
     const getAttr = (key: string) => {
-        if (!data) return "-";
-        const actualKey = Object.keys(data).find(k => k.toLowerCase() === key.toLowerCase());
-        if (actualKey && data[actualKey] !== undefined && data[actualKey] !== null && String(data[actualKey]).trim() !== "") {
-            return String(data[actualKey]);
+        if (!props) return "-";
+        // Try exact match first
+        if (props[key] !== undefined && props[key] !== null && String(props[key]).trim() !== "") {
+            return String(props[key]);
+        }
+        // Try case-insensitive match
+        const actualKey = Object.keys(props).find(k => k.toLowerCase() === key.toLowerCase());
+        if (actualKey && props[actualKey] !== undefined && props[actualKey] !== null && String(props[actualKey]).trim() !== "") {
+            return String(props[actualKey]);
+        }
+        // Try snake_case to UPPER_CASE conversion
+        const upperKey = key.toUpperCase();
+        const upperMatch = Object.keys(props).find(k => k.toUpperCase() === upperKey);
+        if (upperMatch && props[upperMatch] !== undefined && props[upperMatch] !== null && String(props[upperMatch]).trim() !== "") {
+            return String(props[upperMatch]);
         }
         return "-";
     };
 
-    const projectItems = [
-        { label: "Project Name", value: getAttr("PROJECT_NAME") },
-        { label: "Application", value: getAttr("APPLICATION_NAME") },
-        { label: "Interpretation Year", value: getAttr("INTERPRETATION_YEAR") },
-        { label: "No. of Wells", value: getAttr("NO_OF_WELLS") },
-        { label: "No. of Reports", value: getAttr("NO_OF_REPORTS") },
-    ];
+    // Debug logging - remove after testing
+    useEffect(() => {
+        console.log("G&G Project Data:", data);
+        console.log("G&G Props:", props);
+        console.log("Available keys:", Object.keys(props));
+    }, [data, props]);
 
     const projectName = getAttr("PROJECT_NAME");
     const appName = getAttr("APPLICATION_NAME");
     const year = getAttr("INTERPRETATION_YEAR");
+    const wells = getAttr("NO_OF_WELLS");
+    const reports = getAttr("NO_OF_REPORTS");
+
+    const projectItems = [
+        { label: "Project Name", value: projectName },
+        { label: "Application", value: appName },
+        { label: "Application Version", value: getAttr("APPLICATION_VERSION") },
+        { label: "Interpretation Year", value: year },
+        { label: "No. of Wells", value: wells },
+        { label: "No. of Reports", value: reports },
+        { label: "No. of Horizons", value: getAttr("NO_OF_INTER_HORIZONS") },
+        { label: "No. of Seismic 2D", value: getAttr("NO_OF_SEISMIC_2D") },
+        { label: "No. of Seismic 3D", value: getAttr("NO_OF_SEISMIC_3D") },
+        { label: "Project Data Path", value: getAttr("PROJECT_DATA_PATH") },
+        { label: "Summary", value: getAttr("SUMMARY") },
+        { label: "Shape Length", value: getAttr("Shape_Length") },
+        { label: "Shape Area", value: getAttr("Shape_Area") },
+        { label: "Object ID", value: getAttr("OBJECTID") },
+    ];
 
     const appLogos: Record<string, string> = {
         "petrel": "https://www.gopaysoft.com/wp-content/uploads/image-396.png",
@@ -1452,36 +1482,69 @@ function GNGProjectContent({ data }: { data: any }) {
     const logoUrl = appLogos[(appName || "").toLowerCase()];
 
     return (
-        <div className="space-y-6 pb-10">
-            <div>
-                <div className="flex items-center gap-2 mb-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                    <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">G&G Project Data</span>
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-3 truncate">{projectName !== "-" ? projectName : "Project Properties"}</h3>
-                <div className="flex items-center gap-2 flex-wrap">
-                    {year !== "-" && <span className="px-2 py-1 bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-medium rounded">Year: {year}</span>}
-                    {appName !== "-" && <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium rounded">{appName}</span>}
-                </div>
-            </div>
-            <div className="h-px bg-slate-100" />
-            {logoUrl && (
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded border border-slate-200">
-                    <img src={logoUrl} alt={appName} className="w-10 h-10 rounded object-contain" />
-                    <div>
-                        <div className="text-xs font-semibold text-slate-800">{appName}</div>
-                        <div className="text-[10px] text-slate-500">Application Software</div>
+        <div className="space-y-4 pb-10">
+            {/* Prominent Application Card - At the top */}
+            <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+                <div className="flex items-start gap-3">
+                    {logoUrl ? (
+                        <img src={logoUrl} alt={appName} className="w-12 h-12 rounded object-contain bg-white p-1 border border-slate-200" />
+                    ) : (
+                        <div className="w-12 h-12 rounded bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-lg">
+                            {projectName.charAt(0) || "G"}
+                        </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-lg font-bold text-slate-900 truncate">{projectName !== "-" ? projectName : "Project"}</h3>
+                            {year !== "-" && (
+                                <span className="px-2 py-1 bg-green-100 text-green-700 border border-green-200 text-xs font-medium rounded shrink-0">
+                                    {year}
+                                </span>
+                            )}
+                        </div>
+                        <div className="mt-2 flex items-center gap-4 text-xs text-slate-600">
+                            {appName !== "-" && (
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-slate-400">App:</span>
+                                    <span className="font-medium text-slate-700">{appName}</span>
+                                </div>
+                            )}
+                            {wells !== "-" && (
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-slate-400">Wells:</span>
+                                    <span className="font-medium text-slate-700">{wells}</span>
+                                </div>
+                            )}
+                            {reports !== "-" && (
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-slate-400">Reports:</span>
+                                    <span className="font-medium text-slate-700">{reports}</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
-            )}
+            </div>
+
+            {/* Launch 3D Viewer Button */}
+            <button
+                onClick={() => onToggle3D?.()}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-md transition-colors flex items-center justify-center gap-2"
+            >
+                <Box className="w-4 h-4" />
+                Launch 3D Viewer
+            </button>
+
+            <div className="h-px bg-slate-100" />
+
+            {/* Project Attributes Table */}
             <div className="space-y-3">
-                <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5"><Database className="w-3.5 h-3.5" />Project Attributes</h4>
+                <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                    <Database className="w-3.5 h-3.5" />
+                    Project Attributes
+                </h4>
                 <AttributeTable items={projectItems} />
             </div>
-            <div className="h-px bg-slate-100" />
-            <DocumentsSection />
-            <div className="h-px bg-slate-100" />
-            <SeismicViewer />
         </div>
     );
 }

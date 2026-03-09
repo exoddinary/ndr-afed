@@ -72,11 +72,11 @@ export function LoginPage() {
                     <div className="mx-auto w-full max-w-[360px]">
                         <div className="mb-10 flex items-center gap-6">
                             <Image
-                                src="/LOGO-VDR.svg"
-                                alt="NDR Logo"
-                                width={120}
-                                height={40}
-                                className="h-10 w-auto"
+                                src="/vdr-logo.png?v=2"
+                                alt="Vibecodes VDR Logo"
+                                width={100}
+                                height={32}
+                                className="h-8 w-auto mr-2"
                                 priority
                             />
                             <div className="h-8 w-px bg-slate-200" />

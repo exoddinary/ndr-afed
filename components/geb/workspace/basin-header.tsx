@@ -39,7 +39,7 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
           {/* Logo Section */}
           <div className="flex items-center">
             <Image
-              src="/LOGO-VDR.svg"
+              src="/vdr-logo.png?v=2"
               alt="Vibecodes VDR Logo"
               width={100}
               height={32}

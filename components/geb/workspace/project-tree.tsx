@@ -33,9 +33,9 @@ const INITIAL_TREE: TreeNode[] = [
     ]
   },
   { id: 'hc-fields', label: 'Hydrocarbon Fields', type: 'layer' },
-  { id: 'licenses', label: 'Licenses', type: 'layer' },
+  { id: 'licenses', label: 'Awarded Blocks', type: 'layer' },
   { id: 'gng-projects', label: 'G&G Project Data Outlines', type: 'layer' },
-  { id: 'offshore-blocks-detailed', label: 'Offshore Blocks', type: 'layer' },
+  { id: 'offshore-blocks-detailed', label: 'Open Blocks (Offshore)', type: 'layer' },
 ]
 
 interface ProjectTreeProps {
