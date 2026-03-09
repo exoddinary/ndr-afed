@@ -123,7 +123,7 @@ export function AnalysisMarkerManager({
     onMarkerCreate?.(newMarker)
 
     return newMarker
-  }, [markers.length, onMarkerCreate])
+  }, [markers, onMarkerCreate])
 
   // Delete a marker
   const deleteMarker = useCallback((markerId: string) => {
@@ -151,8 +151,7 @@ export function AnalysisMarkerManager({
     if (!view || !isCreating) return
 
     const handleClick = (event: __esri.ViewClickEvent) => {
-      // @ts-ignore - mapPoint may be undefined
-      const mapPoint = event.mapPoint
+      const mapPoint = (event as { mapPoint?: { longitude: number; latitude: number } }).mapPoint
       if (!mapPoint) return
       
       const position: MarkerPosition = {
@@ -164,8 +163,7 @@ export function AnalysisMarkerManager({
     }
 
     const handleMouseMove = (event: __esri.ViewPointerMoveEvent) => {
-      // @ts-ignore - mapPoint exists on the event
-      const mapPoint = event.mapPoint
+      const mapPoint = (event as { mapPoint?: { longitude: number; latitude: number } }).mapPoint
       if (mapPoint) {
         setHoverPosition({
           longitude: mapPoint.longitude,
