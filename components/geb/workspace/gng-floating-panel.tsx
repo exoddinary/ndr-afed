@@ -82,23 +82,9 @@ export function GNGProjectFloatingPanel({
     return appLogos[appName.toLowerCase()] || null
   }
 
-  // Collapsed state - show circular button (no tooltip)
+  // Collapsed state - render nothing, panel is controlled externally via View Other G&G Data button
   if (!isExpanded) {
-    return (
-      <div className="absolute top-4 right-4 z-30">
-        {/* Circular Toggle Button */}
-        <button
-          onClick={() => setIsExpanded(true)}
-          className="group relative w-14 h-14 bg-gradient-to-r from-purple-500 to-violet-600 rounded-full shadow-lg shadow-purple-500/40 hover:shadow-xl hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200 flex items-center justify-center"
-        >
-          {/* Pulse Animation Ring */}
-          <div className="absolute inset-0 rounded-full bg-purple-500 animate-ping opacity-20" />
-
-          {/* Icon */}
-          <Layers className="w-6 h-6 text-white relative z-10 group-hover:scale-110 transition-transform" />
-        </button>
-      </div>
-    )
+    return null
   }
 
   // Expanded state - show full panel

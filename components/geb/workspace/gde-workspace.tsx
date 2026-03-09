@@ -233,6 +233,7 @@ export function GDEWorkspace() {
                   onJumpToMainAI={handleJumpToMainAI}
                   isGNGPanelExpanded={isGNGPanelExpanded}
                   onGNGPanelExpandChange={setIsGNGPanelExpanded}
+                  isPanelOpen={isPanelOpen}
                 />
                 {/* Map Tools Overlay */}
                 <MapTools view={mapView} />

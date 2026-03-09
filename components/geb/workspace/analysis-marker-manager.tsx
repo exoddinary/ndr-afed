@@ -46,6 +46,7 @@ interface AnalysisMarkerManagerProps {
   onMarkerDelete?: (markerId: string) => void
   onMarkerSelect?: (marker: AnalysisMarker | null) => void
   onJumpToMainAI?: (question: string, spatialContext: SpatialContext) => void
+  isPanelOpen?: boolean
 }
 
 const MARKER_COLORS = [
@@ -79,7 +80,8 @@ export function AnalysisMarkerManager({
   onMarkerCreate,
   onMarkerDelete,
   onMarkerSelect,
-  onJumpToMainAI
+  onJumpToMainAI,
+  isPanelOpen = false
 }: AnalysisMarkerManagerProps) {
   const [markers, setMarkers] = useState<AnalysisMarker[]>([])
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null)
@@ -374,7 +376,7 @@ export function AnalysisMarkerManager({
   return (
     <>
       {/* Create Marker Button - Always visible, floating above AI button */}
-      <div className="fixed bottom-[104px] right-6 z-30 transition-all duration-300 ease-in-out">
+      <div className={`fixed bottom-[104px] z-[100] transition-all duration-300 ease-in-out ${isPanelOpen ? "right-[424px]" : "right-6"}`}>
         <button
           onClick={() => setIsCreating(!isCreating)}
           className={`group relative w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center border-2 ${

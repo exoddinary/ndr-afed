@@ -35,6 +35,7 @@ type MapAreaProps = {
    onJumpToMainAI?: (question: string, spatialContext: any) => void
    isGNGPanelExpanded?: boolean
    onGNGPanelExpandChange?: (expanded: boolean) => void
+   isPanelOpen?: boolean
 }
 
 // Map AI layer names → layersRef keys
@@ -74,7 +75,8 @@ export function MapArea({
    aiActive = false,
    onJumpToMainAI,
    isGNGPanelExpanded,
-   onGNGPanelExpandChange
+   onGNGPanelExpandChange,
+   isPanelOpen = false
 }: MapAreaProps = {}) {
    const mapDiv = useRef<HTMLDivElement>(null)
    const viewRef = useRef<MapView | SceneView | null>(null)
@@ -1165,6 +1167,7 @@ export function MapArea({
          <AnalysisMarkerManager
             view={viewRef.current}
             visible={activeLayers.includes('analysis-markers')}
+            isPanelOpen={isPanelOpen}
          />
 
          {/* Return to Original View — shown when AI focus mode is active */}
