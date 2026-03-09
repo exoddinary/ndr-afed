@@ -1144,6 +1144,7 @@ export function MapArea({
          {/* Analysis Marker Manager - interactive spatial analysis tool */}
          <AnalysisMarkerManager
             view={viewRef.current}
+            visible={activeLayers.includes('analysis-markers')}
          />
 
          {/* Return to Original View — shown when AI focus mode is active */}

@@ -40,6 +40,7 @@ import {
 
 interface AnalysisMarkerManagerProps {
   view: MapView | SceneView | null
+  visible?: boolean
   onMarkerCreate?: (marker: AnalysisMarker) => void
   onMarkerDelete?: (markerId: string) => void
   onMarkerSelect?: (marker: AnalysisMarker | null) => void
@@ -72,6 +73,7 @@ function hexToRgb(hex: string): [number, number, number] {
 
 export function AnalysisMarkerManager({
   view,
+  visible = true,
   onMarkerCreate,
   onMarkerDelete,
   onMarkerSelect
@@ -368,8 +370,10 @@ export function AnalysisMarkerManager({
 
   return (
     <>
-      {/* Create Marker Button - Floating above AI button */}
-      <div className="fixed bottom-[104px] right-6 z-30 transition-all duration-300 ease-in-out">
+      {visible && (
+        <>
+          {/* Create Marker Button - Floating above AI button */}
+          <div className="fixed bottom-[104px] right-6 z-30 transition-all duration-300 ease-in-out">
         <button
           onClick={() => setIsCreating(!isCreating)}
           className={`group relative w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center border-2 ${
@@ -482,6 +486,7 @@ export function AnalysisMarkerManager({
           designConfig={designConfig}
         />
       )}
+    </> )}
     </>
   )
 }
