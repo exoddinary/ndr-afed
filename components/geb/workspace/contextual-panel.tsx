@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 
 // Define types for different panel contexts
-export type PanelContext = "polygon" | "play" | "basin" | "field" | "well" | "license" | null
+export type PanelContext = "polygon" | "play" | "basin" | "field" | "well" | "license" | "gng-project" | "seismic-2d" | null
 
 export type ContextualData = {
     type: PanelContext
@@ -54,6 +54,8 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                         {context.type === "field" && "Field Overview"}
                         {context.type === "well" && "Well Information"}
                         {context.type === "license" && "License Details"}
+                        {context.type === "gng-project" && "G&G Project Information"}
+                        {context.type === "seismic-2d" && "Seismic Line Information"}
                     </span>
                     <button
                         onClick={handleClose}
@@ -80,6 +82,8 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                     {context.type === "well" && <WellDetailsContent data={context.data} />}
                     {context.type === "field" && <FieldDetailsContent data={context.data} />}
                     {context.type === "license" && <LicenseDetailsContent data={context.data} />}
+                    {context.type === "gng-project" && <GNGProjectContent data={context.data} />}
+                    {context.type === "seismic-2d" && <Seismic2DContent data={context.data} />}
                 </div>
 
                 {/* Panel footer - Powered by attribution */}
@@ -1414,4 +1418,118 @@ function LicenseDetailsContent({ data }: { data: any }) {
             <SeismicViewer />
         </div>
     )
+}
+
+// G&G Project-specific content
+function GNGProjectContent({ data }: { data: any }) {
+    const getAttr = (key: string) => {
+        if (!data) return "-";
+        const actualKey = Object.keys(data).find(k => k.toLowerCase() === key.toLowerCase());
+        if (actualKey && data[actualKey] !== undefined && data[actualKey] !== null && String(data[actualKey]).trim() !== "") {
+            return String(data[actualKey]);
+        }
+        return "-";
+    };
+
+    const projectItems = [
+        { label: "Project Name", value: getAttr("PROJECT_NAME") },
+        { label: "Application", value: getAttr("APPLICATION_NAME") },
+        { label: "Interpretation Year", value: getAttr("INTERPRETATION_YEAR") },
+        { label: "No. of Wells", value: getAttr("NO_OF_WELLS") },
+        { label: "No. of Reports", value: getAttr("NO_OF_REPORTS") },
+    ];
+
+    const projectName = getAttr("PROJECT_NAME");
+    const appName = getAttr("APPLICATION_NAME");
+    const year = getAttr("INTERPRETATION_YEAR");
+
+    const appLogos: Record<string, string> = {
+        "petrel": "https://www.gopaysoft.com/wp-content/uploads/image-396.png",
+        "openworks": "https://usoftly.ir/wp-content/uploads/2021/10/Openworks.png",
+        "opendtect": "https://avatars.githubusercontent.com/u/11555490?s=280&v=4",
+        "paleoscan": "https://usoftly.ir/wp-content/uploads/2021/10/PaleoScan_202010_r29391_x64_0.png"
+    };
+    const logoUrl = appLogos[(appName || "").toLowerCase()];
+
+    return (
+        <div className="space-y-6 pb-10">
+            <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                    <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">G&G Project Data</span>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-3 truncate">{projectName !== "-" ? projectName : "Project Properties"}</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                    {year !== "-" && <span className="px-2 py-1 bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-medium rounded">Year: {year}</span>}
+                    {appName !== "-" && <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium rounded">{appName}</span>}
+                </div>
+            </div>
+            <div className="h-px bg-slate-100" />
+            {logoUrl && (
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded border border-slate-200">
+                    <img src={logoUrl} alt={appName} className="w-10 h-10 rounded object-contain" />
+                    <div>
+                        <div className="text-xs font-semibold text-slate-800">{appName}</div>
+                        <div className="text-[10px] text-slate-500">Application Software</div>
+                    </div>
+                </div>
+            )}
+            <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5"><Database className="w-3.5 h-3.5" />Project Attributes</h4>
+                <AttributeTable items={projectItems} />
+            </div>
+            <div className="h-px bg-slate-100" />
+            <DocumentsSection />
+            <div className="h-px bg-slate-100" />
+            <SeismicViewer />
+        </div>
+    );
+}
+
+// Seismic 2D Line-specific content
+function Seismic2DContent({ data }: { data: any }) {
+    const getAttr = (key: string) => {
+        if (!data) return "-";
+        const actualKey = Object.keys(data).find(k => k.toLowerCase() === key.toLowerCase());
+        if (actualKey && data[actualKey] !== undefined && data[actualKey] !== null && String(data[actualKey]).trim() !== "") {
+            return String(data[actualKey]);
+        }
+        return "-";
+    };
+
+    const lineItems = [
+        { label: "Line Name", value: getAttr("line_name") },
+        { label: "Survey Collection", value: getAttr("survey_col") },
+        { label: "Line Collection", value: getAttr("line_colle") },
+        { label: "Delivery", value: getAttr("delivery_c") },
+    ];
+
+    const lineName = getAttr("line_name");
+    const survey = getAttr("survey_col");
+    const delivery = getAttr("delivery_c");
+
+    return (
+        <div className="space-y-6 pb-10">
+            <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Seismic 2D Survey Line</span>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-3 truncate">{lineName !== "-" ? lineName : "Line Properties"}</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                    {survey !== "-" && <span className="px-2 py-1 bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-medium rounded">{survey}</span>}
+                    {delivery !== "-" && <span className="px-2 py-1 bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium rounded">{delivery}</span>}
+                </div>
+            </div>
+            <div className="h-px bg-slate-100" />
+            <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5"><Database className="w-3.5 h-3.5" />Line Attributes</h4>
+                <AttributeTable items={lineItems} />
+            </div>
+            <div className="h-px bg-slate-100" />
+            <DocumentsSection />
+            <div className="h-px bg-slate-100" />
+            <SeismicViewer />
+        </div>
+    );
 }

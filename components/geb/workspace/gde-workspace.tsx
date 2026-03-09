@@ -9,6 +9,7 @@ import { useState, useCallback } from "react"
 import { MapTools } from "./map-tools"
 import { AIChatPanel } from "./ai-chat-panel"
 import { AIChatTrigger } from "./ai-chat-trigger"
+import { GraphPreview } from "./graph-preview"
 
 // Dynamically import MapArea to avoid SSR issues with ArcGIS SDK
 const MapArea = dynamic(() => import("./map-area").then(mod => ({ default: mod.MapArea })), {
@@ -259,6 +260,9 @@ export function GDEWorkspace() {
 
       {/* AI Chat Floating Trigger */}
       <AIChatTrigger onClick={handleOpenAIChat} isOpen={isAIChatOpen} isPanelOpen={isPanelOpen} />
+
+      {/* Knowledge Graph Preview - Hidden */}
+      {/* <GraphPreview /> */}
 
       {/* Global Overlays */}
       {/* <ExplanationRibbon /> */}

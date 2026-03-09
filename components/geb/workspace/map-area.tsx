@@ -183,7 +183,7 @@ export function MapArea({
          },
          visible: activeLayers.includes('well-trajectories'),
          elevationInfo: { mode: "on-the-ground" },
-         minScale: 500000 // Hide when zoomed out beyond 1:500,000
+         minScale: 600000 // Hide when zoomed out beyond 1:600,000
       })
       map.add(wellTrajLayer)
       layersRef.current['well-trajectories'] = wellTrajLayer
@@ -275,7 +275,7 @@ export function MapArea({
          },
          visible: activeLayers.includes('seismic-2d'),
          elevationInfo: { mode: "on-the-ground" },
-         minScale: 500000 // Hide when zoomed out beyond 1:500,000
+         minScale: 600000 // Hide when zoomed out beyond 1:600,000
       })
       map.add(seismicLayer)
       layersRef.current['seismic-2d'] = seismicLayer
@@ -329,7 +329,7 @@ export function MapArea({
                   font: { size: 9, weight: "bold", family: "Arial" }
                }),
                minScale: 2000000,
-               maxScale: 500000 // Label visible up to 1:500,000
+               maxScale: 600000 // Label visible up to 1:600,000
             })
          ],
          outFields: ["*"],
@@ -350,7 +350,7 @@ export function MapArea({
          popupEnabled: false,
          visible: activeLayers.includes('hc-fields'),
          elevationInfo: { mode: "on-the-ground" },
-         minScale: 500000 // Hide when zoomed out beyond 1:500,000
+         minScale: 600000 // Hide when zoomed out beyond 1:600,000
       })
       map.add(fieldsLayer)
       layersRef.current['hc-fields'] = fieldsLayer
@@ -379,7 +379,7 @@ export function MapArea({
                   font: { size: 8, weight: "normal", family: "Arial" }
                }),
                minScale: 100000,
-               maxScale: 500000 // Label visible up to 1:500,000 per requirements
+               maxScale: 600000 // Label visible up to 1:600,000 per requirements
             })
          ],
          outFields: ["*"],
@@ -403,7 +403,7 @@ export function MapArea({
          visible: activeLayers.includes('wells'),
          // Bloom effect removed per requirements
          elevationInfo: { mode: "on-the-ground" },
-         minScale: 500000 // Hide when zoomed out beyond 1:500,000
+         minScale: 600000 // Hide when zoomed out beyond 1:600,000
       })
       map.add(wellsLayer)
       layersRef.current['wells'] = wellsLayer
@@ -430,7 +430,7 @@ export function MapArea({
                   font: { size: 10, weight: "bold", family: "Arial" }
                }),
                minScale: 2000000,
-               maxScale: 500000 // Label visible up to 1:500,000 per requirements
+               maxScale: 600000 // Label visible up to 1:600,000 per requirements
             })
          ],
          popupTemplate: {
@@ -707,6 +707,36 @@ export function MapArea({
 
             console.log("📜 License Clicked:", attr)
             onElementClick?.("license", attr)
+            return
+         }
+
+         // 5. Check for G&G Projects
+         const gngResults = response.results.filter((result: any) =>
+            result.type === "graphic" &&
+            result.graphic?.layer === layersRef.current['gng-projects']
+         )
+
+         if (gngResults.length > 0) {
+            const graphic = (gngResults[0] as any).graphic
+            const attr = graphic.attributes
+
+            console.log("📊 G&G Project Clicked:", attr)
+            onElementClick?.("gng-project", attr)
+            return
+         }
+
+         // 6. Check for Seismic 2D Lines
+         const seismic2dResults = response.results.filter((result: any) =>
+            result.type === "graphic" &&
+            result.graphic?.layer === layersRef.current['seismic-2d']
+         )
+
+         if (seismic2dResults.length > 0) {
+            const graphic = (seismic2dResults[0] as any).graphic
+            const attr = graphic.attributes
+
+            console.log("📈 Seismic 2D Clicked:", attr)
+            onElementClick?.("seismic-2d", attr)
          }
       })
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { ChevronRight, ChevronDown, Folder, Layers, FileText, Activity, Database, Map, Eye, EyeOff, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -58,7 +58,8 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
     'seismic': true,
   })
   const [blocks, setBlocks] = useState<BlockData[]>([])
-  const [showTooltip, setShowTooltip] = useState<string | null>(null)
+  const [showTooltip, setShowTooltip] = useState(false)
+  const seismic2dRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // Attempt to load from official NLOG WFS
@@ -112,6 +113,7 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
     return (
       <div key={node.id}>
         <div
+          ref={node.id === 'seismic-2d' ? seismic2dRef : undefined}
           className={cn(
             "flex items-center h-7 hover:bg-gray-100 cursor-pointer select-none group",
             isActive && "bg-primary/10 text-primary border-r-2 border-primary"
@@ -121,9 +123,11 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
               toggleExpand(node.id)
             } else {
               onToggleLayer?.(node.id)
-              // Show tooltip for seismic-2d
-              if (node.id === 'seismic-2d') {
-                setShowTooltip('seismic-2d')
+              // Show tooltip for seismic-2d when activated and at wrong zoom
+              if (node.id === 'seismic-2d' && isActive) {
+                setShowTooltip(true)
+                // Auto-hide after 5 seconds
+                setTimeout(() => setShowTooltip(false), 5000)
               }
             }
           }}
@@ -233,24 +237,25 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
 
   return (
     <div className="w-[240px] flex flex-col border-r border-gray-200 bg-white h-full relative">
-      {/* Tooltip for Seismic 2D */}
-      {showTooltip === 'seismic-2d' && (
-        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50">
+      {/* Tooltip for Seismic 2D - positioned at layer */}
+      {showTooltip && seismic2dRef.current && (
+        <div 
+          className="absolute left-full ml-1 z-50 flex items-center"
+          style={{ 
+            top: seismic2dRef.current.offsetTop + 2,
+          }}
+        >
           {/* Arrow pointing left */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-blue-500 rotate-45" />
-          {/* Tooltip card */}
-          <div className="bg-blue-500 text-white px-3 py-2 rounded-lg shadow-lg text-xs max-w-[180px] relative">
+          <div className="w-0 h-0 border-y-4 border-y-transparent border-r-[6px] border-r-blue-500" />
+          {/* Compact tooltip pill */}
+          <div className="bg-blue-500 text-white px-2 py-1 rounded text-[10px] font-medium whitespace-nowrap shadow-md ml-0.5 flex items-center gap-1">
+            <span>Zoom to 1:600k</span>
             <button
-              onClick={() => setShowTooltip(null)}
-              className="absolute top-1 right-1 text-white/70 hover:text-white"
+              onClick={() => setShowTooltip(false)}
+              className="text-white/80 hover:text-white"
             >
               <X className="w-3 h-3" />
             </button>
-            <p className="font-semibold mb-1">Zoom to view</p>
-            <p className="text-white/90">Zoom in to 1:500k to see Seismic 2D lines</p>
-            <div className="mt-2 text-[10px] text-white/70 bg-white/10 px-2 py-1 rounded">
-              Tip: Scroll to zoom or use + button
-            </div>
           </div>
         </div>
       )}

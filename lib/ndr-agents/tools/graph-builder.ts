@@ -162,46 +162,71 @@ export class GraphBuilder {
     const seismic2d = this.graph.findNodesByType('SEISMIC_2D')
     const seismic3d = this.graph.findNodesByType('SEISMIC_3D')
 
-    // WELL_LOCATED_IN_BLOCK - point in polygon
+    // WELL_LOCATED_IN_BLOCK - point in polygon with buffer for edge cases
     console.log(`[GraphBuilder] Checking ${wells.length} wells in ${blocks.length} blocks...`)
-    for (const well of wells.slice(0, 500)) { // Limit for performance
+    for (const well of wells) { // Check ALL wells, not just first 500
       if (!well.geometry) continue
       
       const wellPoint = turf.point(well.geometry.coordinates as [number, number])
       
+      let foundBlock = false
       for (const block of blocks) {
         if (!block.geometry) continue
         
         try {
           const blockPolygon = turf.feature(block.geometry as GeoJSON.Polygon)
-          const isInside = turf.booleanPointInPolygon(wellPoint, blockPolygon)
+          
+          // Primary check: strict point-in-polygon
+          let isInside = turf.booleanPointInPolygon(wellPoint, blockPolygon)
+          
+          // Secondary check: if not inside, check if within 100m of polygon edge
+          // This helps with wells that are just barely outside due to coordinate precision
+          if (!isInside) {
+            try {
+              const buffer = turf.buffer(blockPolygon, 0.1, { units: 'kilometers' }) // 100m buffer
+              if (buffer && turf.booleanPointInPolygon(wellPoint, buffer)) {
+                // Well is close to block boundary - likely belongs to this block
+                isInside = true
+                console.log(`[GraphBuilder] Well ${well.canonical_id} assigned to ${block.canonical_id} via 100m buffer`)
+              }
+            } catch (e) {
+              // Buffer failed, skip
+            }
+          }
           
           if (isInside) {
             // Calculate spatial precision based on distance to edge
             const distance = this.distanceToPolygonEdge(wellPoint, blockPolygon)
-            const spatialPrecision = distance < 0.01 ? 0.95 : 0.8 // Higher confidence if well inside, not on edge
+            const spatialPrecision = distance < 0.01 ? 0.95 : 0.8
             
             this.addEdge(well.id, block.id, 'WELL_LOCATED_IN_BLOCK', 'OFFICIAL_SPATIAL', {
               score: spatialPrecision,
               spatial_precision: spatialPrecision,
-              method: 'point-in-polygon',
+              method: distance < 0.01 ? 'point-in-polygon' : 'point-near-polygon-edge',
             })
+            foundBlock = true
             break // Well can only be in one block
           }
         } catch (e) {
           // Skip invalid geometries
         }
       }
+      
+      if (!foundBlock && wells.length < 1000) {
+        // Log wells that weren't matched for debugging (only if not too many)
+        console.log(`[GraphBuilder] Well ${well.canonical_id} not matched to any block`)
+      }
     }
 
     // FIELD_INTERSECTS_BLOCK - polygon intersection
     console.log(`[GraphBuilder] Checking ${fields.length} fields in ${blocks.length} blocks...`)
-    for (const field of fields.slice(0, 100)) { // Limit for performance
+    for (const field of fields) { // Check ALL fields, not just first 100
       if (!field.geometry) continue
       
       const fieldPolygon = turf.feature(field.geometry as GeoJSON.Polygon)
       const fieldArea = turf.area(fieldPolygon)
       
+      let foundBlock = false
       for (const block of blocks) {
         if (!block.geometry) continue
         
@@ -221,11 +246,16 @@ export class GraphBuilder {
                 spatial_precision: confidence,
                 method: 'polygon-intersection',
               })
+              foundBlock = true
             }
           }
         } catch (e) {
           // Skip invalid geometries
         }
+      }
+      
+      if (!foundBlock && fields.length < 500) {
+        console.log(`[GraphBuilder] Field ${field.canonical_id} not matched to any block`)
       }
     }
 
