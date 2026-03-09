@@ -779,10 +779,19 @@ export function MapArea({
          ),
       }
 
-      // Keep other layers visible instead of hiding them
+      // Keep other layers at their original visibility (don't force all visible)
+      // Only ensure the target layer is visible
       Object.entries(layersRef.current).forEach(([key, l]) => {
-         if (l) l.visible = true // Ensure they stay visible
+         if (l && key !== refKey) {
+            // Keep original visibility for non-target layers
+            const originalVis = originalStateRef.current?.visibilities[key]
+            if (originalVis !== undefined) {
+               l.visible = originalVis
+            }
+         }
       })
+      // Ensure target layer is visible
+      tgtLayer.visible = true
 
       // Build definitionExpression: FIELD_NAME IN ('K06-T','F16-A')
       const nameField = REF_NAME_FIELD[refKey] || 'OBJECTID'
