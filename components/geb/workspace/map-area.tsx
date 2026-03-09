@@ -73,6 +73,7 @@ export function MapArea({
    const [mounted, setMounted] = useState(false)
    const [basemapStyle, setBasemapStyle] = useState<'oceans' | 'light-gray'>('oceans')
    const [isFocused, setIsFocused] = useState(false)
+   const [currentScale, setCurrentScale] = useState<number | null>(null)
    const originalStateRef = useRef<{
       layerKey: string
       definitionExpression: string
@@ -274,7 +275,7 @@ export function MapArea({
          },
          visible: activeLayers.includes('seismic-2d'),
          elevationInfo: { mode: "on-the-ground" },
-         maxScale: 500000 // Maximum zoom-out scale (1:500,000)
+         minScale: 500000 // Hide when zoomed out beyond 1:500,000
       })
       map.add(seismicLayer)
       layersRef.current['seismic-2d'] = seismicLayer
@@ -288,7 +289,7 @@ export function MapArea({
             field: "RESULT",
             defaultSymbol: {
                type: "simple-fill",
-               color: [130, 130, 130, 0.1], // 10% transparency
+               color: [130, 130, 130, 0.7], // 70% transparency
                outline: { color: [110, 110, 110, 1], width: 0.7 }
             } as any,
             uniqueValueInfos: [
@@ -296,7 +297,7 @@ export function MapArea({
                   value: "Gas",
                   symbol: {
                      type: "simple-fill",
-                     color: [255, 127, 127, 0.1], // 10% transparency
+                     color: [255, 127, 127, 0.7], // 70% transparency
                      outline: { color: [255, 190, 190, 1], width: 1.5 }
                   } as any
                },
@@ -304,7 +305,7 @@ export function MapArea({
                   value: "Olie",
                   symbol: {
                      type: "simple-fill",
-                     color: [85, 255, 0, 0.1], // 10% transparency
+                     color: [85, 255, 0, 0.7], // 70% transparency
                      outline: { color: [211, 255, 190, 1], width: 1.5 }
                   } as any
                },
@@ -312,7 +313,7 @@ export function MapArea({
                   value: "Olie en Gas",
                   symbol: {
                      type: "simple-fill",
-                     color: [255, 170, 0, 0.1], // 10% transparency
+                     color: [255, 170, 0, 0.7], // 70% transparency
                      outline: { color: [255, 235, 175, 1], width: 1.5 }
                   } as any
                }
@@ -602,6 +603,12 @@ export function MapArea({
 
       viewRef.current = view
       onViewReady?.(view)
+
+      // Track scale changes
+      view.watch('scale', (newScale) => {
+         setCurrentScale(newScale)
+      })
+      setCurrentScale(view.scale)
 
       // Dock popup so it doesn't sit on top of the block geometry
       // Applies to both 2D and 3D views
@@ -911,6 +918,15 @@ export function MapArea({
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
                   Return to 2D
                </button>
+            </div>
+         )}
+
+         {/* Scale Display - bottom right */}
+         {!is3D && currentScale && (
+            <div className="absolute bottom-4 right-4 z-10">
+               <div className="bg-white/90 backdrop-blur px-3 py-1.5 rounded shadow-md text-xs font-mono text-slate-700">
+                  1:{Math.round(currentScale).toLocaleString()}
+               </div>
             </div>
          )}
 
