@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ChevronRight, ChevronDown, Folder, Layers, FileText, Activity, Database, Map, Eye, EyeOff } from "lucide-react"
+import { ChevronRight, ChevronDown, Folder, Layers, FileText, Activity, Database, Map, Eye, EyeOff, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type TreeNode = {
@@ -58,6 +58,7 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
     'seismic': true,
   })
   const [blocks, setBlocks] = useState<BlockData[]>([])
+  const [showTooltip, setShowTooltip] = useState<string | null>(null)
 
   useEffect(() => {
     // Attempt to load from official NLOG WFS
@@ -120,6 +121,10 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
               toggleExpand(node.id)
             } else {
               onToggleLayer?.(node.id)
+              // Show tooltip for seismic-2d
+              if (node.id === 'seismic-2d') {
+                setShowTooltip('seismic-2d')
+              }
             }
           }}
         >
@@ -227,7 +232,29 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
   }
 
   return (
-    <div className="w-[240px] flex flex-col border-r border-gray-200 bg-white h-full">
+    <div className="w-[240px] flex flex-col border-r border-gray-200 bg-white h-full relative">
+      {/* Tooltip for Seismic 2D */}
+      {showTooltip === 'seismic-2d' && (
+        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50">
+          {/* Arrow pointing left */}
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-blue-500 rotate-45" />
+          {/* Tooltip card */}
+          <div className="bg-blue-500 text-white px-3 py-2 rounded-lg shadow-lg text-xs max-w-[180px] relative">
+            <button
+              onClick={() => setShowTooltip(null)}
+              className="absolute top-1 right-1 text-white/70 hover:text-white"
+            >
+              <X className="w-3 h-3" />
+            </button>
+            <p className="font-semibold mb-1">Zoom to view</p>
+            <p className="text-white/90">Zoom in to 1:500k to see Seismic 2D lines</p>
+            <div className="mt-2 text-[10px] text-white/70 bg-white/10 px-2 py-1 rounded">
+              Tip: Scroll to zoom or use + button
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="h-8 flex items-center px-3 border-b border-gray-200 bg-gray-50">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Project Tree</span>
       </div>
