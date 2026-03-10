@@ -1,14 +1,16 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import Map from "@arcgis/core/Map"
 import MapView from "@arcgis/core/views/MapView"
 import SceneView from "@arcgis/core/views/SceneView"
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer"
+import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer"
 import LabelClass from "@arcgis/core/layers/support/LabelClass"
 import TextSymbol from "@arcgis/core/symbols/TextSymbol"
 import Circle from "@arcgis/core/geometry/Circle"
 import Graphic from "@arcgis/core/Graphic"
+import Extent from "@arcgis/core/geometry/Extent"
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils"
 import "@arcgis/core/assets/esri/themes/light/main.css"
 
@@ -84,6 +86,7 @@ export function MapArea({
    const viewRef = useRef<MapView | SceneView | null>(null)
    const mapRef = useRef<Map | null>(null)
    const layersRef = useRef<Record<string, __esri.Layer>>({})
+   const f3HorizonGraphicsLayerRef = useRef<__esri.GraphicsLayer | null>(null)
    const [mounted, setMounted] = useState(false)
    const [basemapStyle, setBasemapStyle] = useState<'oceans' | 'light-gray'>('oceans')
    const [isFocused, setIsFocused] = useState(false)
@@ -189,7 +192,9 @@ export function MapArea({
       mapRef.current = map
 
       // 3. Initialize Layers on the new Map
-      // --- Offshore Blocks (Local GeoJSON) ---
+      // Layer order (bottom to top): blocks → seismic-3d → hc-fields → seismic-2d → well-trajectories → wells
+
+      // --- Offshore Blocks (Local GeoJSON) --- [Bottom layer]
       const blocksLayer = new GeoJSONLayer({
          url: '/data/Offshore_Blocks.json',
          copyright: "NDR / AFED Digital",
@@ -201,16 +206,7 @@ export function MapArea({
                outline: { color: [255, 255, 255, 1], width: 2 } // White outline
             } as any
          },
-         labelingInfo: [
-            new LabelClass({
-               labelExpressionInfo: { expression: "$feature.BlokNummer" },
-               symbol: new TextSymbol({
-                  color: "black",
-                  font: { size: 10, weight: "bold", family: "Arial" }
-               })
-               // No minScale or maxScale - labels always visible per requirements
-            })
-         ],
+         labelingInfo: [], // Empty - we'll create graphics-based labels that scale with map
          outFields: ["*"],
          popupTemplate: {
             title: "Block {BlokNummer}",
@@ -230,6 +226,59 @@ export function MapArea({
       map.add(blocksLayer)
       layersRef.current['offshore-blocks-detailed'] = blocksLayer
 
+      // --- Wells Layer (Local GeoJSON) --- [Top layer]
+      const wellsLayer = new GeoJSONLayer({
+         url: '/data/Wells.json',
+         copyright: "NDR / AFED Digital",
+         renderer: {
+            type: "simple",
+            symbol: {
+               type: "simple-marker",
+               style: "circle",
+               color: [0, 0, 0, 1], // Black
+               size: 4
+               // No outline - removed per requirements
+            } as any
+         },
+         labelingInfo: [
+            new LabelClass({
+               labelExpressionInfo: { expression: "$feature.IDENTIFICA" },
+               symbol: new TextSymbol({
+                  color: "white",
+                  haloColor: "black",
+                  haloSize: 1,
+                  font: { size: 8, weight: "normal", family: "Arial" }
+               }),
+               minScale: 600000,
+               maxScale: 0 // Label visible when zoomed in closer than 1:600,000
+            })
+         ],
+         outFields: ["*"],
+         popupTemplate: {
+            title: "{IDENTIFICA}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "IDENTIFICA", label: "Well Name" },
+                  { fieldName: "OPERATOR", label: "Operator" },
+                  { fieldName: "WELL_TYPE", label: "Type" },
+                  { fieldName: "STATUS", label: "Status" },
+                  { fieldName: "WELL_RESUL", label: "Result" },
+                  { fieldName: "START_DATE", label: "Start Date" },
+                  { fieldName: "END_DEPTH_", label: "Total Depth (m)" },
+                  { fieldName: "FIELD_NAME", label: "Field" }
+               ]
+            }]
+         },
+         popupEnabled: false,
+         visible: activeLayers.includes('wells'),
+         // Bloom effect removed per requirements
+         elevationInfo: { mode: "on-the-ground" },
+         minScale: 600000 // Hide when zoomed out beyond 1:600,000
+      })
+      map.add(wellsLayer)
+      layersRef.current['wells'] = wellsLayer
+
       // --- Well Trajectories (Local GeoJSON) ---
       const wellTrajLayer = new GeoJSONLayer({
          url: '/data/Wells_Trajectories.json',
@@ -238,8 +287,8 @@ export function MapArea({
             type: "simple",
             symbol: {
                type: "simple-line",
-               color: [255, 255, 0, 1], // Yellow
-               width: 1
+               color: [255, 220, 0, 1], // Bright Golden Yellow - more visible
+               width: 2.5 // Thicker line
             } as any
          },
          popupTemplate: {
@@ -273,67 +322,6 @@ export function MapArea({
       })
       map.add(wellTrajLayer)
       layersRef.current['well-trajectories'] = wellTrajLayer
-
-      // --- Seismic 3D Surveys (Local GeoJSON) ---
-      const seismic3dLayer = new GeoJSONLayer({
-         url: '/data/Seismic_3D_Surveys.json',
-         copyright: "NDR / AFED Digital",
-         renderer: {
-            type: "class-breaks",
-            field: "YEAR",
-            defaultSymbol: {
-               type: "simple-fill",
-               color: [130, 130, 130, 0.3], // 30% transparency
-               outline: { color: [110, 110, 110, 0.3], width: 0.7 }
-            } as any,
-            classBreakInfos: [
-               {
-                  minValue: 0,
-                  maxValue: 1993,
-                  symbol: {
-                     type: "simple-fill",
-                     color: [230, 238, 207, 0.3], // 30% transparency
-                     outline: { color: [110, 110, 110, 0.3], width: 0.7 }
-                  } as any
-               },
-               {
-                  minValue: 1993,
-                  maxValue: 2007,
-                  symbol: {
-                     type: "simple-fill",
-                     color: [105, 168, 183, 0.3], // 30% transparency
-                     outline: { color: [110, 110, 110, 0.3], width: 0.7 }
-                  } as any
-               },
-               {
-                  minValue: 2007,
-                  maxValue: 2030,
-                  symbol: {
-                     type: "simple-fill",
-                     color: [46, 85, 122, 0.3], // 30% transparency
-                     outline: { color: [110, 110, 110, 0.3], width: 0.7 }
-                  } as any
-               }
-            ]
-         } as any,
-         popupTemplate: {
-            title: "Survey {SURVEY_ID}",
-            content: [{
-               type: "fields",
-               fieldInfos: [
-                  { fieldName: "SURVEY_ID", label: "Survey ID" },
-                  { fieldName: "GRID_ID", label: "Grid ID" },
-                  { fieldName: "YEAR", label: "Year" },
-                  { fieldName: "Shape_Area", label: "Area" }
-               ]
-            }]
-         },
-         visible: activeLayers.includes('seismic-3d'),
-         elevationInfo: { mode: "on-the-ground" },
-         minScale: 1500000 // Hide when zoomed out beyond 1:1,500,000
-      })
-      map.add(seismic3dLayer)
-      layersRef.current['seismic-3d'] = seismic3dLayer
 
       // --- Seismic 2D Lines (Local GeoJSON) ---
       const seismicLayer = new GeoJSONLayer({
@@ -442,58 +430,66 @@ export function MapArea({
       map.add(fieldsLayer)
       layersRef.current['hc-fields'] = fieldsLayer
 
-      // --- Wells Layer (Local GeoJSON) ---
-      const wellsLayer = new GeoJSONLayer({
-         url: '/data/Wells.json',
+      // --- Seismic 3D Surveys (Local GeoJSON) ---
+      const seismic3dLayer = new GeoJSONLayer({
+         url: '/data/Seismic_3D_Surveys.json',
          copyright: "NDR / AFED Digital",
          renderer: {
-            type: "simple",
-            symbol: {
-               type: "simple-marker",
-               style: "circle",
-               color: [0, 0, 0, 1], // Black
-               size: 4
-               // No outline - removed per requirements
-            } as any
-         },
-         labelingInfo: [
-            new LabelClass({
-               labelExpressionInfo: { expression: "$feature.IDENTIFICA" },
-               symbol: new TextSymbol({
-                  color: "white",
-                  haloColor: "black",
-                  haloSize: 1,
-                  font: { size: 8, weight: "normal", family: "Arial" }
-               }),
-               minScale: 600000,
-               maxScale: 0 // Label visible when zoomed in closer than 1:600,000
-            })
-         ],
-         outFields: ["*"],
+            type: "class-breaks",
+            field: "YEAR",
+            defaultSymbol: {
+               type: "simple-fill",
+               color: [130, 130, 130, 0.3], // 30% transparency
+               outline: { color: [110, 110, 110, 0.3], width: 0.7 }
+            } as any,
+            classBreakInfos: [
+               {
+                  minValue: 0,
+                  maxValue: 1993,
+                  symbol: {
+                     type: "simple-fill",
+                     color: [230, 238, 207, 0.3], // 30% transparency
+                     outline: { color: [110, 110, 110, 0.3], width: 0.7 }
+                  } as any
+               },
+               {
+                  minValue: 1993,
+                  maxValue: 2007,
+                  symbol: {
+                     type: "simple-fill",
+                     color: [105, 168, 183, 0.3], // 30% transparency
+                     outline: { color: [110, 110, 110, 0.3], width: 0.7 }
+                  } as any
+               },
+               {
+                  minValue: 2007,
+                  maxValue: 2030,
+                  symbol: {
+                     type: "simple-fill",
+                     color: [46, 85, 122, 0.3], // 30% transparency
+                     outline: { color: [110, 110, 110, 0.3], width: 0.7 }
+                  } as any
+               }
+            ]
+         } as any,
          popupTemplate: {
-            title: "{IDENTIFICA}",
+            title: "Survey {SURVEY_ID}",
             content: [{
                type: "fields",
                fieldInfos: [
-                  { fieldName: "IDENTIFICA", label: "Well Name" },
-                  { fieldName: "OPERATOR", label: "Operator" },
-                  { fieldName: "WELL_TYPE", label: "Type" },
-                  { fieldName: "STATUS", label: "Status" },
-                  { fieldName: "WELL_RESUL", label: "Result" },
-                  { fieldName: "START_DATE", label: "Start Date" },
-                  { fieldName: "END_DEPTH_", label: "Total Depth (m)" },
-                  { fieldName: "FIELD_NAME", label: "Field" }
+                  { fieldName: "SURVEY_ID", label: "Survey ID" },
+                  { fieldName: "GRID_ID", label: "Grid ID" },
+                  { fieldName: "YEAR", label: "Year" },
+                  { fieldName: "Shape_Area", label: "Area" }
                ]
             }]
          },
-         popupEnabled: false,
-         visible: activeLayers.includes('wells'),
-         // Bloom effect removed per requirements
+         visible: activeLayers.includes('seismic-3d'),
          elevationInfo: { mode: "on-the-ground" },
-         minScale: 600000 // Hide when zoomed out beyond 1:600,000
+         minScale: 1500000 // Hide when zoomed out beyond 1:1,500,000
       })
-      map.add(wellsLayer)
-      layersRef.current['wells'] = wellsLayer
+      map.add(seismic3dLayer)
+      layersRef.current['seismic-3d'] = seismic3dLayer
 
       // --- G&G Project Outlines (Local GeoJSON) ---
       const gngLayer = new GeoJSONLayer({
@@ -616,6 +612,18 @@ export function MapArea({
       map.add(licensesLayer)
       layersRef.current['licenses'] = licensesLayer
 
+      // --- F3 Shallow Horizon - Client-side GeoTIFF rendering ---
+      const f3HorizonLayer = new GraphicsLayer({
+         title: 'F3 Shallow Horizon',
+         visible: false,
+         opacity: 0.8
+      })
+      map.add(f3HorizonLayer)
+      layersRef.current['f3-horizon'] = f3HorizonLayer
+      
+      // Store layer reference for later GeoTIFF rendering
+      f3HorizonGraphicsLayerRef.current = f3HorizonLayer
+
       // (Mining Facilities layer removed per new GIS structure)
 
       // 4. Create View
@@ -692,6 +700,57 @@ export function MapArea({
 
       viewRef.current = view
       onViewReady?.(view)
+
+      // Create a GraphicsLayer for block labels that scale with map
+      const blockLabelsLayer = new GraphicsLayer({
+         id: 'block-labels',
+         title: 'Block Labels'
+      })
+      map.add(blockLabelsLayer)
+      
+      // Create block labels that scale with map (graphics-based, not labelingInfo)
+      const blocksLayerForLabels = layersRef.current['offshore-blocks-detailed'] as __esri.GeoJSONLayer
+      if (blocksLayerForLabels) {
+         // Wait for layer to load then query features
+         blocksLayerForLabels.when(() => {
+            blocksLayerForLabels.queryFeatures().then((result: __esri.FeatureSet) => {
+               const labelGraphics: __esri.Graphic[] = []
+               
+               result.features.forEach((feature: __esri.Graphic) => {
+                  const blockName = feature.attributes.BlokNummer
+                  if (!blockName || !feature.geometry) return
+                  
+                  // Get centroid of polygon
+                  const polygon = feature.geometry as __esri.Polygon
+                  const centroid = polygon.centroid || polygon.extent?.center
+                  if (!centroid) return
+                  
+                  // Create text symbol that scales with map
+                  const labelGraphic = new Graphic({
+                     geometry: centroid,
+                     symbol: {
+                        type: "text",
+                        text: blockName,
+                        color: [100, 100, 100, 1],
+                        font: { size: 10, weight: "bold", family: "Arial" },
+                        haloColor: [255, 255, 255, 0.8],
+                        haloSize: 1
+                     } as any,
+                     attributes: { blockName }
+                  })
+                  
+                  labelGraphics.push(labelGraphic)
+               })
+               
+               // Add all label graphics to the labels layer
+               blockLabelsLayer.addMany(labelGraphics)
+               
+               console.log(`🗺️ Added ${labelGraphics.length} block labels that scale with map`)
+            }).catch((err: Error) => {
+               console.warn('Could not create block labels:', err)
+            })
+         })
+      }
 
       // Track scale changes
       view.watch('scale', (newScale) => {
@@ -967,6 +1026,63 @@ export function MapArea({
          }
       })
    }, [activeLayers])
+
+   // GeoTIFF rendering effect for F3 Horizon - simplified (file is JPEG without georeferencing)
+   useEffect(() => {
+      if (!mounted || !viewRef.current) return
+      
+      const isVisible = activeLayers.includes('f3-horizon')
+      const graphicsLayer = f3HorizonGraphicsLayerRef.current
+      
+      if (!graphicsLayer) return
+      
+      // Clear existing graphics if turning off
+      if (!isVisible) {
+         graphicsLayer.removeAll()
+         return
+      }
+      
+      // If already has graphics, just make visible
+      if (graphicsLayer.graphics.length > 0) {
+         graphicsLayer.visible = true
+         return
+      }
+      
+      // Show a placeholder extent marker for F03 block area
+      // Note: Actual horizon image is a JPEG without georeferencing
+      const f03Extent = new Extent({
+         xmin: 4.8,
+         ymin: 53.0,
+         xmax: 5.4,
+         ymax: 53.4,
+         spatialReference: { wkid: 4326 }
+      })
+      
+      const graphic = new Graphic({
+         geometry: f03Extent,
+         symbol: {
+            type: "simple-fill",
+            color: [255, 200, 100, 0.2],
+            outline: {
+               color: [255, 160, 50, 0.8],
+               width: 2,
+               style: "dash"
+            }
+         } as any,
+         attributes: {
+            name: "F3 Shallow Horizon Area",
+            note: "Horizon data available (unreferenced)"
+         }
+      })
+      
+      graphicsLayer.add(graphic)
+      
+      // Zoom to the extent
+      viewRef.current?.goTo(f03Extent.expand(1.2))
+      
+      console.log('🗺️ F3 Shallow Horizon area marker shown (no georeferenced image available)')
+      
+   }, [activeLayers, mounted])
 
    // Focus mode: highlight AI-identified features, hide others
    useEffect(() => {
