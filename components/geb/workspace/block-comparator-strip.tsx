@@ -62,7 +62,7 @@ export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock
                         <div className="sticky left-0 z-10 bg-white p-3 border-b border-gray-200 border-r border-gray-100"></div>
                         {blocks.map(block => (
                             <div key={`header-${block.id}`} className="p-3 border-b border-gray-200 border-r border-gray-100 bg-white relative group">
-                                <div className="font-bold text-sm text-slate-900 truncate pr-6" title={block.name}>
+                                <div className="font-bold text-sm text-slate-700 truncate pr-6" title={block.name}>
                                     {block.name}
                                 </div>
                                 <button
@@ -116,7 +116,7 @@ export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock
                                                         className="flex items-center justify-between px-3 py-2 text-xs hover:bg-primary/10 hover:text-primary/70 cursor-pointer data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary/70"
                                                     >
                                                         <div className="flex flex-col gap-0.5">
-                                                            <div className="font-bold text-slate-900">{block.name}</div>
+                                                            <div className="font-bold text-slate-700">{block.name}</div>
                                                             <div className="text-[10px] text-slate-500">{block.operator}</div>
                                                         </div>
                                                         <Plus className="w-3 h-3 text-slate-400" />

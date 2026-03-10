@@ -270,7 +270,7 @@ function BlockDetailsContent({
                 </div>
 
                 <div className="mb-4">
-                    <h3 className="text-2xl font-bold text-slate-900 leading-tight mb-2">{blockData.name}</h3>
+                    <h3 className="text-xl font-bold text-slate-700 leading-tight mb-2">{blockData.name}</h3>
                     <div className="flex items-center gap-3">
                         <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-sm ${blockData.status === 'Production' ? 'bg-green-100 text-green-700' :
                             blockData.status === 'Active Exploration' ? 'bg-amber-100 text-amber-700' :
@@ -319,7 +319,7 @@ function BlockDetailsContent({
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-4 bg-white border border-slate-200 rounded-sm shadow-sm">
                                 <div className="text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider">2P Reserves</div>
-                                <div className="text-2xl font-bold text-slate-900 mb-1">
+                                <div className="text-xl font-bold text-slate-700 mb-1">
                                     {blockData.resources.oilReserves2P || 0} <span className="text-sm font-medium text-slate-500">MMbbl</span>
                                 </div>
                                 <div className="text-xs text-slate-500 font-medium">
@@ -329,7 +329,7 @@ function BlockDetailsContent({
                             {blockData.economics && (
                                 <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-sm shadow-sm">
                                     <div className="text-[10px] font-bold text-emerald-600 uppercase mb-2 tracking-wider">Valuation (NPV10)</div>
-                                    <div className="text-2xl font-bold text-emerald-700 mb-1">${blockData.economics.npv10}M</div>
+                                    <div className="text-xl font-bold text-emerald-600 mb-1">${blockData.economics.npv10}M</div>
                                     <div className="text-xs text-emerald-600 font-medium">IRR: {blockData.economics.irr}%</div>
                                 </div>
                             )}
@@ -1034,6 +1034,8 @@ function DocumentsSection() {
 function WellDetailsContent({ data }: { data: any }) {
     const [activeTab, setActiveTab] = useState<"well-info" | "gng-data">("well-info")
     const [gngProjects, setGngProjects] = useState<any[]>([])
+    const [intersectingProjects, setIntersectingProjects] = useState<any[]>([])
+    const [hasGngIntersection, setHasGngIntersection] = useState<boolean>(false)
     const [loading, setLoading] = useState(false)
 
     // Case-insensitive attribute getter
@@ -1046,27 +1048,166 @@ function WellDetailsContent({ data }: { data: any }) {
         return "-";
     };
 
+    // Reset state immediately when well data changes, then check intersection
+    useEffect(() => {
+        if (data) {
+            // Reset state immediately for new well
+            setActiveTab("well-info")
+            setGngProjects([])
+            setIntersectingProjects([])
+            setHasGngIntersection(false)
+        }
+    }, [data?.IDENTIFICA])
+
+    // Check intersection asynchronously after reset
+    useEffect(() => {
+        if (data) {
+            checkGngIntersection()
+        }
+    }, [data])
+
     // Fetch G&G projects when tab is selected
     useEffect(() => {
-        if (activeTab === "gng-data" && data) {
+        if (activeTab === "gng-data" && data && hasGngIntersection) {
             fetchGngProjects()
         }
-    }, [activeTab, data])
+    }, [activeTab, data, hasGngIntersection])
+
+    // Simple point-in-polygon check using ray casting algorithm
+    // ring format: [[x1,y1], [x2,y2], ...]
+    const pointInRing = (point: [number, number], ring: number[][]): boolean => {
+        const [x, y] = point;
+        let inside = false;
+        
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const [xi, yi] = ring[i];
+            const [xj, yj] = ring[j];
+            
+            if (((yi > y) !== (yj > y)) &&
+                (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    }
+
+    const checkGngIntersection = async () => {
+        try {
+            // Get well coordinates - check properties first, then geometry
+            let wellLon = parseFloat(getAttr("LONGITUDE") || getAttr("X") || "0")
+            let wellLat = parseFloat(getAttr("LATITUDE") || getAttr("Y") || "0")
+            
+            let needsProjection = false
+            let sourceSpatialRef: any = null
+            
+            // If no coordinates from properties, check geometry
+            if ((!wellLon || !wellLat)) {
+                if (data?.x !== undefined && data?.y !== undefined) {
+                    wellLon = parseFloat(data.x)
+                    wellLat = parseFloat(data.y)
+                    sourceSpatialRef = data.spatialReference
+                    needsProjection = true
+                } else if (data?.geometry?.x !== undefined && data?.geometry?.y !== undefined) {
+                    wellLon = parseFloat(data.geometry.x)
+                    wellLat = parseFloat(data.geometry.y)
+                    sourceSpatialRef = data.geometry.spatialReference
+                    needsProjection = true
+                } else if (data?.geometry?.coordinates) {
+                    const coords = data.geometry.coordinates
+                    if (Array.isArray(coords) && coords.length >= 2) {
+                        wellLon = parseFloat(coords[0])
+                        wellLat = parseFloat(coords[1])
+                    }
+                }
+            }
+            
+            // Check if coordinates need projection (UTM to WGS84)
+            if (needsProjection && sourceSpatialRef) {
+                const wkid = sourceSpatialRef?.wkid || sourceSpatialRef?.latestWkid
+                // If WKID is not 4326 (WGS84), we need to project
+                if (wkid && wkid !== 4326) {
+                    try {
+                        // Dynamically import ArcGIS modules
+                        const projection = await import('@arcgis/core/geometry/projection')
+                        const PointModule = await import('@arcgis/core/geometry/Point')
+                        const SpatialRefModule = await import('@arcgis/core/geometry/SpatialReference')
+                        
+                        const Point = PointModule.default
+                        const SpatialReference = SpatialRefModule.default
+                        
+                        const point = new Point({
+                            x: wellLon,
+                            y: wellLat,
+                            spatialReference: new SpatialReference({ wkid })
+                        })
+                        
+                        const projected = projection.project(point, new SpatialReference({ wkid: 4326 }))
+                        if (projected && 'x' in projected && 'y' in projected) {
+                            wellLon = (projected as any).x
+                            wellLat = (projected as any).y
+                            console.log('[G&G Check] Projected coordinates:', { wellLon, wellLat, fromWkid: wkid })
+                        }
+                    } catch (projError) {
+                        console.error('[G&G Check] Projection failed:', projError)
+                        // Continue with unprojected coordinates - might give wrong results
+                    }
+                }
+            }
+            
+            if (!wellLon || !wellLat) {
+                console.log('[G&G Check] No valid coordinates, skipping')
+                setHasGngIntersection(false)
+                return
+            }
+
+            // Fetch G&G projects
+            const response = await fetch('/data/GnG_Project_Data_Outlines.json')
+            const geojsonData = await response.json()
+            
+            // Find projects that contain this well
+            const intersecting = geojsonData.features?.filter((f: any) => {
+                const geometry = f.geometry
+                if (!geometry || !geometry.coordinates) return false
+                
+                const coords = geometry.coordinates
+                const geomType = geometry.type
+                
+                if (geomType === "Polygon") {
+                    // coords is [outerRing, hole1, hole2, ...], check outer ring only
+                    const outerRing = coords[0];
+                    return pointInRing([wellLon, wellLat], outerRing)
+                } else if (geomType === "MultiPolygon") {
+                    // coords is array of polygons, each polygon is [outerRing, holes...]
+                    return coords.some((polygon: number[][][]) => {
+                        const outerRing = polygon[0];
+                        return pointInRing([wellLon, wellLat], outerRing)
+                    })
+                }
+                return false
+            }) || []
+
+            const projects = intersecting.map((f: any) => ({
+                ...f.properties,
+                id: f.id || f.properties?.OBJECTID
+            }))
+            
+            console.log('[G&G Check] Intersecting projects found:', projects.length, projects.map((p: any) => p.PROJECT_NAME))
+            console.log('[G&G Check] Intersection result:', projects.length > 0 ? 'Intersection found' : 'No intersection found')
+            console.log('[G&G Check] Project count:', projects.length)
+            
+            setIntersectingProjects(projects)
+            setHasGngIntersection(projects.length > 0)
+        } catch (error) {
+            console.error("Failed to check G&G intersection:", error)
+            setHasGngIntersection(false)
+        }
+    }
 
     const fetchGngProjects = async () => {
         setLoading(true)
         try {
-            // Fetch G&G projects from the GeoJSON file
-            const response = await fetch('/data/GnG_Project_Data_Outlines.json')
-            const geojsonData = await response.json()
-            
-            // Get all projects (or filter by well location if needed)
-            const projects = geojsonData.features?.map((f: any) => ({
-                ...f.properties,
-                id: f.id || f.properties?.OBJECTID
-            })) || []
-            
-            setGngProjects(projects)
+            // Use already filtered intersecting projects
+            setGngProjects(intersectingProjects)
         } catch (error) {
             console.error("Failed to fetch G&G projects:", error)
             setGngProjects([])
@@ -1091,26 +1232,28 @@ function WellDetailsContent({ data }: { data: any }) {
 
     return (
         <div className="space-y-4 pb-10">
-            {/* Tabs */}
+            {/* Tabs - Only show G&G tab if well intersects with G&G projects */}
             <div className="flex items-center gap-1 pb-1">
                 <button
                     onClick={() => setActiveTab("well-info")}
-                    className={`flex-1 justify-center py-2 text-[10px] font-bold uppercase tracking-wider rounded-sm flex items-center gap-2 transition-all border ${activeTab === "well-info"
+                    className={`${hasGngIntersection ? 'flex-1' : 'w-full'} justify-center py-2 text-[10px] font-bold uppercase tracking-wider rounded-sm flex items-center gap-2 transition-all border ${activeTab === "well-info"
                         ? "bg-slate-800 border-slate-800 text-white shadow-sm"
                         : "bg-white border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                     }`}
                 >
                     Well Info
                 </button>
-                <button
-                    onClick={() => setActiveTab("gng-data")}
-                    className={`flex-1 justify-center py-2 text-[10px] font-bold uppercase tracking-wider rounded-sm flex items-center gap-2 transition-all border ${activeTab === "gng-data"
-                        ? "bg-green-600 border-green-600 text-white shadow-sm"
-                        : "bg-white border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                    }`}
-                >
-                    G&G Project Data
-                </button>
+                {hasGngIntersection && (
+                    <button
+                        onClick={() => setActiveTab("gng-data")}
+                        className={`flex-1 justify-center py-2 text-[10px] font-bold uppercase tracking-wider rounded-sm flex items-center gap-2 transition-all border ${activeTab === "gng-data"
+                            ? "bg-green-600 border-green-600 text-white shadow-sm"
+                            : "bg-white border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                        }`}
+                    >
+                        G&G Project Data
+                    </button>
+                )}
             </div>
             <div className="h-px bg-gray-100 w-full" />
 
@@ -1151,8 +1294,6 @@ function WellDetailsContent({ data }: { data: any }) {
 
                     <div className="h-px bg-slate-100" />
                     <DocumentsSection />
-                    <div className="h-px bg-slate-100" />
-                    <SeismicViewer />
                 </div>
             )}
 
@@ -1250,9 +1391,6 @@ function WellDetailsContent({ data }: { data: any }) {
                             <p className="text-sm text-slate-500">No G&G projects found</p>
                         </div>
                     )}
-
-                    <div className="h-px bg-slate-100" />
-                    <DocumentsSection />
                 </div>
             )}
         </div>
@@ -1496,7 +1634,7 @@ function GNGProjectContent({ data, onToggle3D, onViewGNGData }: { data: any, onT
                     )}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-lg font-bold text-slate-900 truncate">{projectName !== "-" ? projectName : "Project"}</h3>
+                            <h3 className="text-lg font-bold text-slate-700 truncate">{projectName !== "-" ? projectName : "Project"}</h3>
                             {year !== "-" && (
                                 <span className="px-2 py-1 bg-green-100 text-green-700 border border-green-200 text-xs font-medium rounded shrink-0">
                                     {year}

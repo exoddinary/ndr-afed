@@ -95,6 +95,15 @@ export function AnalysisMarkerManager({
     seismic3d?: GeoJSON.FeatureCollection
   }>({})
 
+  // Auto-enable creation mode when toolbar is activated (visible becomes true)
+  useEffect(() => {
+    if (visible) {
+      setIsCreating(true)
+    } else {
+      setIsCreating(false)
+    }
+  }, [visible])
+
   // Design configuration constants
   const designConfig = {
     // Orbital button settings
@@ -213,6 +222,9 @@ export function AnalysisMarkerManager({
     if (!view || !isCreating) return
 
     const handleClick = (event: __esri.ViewClickEvent) => {
+      // Stop propagation to prevent layer interactions during marker placement
+      event.stopPropagation()
+      
       const mapPoint = (event as { mapPoint?: { longitude: number; latitude: number } }).mapPoint
       if (!mapPoint) return
       
@@ -222,6 +234,7 @@ export function AnalysisMarkerManager({
       }
       createMarker(position)
       setIsCreating(false)
+      // Exit creation mode after placing marker so user can interact with it
     }
 
     const handleMouseMove = (event: __esri.ViewPointerMoveEvent) => {
@@ -250,6 +263,40 @@ export function AnalysisMarkerManager({
       }
     }
   }, [view, isCreating, createMarker])
+
+  // Cursor radius preview graphic - follows mouse during placement
+  useEffect(() => {
+    if (!view || !isCreating || !hoverPosition) return
+
+    const defaultRadiusKm = 10 // Default 10km radius
+    const radiusInMeters = defaultRadiusKm * 1000
+    
+    // Create a circle graphic at hover position
+    const circle = new Circle({
+      center: [hoverPosition.longitude, hoverPosition.latitude],
+      radius: radiusInMeters,
+      radiusUnit: "meters"
+    })
+
+    const circleGraphic = new Graphic({
+      geometry: circle,
+      symbol: {
+        type: "simple-fill",
+        color: [59, 130, 246, 0.1], // Light blue fill
+        outline: {
+          color: [59, 130, 246, 0.6], // Blue outline
+          width: 2,
+          style: "dash"
+        }
+      } as any
+    })
+
+    view.graphics.add(circleGraphic)
+
+    return () => {
+      view.graphics.remove(circleGraphic)
+    }
+  }, [view, isCreating, hoverPosition])
 
   // Update graphics when markers change
   useEffect(() => {
@@ -375,31 +422,23 @@ export function AnalysisMarkerManager({
 
   return (
     <>
-      {/* Create Marker Button - Always visible, floating above AI button */}
-      <div className={`fixed bottom-[104px] z-[100] transition-all duration-300 ease-in-out ${isPanelOpen ? "right-[424px]" : "right-6"}`}>
-        <button
-          onClick={() => setIsCreating(!isCreating)}
-          className={`group relative w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center border-2 ${
-            isCreating 
-              ? "bg-blue-600 text-white border-blue-400 shadow-blue-500/40" 
-              : "bg-white text-blue-600 border-slate-100 hover:border-blue-300 shadow-slate-200/50 hover:scale-105"
-          }`}
-          title={isCreating ? "Cancel creation" : "Create analysis marker"}
-        >
-          {isCreating ? (
-            <X className="w-6 h-6" />
-          ) : (
-            <>
-              {/* Pulse effect when inactive */}
-              <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-10" />
-              <Asterisk className="w-7 h-7 relative z-10 group-hover:rotate-90 transition-transform duration-500" />
-            </>
-          )}
-        </button>
-      </div>
-
-      {visible && (
+      {/* Analysis Markers - always visible once created, never hidden */}
+      {(visible || markers.length > 0) && (
         <>
+          {/* Canvas Highlight - 4px outline during marker placement mode */}
+          {isCreating && (
+            <div className="absolute inset-0 z-[100] pointer-events-none">
+              <div className="absolute inset-0 border-4 border-blue-500/50 rounded-lg" />
+            </div>
+          )}
+
+          {/* Instructional Text Overlay */}
+          {isCreating && (
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[101] bg-slate-800/90 backdrop-blur text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium animate-in fade-in slide-in-from-top-2">
+              Click anywhere on the map to place spatial analysis marker
+            </div>
+          )}
+
           {/* Marker List - Bottom left panel */}
           {markers.length > 0 && (
         <motion.div 
@@ -476,8 +515,8 @@ export function AnalysisMarkerManager({
         </motion.div>
       )}
 
-      {/* Selected Marker Panel */}
-      {selectedMarkerId && (
+      {/* Selected Marker Panel - only show after placement (not during creation) */}
+      {selectedMarkerId && !isCreating && (
         <AnalysisMarkerPanel
           marker={markers.find(m => m.id === selectedMarkerId)!}
           geoData={geoData}

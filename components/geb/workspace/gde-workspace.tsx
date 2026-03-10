@@ -33,7 +33,8 @@ export function GDEWorkspace() {
   const [isAIChatOpen, setIsAIChatOpen] = useState(false)
   const [aiInitialQuestion, setAiInitialQuestion] = useState<string | undefined>(undefined)
   const [mapView, setMapView] = useState<__esri.MapView | __esri.SceneView | null>(null)
-  const [isGNGPanelExpanded, setIsGNGPanelExpanded] = useState(false)
+  const [isGNGPanelExpanded, setIsGNGPanelExpanded] = useState(true)
+  const [isAnalysisMarkerActive, setIsAnalysisMarkerActive] = useState(false)
   const [focusedFeatures, setFocusedFeatures] = useState<{
     layer: string;
     identifiers: string[];
@@ -234,9 +235,14 @@ export function GDEWorkspace() {
                   isGNGPanelExpanded={isGNGPanelExpanded}
                   onGNGPanelExpandChange={setIsGNGPanelExpanded}
                   isPanelOpen={isPanelOpen}
+                  isAnalysisMarkerActive={isAnalysisMarkerActive}
                 />
                 {/* Map Tools Overlay */}
-                <MapTools view={mapView} />
+                <MapTools 
+                  view={mapView} 
+                  isAnalysisMarkerActive={isAnalysisMarkerActive}
+                  onAnalysisMarkerToggle={() => setIsAnalysisMarkerActive(!isAnalysisMarkerActive)}
+                />
               </div>
             ) : (
               <div className="absolute inset-0">

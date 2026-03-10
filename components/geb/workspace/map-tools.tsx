@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Circle, Ruler, Trash2, X } from "lucide-react"
+import { Circle, Ruler, Trash2, X, Crosshair } from "lucide-react"
 import SketchViewModel from "@arcgis/core/widgets/Sketch/SketchViewModel"
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer"
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine"
@@ -12,11 +12,13 @@ import * as reactiveUtils from "@arcgis/core/core/reactiveUtils"
 
 type MapToolsProps = {
     view: __esri.MapView | __esri.SceneView | null
+    isAnalysisMarkerActive?: boolean
+    onAnalysisMarkerToggle?: () => void
 }
 
 type ActiveTool = "radius" | "line" | null
 
-export function MapTools({ view }: MapToolsProps) {
+export function MapTools({ view, isAnalysisMarkerActive, onAnalysisMarkerToggle }: MapToolsProps) {
     const [activeTool, setActiveTool] = useState<ActiveTool>(null)
     const [measurement, setMeasurement] = useState<string | null>(null)
     const sketchVMRef = useRef<SketchViewModel | null>(null)
@@ -261,6 +263,21 @@ export function MapTools({ view }: MapToolsProps) {
                 >
                     <Ruler className="w-4 h-4" />
                     Line
+                </button>
+
+                <div className="w-px h-6 bg-slate-200" />
+
+                {/* Analysis Marker Tool */}
+                <button
+                    onClick={onAnalysisMarkerToggle}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${isAnalysisMarkerActive
+                        ? "bg-blue-500 text-white shadow-md"
+                        : "text-slate-600 hover:bg-slate-100"
+                        }`}
+                    title="Create analysis marker"
+                >
+                    <Crosshair className="w-4 h-4" />
+                    Marker
                 </button>
 
                 <div className="w-px h-6 bg-slate-200" />

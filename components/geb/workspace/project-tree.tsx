@@ -11,6 +11,7 @@ type TreeNode = {
   icon?: React.ReactNode
   children?: TreeNode[]
   isActive?: boolean // Initial default only
+  style?: string // Custom CSS classes
 }
 
 const INITIAL_TREE: TreeNode[] = [
@@ -32,11 +33,10 @@ const INITIAL_TREE: TreeNode[] = [
       { id: 'seismic-3d', label: 'Seismic 3D (Polygon)', type: 'layer' },
     ]
   },
-  { id: 'analysis-markers', label: 'Analysis Markers', type: 'layer', isActive: true },
   { id: 'hc-fields', label: 'Hydrocarbon Fields', type: 'layer' },
   { id: 'licenses', label: 'Awarded Blocks', type: 'layer' },
   { id: 'gng-projects', label: 'G&G Project Data Outlines', type: 'layer' },
-  { id: 'offshore-blocks-detailed', label: 'Open Blocks (Offshore)', type: 'layer' },
+  { id: 'offshore-blocks-detailed', label: 'Open Blocks (Offshore)', type: 'layer', style: 'text-slate-600 text-xs' },
 ]
 
 interface ProjectTreeProps {
@@ -168,24 +168,32 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
               </div>
             )}
             {node.id === 'licenses' && (
-              <div className="w-1 h-3 rounded-sm bg-amber-400 mr-1.5" />
+              <div className="flex flex-col gap-px mr-1.5">
+                <div className="w-1 h-1.5 rounded-sm bg-[#FF6347]" />
+                <div className="w-1 h-1.5 rounded-sm bg-[#32CD32]" />
+              </div>
             )}
             {node.id === 'gng-projects' && (
               <div className="w-1 h-3 rounded-sm bg-purple-500 mr-1.5" />
             )}
             {node.id === 'seismic-2d' && (
-              <div className="w-1 h-3 rounded-sm bg-yellow-400 mr-1.5" />
+              <div className="w-1 h-3 rounded-sm bg-[#002673] mr-1.5" />
             )}
             {node.id === 'seismic-3d' && (
-              <div className="w-1 h-3 rounded-sm bg-red-400 mr-1.5" />
+              <div className="flex flex-col gap-px mr-1.5">
+                <div className="w-1 h-1 rounded-sm bg-[#E6EECF]" />
+                <div className="w-1 h-1 rounded-sm bg-[#69A8B7]" />
+                <div className="w-1 h-1 rounded-sm bg-[#2E557A]" />
+              </div>
             )}
             {node.id === 'analysis-markers' && (
               <div className="w-1 h-3 rounded-sm bg-blue-500 mr-1.5" />
             )}
 
             <span className={cn(
-              "text-xs truncate font-medium",
-              isActive ? "text-primary" : "text-slate-700 group-hover:text-slate-900"
+              "truncate font-medium",
+              node.style || "text-xs",
+              isActive ? "text-primary" : node.style ? "" : "text-slate-700 group-hover:text-slate-900"
             )}>
               {node.label}
             </span>

@@ -36,6 +36,7 @@ type MapAreaProps = {
    isGNGPanelExpanded?: boolean
    onGNGPanelExpandChange?: (expanded: boolean) => void
    isPanelOpen?: boolean
+   isAnalysisMarkerActive?: boolean
 }
 
 // Map AI layer names → layersRef keys
@@ -76,7 +77,8 @@ export function MapArea({
    onJumpToMainAI,
    isGNGPanelExpanded,
    onGNGPanelExpandChange,
-   isPanelOpen = false
+   isPanelOpen = false,
+   isAnalysisMarkerActive = false
 }: MapAreaProps = {}) {
    const mapDiv = useRef<HTMLDivElement>(null)
    const viewRef = useRef<MapView | SceneView | null>(null)
@@ -755,7 +757,7 @@ export function MapArea({
                view.graphics.add(highlightPoint)
             }
 
-            onElementClick?.("well", attr)
+            onElementClick?.("well", { ...attr, geometry: graphic.geometry?.toJSON() })
             setIsRightPanelOpen(true)
             return
          }
@@ -1166,7 +1168,7 @@ export function MapArea({
          {/* Analysis Marker Manager - interactive spatial analysis tool */}
          <AnalysisMarkerManager
             view={viewRef.current}
-            visible={activeLayers.includes('analysis-markers')}
+            visible={isAnalysisMarkerActive}
             isPanelOpen={isPanelOpen}
          />
 

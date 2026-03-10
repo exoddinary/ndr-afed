@@ -48,7 +48,7 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
             />
           </div>
           <div className="h-6 w-px bg-gray-300" />
-          <span className="font-bold text-lg tracking-tight text-slate-900 uppercase">Offshore & Onshore Netherlands</span>
+          <span className="font-bold text-lg tracking-tight text-slate-900 uppercase">EDAFY Data Platform</span>
 
           {isPremium && (
             <div className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-200 to-yellow-400 rounded text-[10px] font-black text-amber-900 uppercase tracking-wider shadow-sm border border-yellow-500/50">

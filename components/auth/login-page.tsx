@@ -56,9 +56,9 @@ export function LoginPage() {
             }
         }
 
-        // Simulate login delay then navigate to workspace
+        // Simulate login delay then navigate to landing
         setTimeout(() => {
-            router.push("/workspace")
+            router.push("/landing")
         }, 400)
     }
 
@@ -80,7 +80,7 @@ export function LoginPage() {
                                 priority
                             />
                             <div className="h-8 w-px bg-slate-200" />
-                            <span className="text-xl font-bold text-slate-900 tracking-tight uppercase leading-tight">Offshore & <br />Onshore Netherlands</span>
+                            <span className="text-xl font-bold text-slate-900 tracking-tight uppercase leading-tight">EDAFY Data<br />Platform</span>
                         </div>
 
                         <div className="mb-8">
