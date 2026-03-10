@@ -61,6 +61,7 @@
     "framer-motion": "^10.18.0",
     "fuse.js": "^7.1.0",
     "geist": "latest",
+    "geotiff": "^3.0.4",
     "groq-sdk": "^0.37.0",
     "gsap": "^3.14.2",
     "input-otp": "1.4.1",
