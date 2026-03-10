@@ -226,102 +226,7 @@ export function MapArea({
       map.add(blocksLayer)
       layersRef.current['offshore-blocks-detailed'] = blocksLayer
 
-      // --- Wells Layer (Local GeoJSON) --- [Top layer]
-      const wellsLayer = new GeoJSONLayer({
-         url: '/data/Wells.json',
-         copyright: "NDR / AFED Digital",
-         renderer: {
-            type: "simple",
-            symbol: {
-               type: "simple-marker",
-               style: "circle",
-               color: [0, 0, 0, 1], // Black
-               size: 4
-               // No outline - removed per requirements
-            } as any
-         },
-         labelingInfo: [
-            new LabelClass({
-               labelExpressionInfo: { expression: "$feature.IDENTIFICA" },
-               symbol: new TextSymbol({
-                  color: "white",
-                  haloColor: "black",
-                  haloSize: 1,
-                  font: { size: 8, weight: "normal", family: "Arial" }
-               }),
-               minScale: 600000,
-               maxScale: 0 // Label visible when zoomed in closer than 1:600,000
-            })
-         ],
-         outFields: ["*"],
-         popupTemplate: {
-            title: "{IDENTIFICA}",
-            content: [{
-               type: "fields",
-               fieldInfos: [
-                  { fieldName: "IDENTIFICA", label: "Well Name" },
-                  { fieldName: "OPERATOR", label: "Operator" },
-                  { fieldName: "WELL_TYPE", label: "Type" },
-                  { fieldName: "STATUS", label: "Status" },
-                  { fieldName: "WELL_RESUL", label: "Result" },
-                  { fieldName: "START_DATE", label: "Start Date" },
-                  { fieldName: "END_DEPTH_", label: "Total Depth (m)" },
-                  { fieldName: "FIELD_NAME", label: "Field" }
-               ]
-            }]
-         },
-         popupEnabled: false,
-         visible: activeLayers.includes('wells'),
-         // Bloom effect removed per requirements
-         elevationInfo: { mode: "on-the-ground" },
-         minScale: 600000 // Hide when zoomed out beyond 1:600,000
-      })
-      map.add(wellsLayer)
-      layersRef.current['wells'] = wellsLayer
-
-      // --- Well Trajectories (Local GeoJSON) ---
-      const wellTrajLayer = new GeoJSONLayer({
-         url: '/data/Wells_Trajectories.json',
-         copyright: "NDR / AFED Digital",
-         renderer: {
-            type: "simple",
-            symbol: {
-               type: "simple-line",
-               color: [255, 220, 0, 1], // Bright Golden Yellow - more visible
-               width: 2.5 // Thicker line
-            } as any
-         },
-         popupTemplate: {
-            title: "{SHORT_NM}",
-            content: [{
-               type: "fields",
-               fieldInfos: [
-                  { fieldName: "SHORT_NM", label: "Borehole Name" },
-                  { fieldName: "BOREHOLE_D", label: "Borehole ID" },
-                  { fieldName: "Shape_Length", label: "Length" }
-               ]
-            }]
-         },
-         visible: activeLayers.includes('well-trajectories'),
-         elevationInfo: { mode: "on-the-ground" },
-         minScale: 600000,
-         outFields: ["SHORT_NM", "BOREHOLE_D", "Shape_Length"],
-         labelingInfo: [
-            new LabelClass({
-               labelExpressionInfo: { expression: "$feature.SHORT_NM" },
-               symbol: new TextSymbol({
-                  color: "white",
-                  haloColor: "black",
-                  haloSize: 1,
-                  font: { size: 8, weight: "normal", family: "Arial" }
-               }),
-               minScale: 600000,
-               maxScale: 0 // Label visible when zoomed in closer than 1:600,000
-            })
-         ]
-      })
-      map.add(wellTrajLayer)
-      layersRef.current['well-trajectories'] = wellTrajLayer
+      // --- Wells and Trajectories will be added at the end for top layer positioning ---
 
       // --- Seismic 2D Lines (Local GeoJSON) ---
       const seismicLayer = new GeoJSONLayer({
@@ -624,6 +529,101 @@ export function MapArea({
       // Store layer reference for later GeoTIFF rendering
       f3HorizonGraphicsLayerRef.current = f3HorizonLayer
 
+      // --- Well Trajectories (Local GeoJSON) --- [Second from top]
+      const wellTrajLayer = new GeoJSONLayer({
+         url: '/data/Wells_Trajectories.json',
+         copyright: "NDR / AFED Digital",
+         renderer: {
+            type: "simple",
+            symbol: {
+               type: "simple-line",
+               color: [0, 0, 0, 1], // Black
+               width: 2.5
+            } as any
+         },
+         popupTemplate: {
+            title: "{SHORT_NM}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "SHORT_NM", label: "Borehole Name" },
+                  { fieldName: "BOREHOLE_D", label: "Borehole ID" },
+                  { fieldName: "Shape_Length", label: "Length" }
+               ]
+            }]
+         },
+         visible: activeLayers.includes('well-trajectories'),
+         elevationInfo: { mode: "on-the-ground" },
+         minScale: 600000,
+         outFields: ["SHORT_NM", "BOREHOLE_D", "Shape_Length"],
+         labelingInfo: [
+            new LabelClass({
+               labelExpressionInfo: { expression: "$feature.SHORT_NM" },
+               symbol: new TextSymbol({
+                  color: "white",
+                  haloColor: "black",
+                  haloSize: 1,
+                  font: { size: 8, weight: "normal", family: "Arial" }
+               }),
+               minScale: 600000,
+               maxScale: 0
+            })
+         ]
+      })
+      map.add(wellTrajLayer)
+      layersRef.current['well-trajectories'] = wellTrajLayer
+
+      // --- Wells Layer (Local GeoJSON) --- [Top layer]
+      const wellsLayer = new GeoJSONLayer({
+         url: '/data/Wells.json',
+         copyright: "NDR / AFED Digital",
+         renderer: {
+            type: "simple",
+            symbol: {
+               type: "simple-marker",
+               style: "circle",
+               color: [0, 0, 0, 1], // Black
+               size: 4
+            } as any
+         },
+         labelingInfo: [
+            new LabelClass({
+               labelExpressionInfo: { expression: "$feature.IDENTIFICA" },
+               symbol: new TextSymbol({
+                  color: "white",
+                  haloColor: "black",
+                  haloSize: 1,
+                  font: { size: 8, weight: "normal", family: "Arial" }
+               }),
+               minScale: 600000,
+               maxScale: 0
+            })
+         ],
+         outFields: ["*"],
+         popupTemplate: {
+            title: "{IDENTIFICA}",
+            content: [{
+               type: "fields",
+               fieldInfos: [
+                  { fieldName: "IDENTIFICA", label: "Well Name" },
+                  { fieldName: "OPERATOR", label: "Operator" },
+                  { fieldName: "WELL_TYPE", label: "Type" },
+                  { fieldName: "STATUS", label: "Status" },
+                  { fieldName: "WELL_RESUL", label: "Result" },
+                  { fieldName: "START_DATE", label: "Start Date" },
+                  { fieldName: "END_DEPTH_", label: "Total Depth (m)" },
+                  { fieldName: "FIELD_NAME", label: "Field" }
+               ]
+            }]
+         },
+         popupEnabled: false,
+         visible: activeLayers.includes('wells'),
+         elevationInfo: { mode: "on-the-ground" },
+         minScale: 600000
+      })
+      map.add(wellsLayer)
+      layersRef.current['wells'] = wellsLayer
+
       // (Mining Facilities layer removed per new GIS structure)
 
       // 4. Create View
@@ -725,14 +725,14 @@ export function MapArea({
                   const centroid = polygon.centroid || polygon.extent?.center
                   if (!centroid) return
                   
-                  // Create text symbol that scales with map
+                  // Create text symbol - start with small font (5), will scale up on zoom
                   const labelGraphic = new Graphic({
                      geometry: centroid,
                      symbol: {
                         type: "text",
                         text: blockName,
                         color: [100, 100, 100, 1],
-                        font: { size: 10, weight: "bold", family: "Arial" },
+                        font: { size: 5, weight: "bold", family: "Arial" },
                         haloColor: [255, 255, 255, 0.8],
                         haloSize: 1
                      } as any,
@@ -746,6 +746,32 @@ export function MapArea({
                blockLabelsLayer.addMany(labelGraphics)
                
                console.log(`🗺️ Added ${labelGraphics.length} block labels that scale with map`)
+               
+               // Function to update label sizes based on zoom
+               const updateLabelSizes = (scale: number) => {
+                  const isZoomedIn = scale < 600000
+                  const newSize = isZoomedIn ? 10 : 5 // Double size when zoomed in
+                  
+                  labelGraphics.forEach((graphic: __esri.Graphic) => {
+                     const symbol = graphic.symbol as __esri.TextSymbol
+                     if (symbol && symbol.font) {
+                        symbol.font = { ...symbol.font, size: newSize }
+                     }
+                  })
+                  
+                  // Refresh the layer to apply changes
+                  blockLabelsLayer.visible = false
+                  blockLabelsLayer.visible = true
+               }
+               
+               // Watch scale changes and update label sizes
+               view.watch('scale', (newScale: number) => {
+                  updateLabelSizes(newScale)
+               })
+               
+               // Initial size update
+               updateLabelSizes(view.scale)
+               
             }).catch((err: Error) => {
                console.warn('Could not create block labels:', err)
             })
