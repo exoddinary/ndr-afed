@@ -1,5 +1,8 @@
+
+
 "use client"
 
+import ReactECharts from "echarts-for-react"
 import { X, Database, GitCompare, ChevronRight, FileText, FileDown, Download, ExternalLink, Info } from "lucide-react"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
@@ -180,6 +183,8 @@ function SeismicViewer() {
 import { MOCK_BLOCKS, type BlockCommercialData } from "@/data/investor-data"
 import { Plus, Box, Phone, Mail, Building2, LayoutDashboard, Layers, DollarSign, Lock } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, ReferenceLine } from "recharts"
+
+
 
 // Locked Content component for non-premium users
 function LockedContentPrompt({ tabName, theme = 'light' }: { tabName: string, theme?: 'light' | 'dark' }) {
@@ -622,135 +627,180 @@ function BlockDetailsContent({
                                 </div>
                             </div>
 
-                            {/* Subsurface Data Uncertainty */}
+                            {/* Subsurface Data Uncertainty - ECharts Tornado Chart */}
                             {(() => {
-                                // Derive uncertainty scores
-                                const r = blockData.risks
-                                const hasProduction = (blockData.production?.length ?? 0) > 0
-                                const hasReserves = !!(blockData.resources.gasReserves2P || blockData.resources.oilReserves2P)
-                                const hasProspective = !!(blockData.resources.prospectiveGasMean || blockData.resources.prospectiveOilMean)
-                                const waterDepth = blockData.infrastructure.waterDepth ?? 0
-
-                                const seismicScore = Math.min(100, Math.max(10,
-                                    (hasReserves ? 70 : hasProspective ? 45 : 30) +
-                                    (10 - r.technical) * 3
-                                ))
-                                const wellScore = Math.min(100, Math.max(5,
-                                    (hasProduction ? 80 : hasReserves ? 55 : 20) +
-                                    (10 - r.technical) * 2
-                                ))
-                                const reservoirScore = Math.min(100, Math.max(10,
-                                    (hasProduction ? 75 : hasReserves ? 50 : 25) +
-                                    (10 - r.technical) * 3 - (waterDepth > 100 ? 10 : 0)
-                                ))
-                                const fluidScore = Math.min(100, Math.max(5,
-                                    hasProduction ? 82 : hasReserves ? 48 : 18
-                                ))
-                                const structuralScore = Math.min(100, Math.max(15,
-                                    (hasReserves ? 72 : hasProspective ? 44 : 28) +
-                                    (10 - r.technical) * 2
-                                ))
-
-                                const dims: { label: string; score: number; note: string }[] = [
-                                    { label: "Seismic Coverage", score: seismicScore, note: seismicScore >= 70 ? "3D acquired" : seismicScore >= 45 ? "2D / partial 3D" : "Sparse 2D only" },
-                                    { label: "Well Control", score: wellScore, note: wellScore >= 70 ? "Multiple wells" : wellScore >= 45 ? "1–2 wells" : "Undrilled" },
-                                    { label: "Reservoir Characterisation", score: reservoirScore, note: reservoirScore >= 70 ? "High confidence" : reservoirScore >= 45 ? "Moderate" : "Conceptual" },
-                                    { label: "Fluid Sampling", score: fluidScore, note: fluidScore >= 70 ? "MDT / PVT available" : fluidScore >= 45 ? "Limited samples" : "No samples" },
-                                    { label: "Structural Confidence", score: structuralScore, note: structuralScore >= 70 ? "Seismically defined" : structuralScore >= 45 ? "Depth-converted" : "Analogue-based" },
+                                // Base Case P50 = 45 MMbbl
+                                const baseCase = 45
+                                
+                                // Proper tornado data ordered from bottom to top (ECharts y-axis order)
+                                const tornadoData = [
+                                    { variable: "Boi", low: 43, high: 50, lowLabel: "LOW P90: 45", highLabel: "50 MMbbl" },
+                                    { variable: "Soi", low: 43, high: 50, lowLabel: "LOW P90: 45", highLabel: "50 MMbbl" },
+                                    { variable: "Avg Porosity (Φ)", low: 40, high: 60, lowLabel: "LOW P90: 40", highLabel: "60 MMbbl" },
+                                    { variable: "NTG", low: 30, high: 60, lowLabel: "LOW P90: 30 MMbbl", highLabel: "60 MMbbl" },
+                                    { variable: "GRV", low: 20, high: 82, lowLabel: "LOW P90: 20 MMbbl", highLabel: "P10 100 MMbbl" },
                                 ]
 
-                                const overallScore = Math.round(dims.reduce((s, d) => s + d.score, 0) / dims.length)
-                                const overallLabel = overallScore >= 70 ? "HIGH CONFIDENCE" : overallScore >= 45 ? "MODERATE" : "LOW — HIGH RISK"
-                                const overallColor = overallScore >= 70 ? "text-emerald-600" : overallScore >= 45 ? "text-amber-600" : "text-red-500"
-                                const overallBg = overallScore >= 70 ? "bg-emerald-50 border-emerald-100" : overallScore >= 45 ? "bg-amber-50 border-amber-100" : "bg-red-50 border-red-100"
-                                const overallBgDark = overallScore >= 70 ? "bg-emerald-950/30 border-emerald-900/50" : overallScore >= 45 ? "bg-amber-950/30 border-amber-900/50" : "bg-red-950/30 border-red-900/50"
-
-                                // Primary data gap note
-                                const lowestDim = dims.reduce((a, b) => a.score < b.score ? a : b)
-                                const gapNote = `Primary uncertainty: ${lowestDim.label.toLowerCase()} (${lowestDim.note.toLowerCase()})`
-
-                                const barColor = (s: number) =>
-                                    s >= 70 ? "bg-emerald-500" : s >= 45 ? "bg-amber-400" : "bg-red-400"
-                                const labelColor = (s: number) =>
-                                    s >= 70 ? "text-emerald-600" : s >= 45 ? "text-amber-600" : "text-red-500"
-                                const confidenceLabel = (s: number) =>
-                                    s >= 70 ? "High" : s >= 45 ? "Med" : "Low"
+                                const tornadoOptions = {
+                                    backgroundColor: 'transparent',
+                                    tooltip: {
+                                        trigger: 'axis',
+                                        axisPointer: { type: 'shadow' },
+                                        formatter: function (params: any) {
+                                            const low = params[0];
+                                            const high = params[1];
+                                            return `
+                                                <div class="font-bold mb-1">${low.name}</div>
+                                                <div>Low Case (P90): <span class="font-mono text-red-500">${(low.value + baseCase).toFixed(0)} MMbbl</span></div>
+                                                <div>High Case (P10): <span class="font-mono text-emerald-500">${(high.value + baseCase).toFixed(0)} MMbbl</span></div>
+                                            `;
+                                        }
+                                    },
+                                    grid: {
+                                        left: '25%', // More space for labels
+                                        right: '5%',
+                                        bottom: '15%',
+                                        top: '10%',
+                                        containLabel: false
+                                    },
+                                    xAxis: {
+                                        type: 'value',
+                                        min: 10 - baseCase, // -35
+                                        max: 100 - baseCase, // 55
+                                        interval: 10,
+                                        splitLine: {
+                                            show: false // Hide vertical grid lines to match image
+                                        },
+                                        axisLabel: {
+                                            formatter: function(value: number) {
+                                                const val = value + baseCase;
+                                                // Only show specific ticks to match image: 10, 20, 30, 45, 60, 70, 80, 90, 100
+                                                if ([10, 20, 30, 45, 60, 70, 80, 90, 100].includes(val)) {
+                                                    return val;
+                                                }
+                                                return '';
+                                            },
+                                            color: theme === 'dark' ? '#94a3b8' : '#64748b',
+                                            fontSize: 10,
+                                            margin: 15
+                                        },
+                                        axisLine: { show: false },
+                                        axisTick: { show: false }
+                                    },
+                                    yAxis: {
+                                        type: 'category',
+                                        data: tornadoData.map(d => d.variable),
+                                        axisLine: { show: false },
+                                        axisTick: { show: false },
+                                        axisLabel: {
+                                            color: theme === 'dark' ? '#cbd5e1' : '#334155',
+                                            fontSize: 11,
+                                            fontWeight: '500',
+                                            margin: 20
+                                        }
+                                    },
+                                    series: [
+                                        {
+                                            name: 'LOW CASE (P90)',
+                                            type: 'bar',
+                                            stack: 'Total',
+                                            itemStyle: { color: '#dc2626', borderRadius: [4, 0, 0, 4] }, // red-600
+                                            barWidth: 16,
+                                            label: {
+                                                show: true,
+                                                position: 'left',
+                                                formatter: (params: any) => tornadoData[params.dataIndex].lowLabel,
+                                                color: theme === 'dark' ? '#cbd5e1' : '#334155',
+                                                fontSize: 9,
+                                                align: 'right',
+                                                distance: 8
+                                            },
+                                            data: tornadoData.map(d => d.low - baseCase)
+                                        },
+                                        {
+                                            name: 'HIGH CASE (P10)',
+                                            type: 'bar',
+                                            stack: 'Total',
+                                            itemStyle: { color: '#059669', borderRadius: [0, 4, 4, 0] }, // emerald-600
+                                            barWidth: 16,
+                                            label: {
+                                                show: true,
+                                                position: 'right',
+                                                formatter: (params: any) => tornadoData[params.dataIndex].highLabel,
+                                                color: theme === 'dark' ? '#cbd5e1' : '#334155',
+                                                fontSize: 9,
+                                                align: 'left',
+                                                distance: 8
+                                            },
+                                            data: tornadoData.map(d => d.high - baseCase)
+                                        }
+                                    ]
+                                };
 
                                 return (
                                     <div>
                                         <div className={cn("h-px mb-6", theme === 'dark' ? "bg-slate-800" : "bg-gray-100")} />
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h4 className={cn(
-                                                "text-[10px] font-bold uppercase tracking-wider",
-                                                theme === 'dark' ? "text-slate-400" : "text-slate-500"
-                                            )}>Subsurface Data Uncertainty</h4>
-                                            <span className={cn(
-                                                "text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wide",
-                                                theme === 'dark' ? overallBgDark : overallBg,
-                                                overallColor
-                                            )}>
-                                                {overallLabel}
-                                            </span>
-                                        </div>
-
-                                        {/* Score bars */}
-                                        <div className="space-y-3">
-                                            {dims.map((d) => (
-                                                <div key={d.label}>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <span className={cn(
-                                                            "text-[11px] font-medium",
-                                                            theme === 'dark' ? "text-slate-300" : "text-slate-600"
-                                                        )}>{d.label}</span>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[9px] text-slate-400 italic">{d.note}</span>
-                                                            <span className={`text-[9px] font-bold ${labelColor(d.score)} w-6 text-right`}>{confidenceLabel(d.score)}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className={cn(
-                                                        "h-1.5 w-full rounded-full overflow-hidden",
-                                                        theme === 'dark' ? "bg-slate-800" : "bg-slate-100"
-                                                    )}>
-                                                        <div
-                                                            className={`h-full rounded-full transition-all duration-500 ${barColor(d.score)}`}
-                                                            style={{ width: `${d.score}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {/* Divider lines legend */}
+                                        
+                                        {/* Title & Base Case Header */}
                                         <div className={cn(
-                                            "flex items-center gap-3 mt-3 pt-3 border-t",
-                                            theme === 'dark' ? "border-slate-800" : "border-slate-100"
+                                            "flex flex-col items-center justify-center gap-4 mb-2 p-4 rounded-lg border",
+                                            theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
                                         )}>
-                                            <div className="flex items-center gap-1">
-                                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                                <span className="text-[9px] text-slate-500">High ≥70</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <div className="w-2 h-2 rounded-full bg-amber-400" />
-                                                <span className="text-[9px] text-slate-500">Med 45–69</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <div className="w-2 h-2 rounded-full bg-red-400" />
-                                                <span className="text-[9px] text-slate-500">Low &lt;45</span>
+                                            <span className={cn(
+                                                "text-[15px] font-bold tracking-wide",
+                                                theme === 'dark' ? "text-slate-200" : "text-slate-800"
+                                            )}>Base Case (P50): {baseCase} MMbbl</span>
+                                            
+                                            <div className="flex items-center gap-8">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full bg-[#dc2626]" />
+                                                    <span className={cn("text-[10px] uppercase", theme === 'dark' ? "text-slate-400" : "text-slate-600")}>LOW CASE (P90)</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full bg-[#059669]" />
+                                                    <span className={cn("text-[10px] uppercase", theme === 'dark' ? "text-slate-400" : "text-slate-600")}>HIGH CASE (P10)</span>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Data gap callout */}
+                                        {/* Tornado Chart Container */}
+                                        <div className={cn(
+                                            "border rounded pt-2 pb-0 relative",
+                                            theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                                        )}>
+                                            {/* Base case center line */}
+                                            <div className="absolute top-[30px] bottom-[40px] w-0 border-l border-dashed z-0" 
+                                                 style={{ 
+                                                     left: `calc(25% + ${((baseCase - 10) / 90) * 70}%)`,
+                                                     borderColor: theme === 'dark' ? '#475569' : '#cbd5e1'
+                                                 }} />
+                                                 
+                                            <ReactECharts
+                                                option={tornadoOptions}
+                                                style={{ height: '300px', width: '100%' }}
+                                                opts={{ renderer: 'svg' }}
+                                            />
+                                            <div className={cn(
+                                                "absolute bottom-3 left-0 right-0 text-center text-[10px] font-bold",
+                                                theme === 'dark' ? "text-slate-400" : "text-slate-500"
+                                            )}>
+                                                STOIIP (MILLION BARRELS)
+                                            </div>
+                                        </div>
+
+                                        {/* Interpretation note */}
                                         <div className={cn(
                                             "mt-3 p-2.5 rounded border flex items-start gap-2",
                                             theme === 'dark' ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-100"
                                         )}>
-                                            <svg className="w-3 h-3 text-slate-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
+                                            <Info className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                                             <p className={cn(
                                                 "text-[10px] leading-relaxed",
                                                 theme === 'dark' ? "text-slate-400" : "text-slate-500"
-                                            )}>{gapNote}. Full data packages available in the NDR subsurface library.</p>
+                                            )}>
+                                                Sensitivity analysis shows GRV has the largest impact on STOIIP (20-100 MMbbl range), 
+                                                followed by NTG and Porosity. Soi and Boi have minimal impact. Full data packages available in NDR subsurface library.
+                                            </p>
                                         </div>
                                     </div>
                                 )
