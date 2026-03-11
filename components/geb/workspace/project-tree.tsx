@@ -124,14 +124,14 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
         <div
           ref={node.id === 'seismic-2d' ? seismic2dRef : undefined}
           className={cn(
-            "flex items-center h-7 cursor-pointer select-none group transition-colors",
+            "flex items-center h-8 cursor-pointer select-none group transition-all duration-200 mx-2 rounded-md my-0.5 relative",
             theme === 'dark' 
-              ? "hover:bg-slate-800" 
-              : "hover:bg-gray-100",
+              ? "hover:bg-slate-800/50" 
+              : "hover:bg-slate-50",
             isActive && (
               theme === 'dark'
-                ? "bg-blue-500/20 text-blue-400 border-r-2 border-blue-500"
-                : "bg-primary/10 text-primary border-r-2 border-primary"
+                ? "bg-slate-800/80 shadow-sm"
+                : "bg-white shadow-sm ring-1 ring-slate-200/50"
             )
           )}
           onClick={() => {
@@ -223,10 +223,10 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
               "truncate font-medium",
               node.style || "text-xs",
               isActive 
-                ? theme === 'dark' ? "text-blue-400" : "text-primary"
+                ? theme === 'dark' ? "text-slate-100" : "text-primary"
                 : theme === 'dark'
-                  ? "text-slate-300 group-hover:text-slate-100"
-                  : "text-slate-700 group-hover:text-slate-900"
+                  ? "text-slate-400 group-hover:text-slate-200"
+                  : "text-slate-600 group-hover:text-slate-900"
             )}>
               {node.label}
             </span>
@@ -239,18 +239,23 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
           )}>
             {isActive ? (
               <Eye className={cn(
-                "w-3 h-3",
-                theme === 'dark' ? "text-blue-400" : "text-primary"
+                "w-3.5 h-3.5",
+                theme === 'dark' ? "text-slate-300" : "text-primary"
               )} />
             ) : (
               <EyeOff className={cn(
-                "w-3 h-3",
+                "w-3.5 h-3.5",
                 theme === 'dark' 
                   ? "text-slate-600 hover:text-slate-400" 
                   : "text-slate-300 hover:text-slate-500"
               )} />
             )}
           </div>
+          
+          {/* Active indicator line on the right */}
+          {isActive && (
+            <div className="absolute right-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-md" />
+          )}
         </div>
 
         {hasChildren && isExpanded && (

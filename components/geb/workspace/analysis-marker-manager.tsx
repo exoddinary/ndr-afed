@@ -284,9 +284,9 @@ export function AnalysisMarkerManager({
         type: "simple-fill",
         color: [59, 130, 246, 0.1], // Light blue fill
         outline: {
-          color: [59, 130, 246, 0.6], // Blue outline
+          color: [59, 130, 246, 0.8], // Solid blue outline
           width: 2,
-          style: "dash"
+          style: "solid"
         }
       } as any
     })
@@ -348,39 +348,80 @@ export function AnalysisMarkerManager({
         radiusUnit: "kilometers"
       })
 
+      // Outer masking polygon (inverted circle) to darken the rest of the map
+      if (selectedMarkerId === marker.id) {
+        // Create a massive polygon that covers the whole world
+        const worldExtent = [
+          [-180, -90],
+          [180, -90],
+          [180, 90],
+          [-180, 90],
+          [-180, -90]
+        ]
+        
+        // Generate points for the circle hole (needs to be reversed winding order for a hole)
+        const holePoints: number[][] = []
+        // Circle.rings[0] contains the polygon points for the circle
+        const circleRings = (circle as any).rings?.[0]
+        if (circleRings) {
+          // Add points in reverse order to create a hole
+          for (let i = circleRings.length - 1; i >= 0; i--) {
+            holePoints.push([circleRings[i][0], circleRings[i][1]])
+          }
+          
+          const maskGraphic = new Graphic({
+            geometry: {
+              type: "polygon",
+              rings: [worldExtent, holePoints],
+              spatialReference: { wkid: 4326 }
+            } as any,
+            symbol: new SimpleFillSymbol({
+              color: [0, 0, 0, 0.6], // Dark mask
+              outline: {
+                color: [0, 0, 0, 0], // No outline
+                width: 0
+              }
+            }),
+            attributes: { markerId: marker.id, type: "mask" }
+          })
+          graphics.push(maskGraphic)
+        }
+      }
+
+      // Radius circle
       const circleGraphic = new Graphic({
         geometry: circle,
         symbol: new SimpleFillSymbol({
-          color: [...hexToRgb(marker.color), 0.1], // 10% opacity
+          color: [...hexToRgb(marker.color), 0.05], // Very subtle inside
           outline: {
             color: marker.color,
-            width: 2,
-            style: "dash"
+            width: selectedMarkerId === marker.id ? 3 : 2, // Thicker when selected
+            style: "solid" // Solid line looks more premium
           }
         }),
         attributes: { markerId: marker.id, type: "radius" }
       })
       graphics.push(circleGraphic)
 
-      // Label
-      if (selectedMarkerId === marker.id) {
-        const labelGraphic = new Graphic({
-          geometry: point,
-          symbol: new TextSymbol({
-            text: marker.label,
-            color: "#1e293b",
-            haloColor: "white",
-            haloSize: 2,
-            font: {
-              size: 12,
-              weight: "bold"
-            },
-            yoffset: -20
-          }),
-          attributes: { markerId: marker.id, type: "label" }
-        })
-        graphics.push(labelGraphic)
-      }
+      // Label - REMOVED as per user request
+      // if (selectedMarkerId === marker.id) {
+      //   const labelGraphic = new Graphic({
+      //     geometry: point,
+      //     symbol: new TextSymbol({
+      //       text: marker.label,
+      //       color: "#1e293b",
+      //       haloColor: "white",
+      //       haloSize: 2,
+      //       font: {
+      //         size: 12,
+      //         weight: "bold"
+      //       },
+      //       yoffset: -20
+      //     }),
+      //     attributes: { markerId: marker.id, type: "label" }
+      //   })
+      //   graphics.push(labelGraphic)
+      // }
 
       graphics.forEach(g => view.graphics.add(g))
       graphicsRef.current.set(marker.id, graphics)
@@ -438,81 +479,7 @@ export function AnalysisMarkerManager({
               Click anywhere on the map to place spatial analysis marker
             </div>
           )}
-
-          {/* Marker List - Bottom left panel */}
-          {markers.length > 0 && (
-        <motion.div 
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="absolute bottom-4 left-4 z-[1000] bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-3 w-64 border border-slate-200/50"
-        >
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-              Active Analysis
-            </h3>
-            <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md border border-slate-200">
-              {markers.length}
-            </span>
-          </div>
-
-          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-            {markers.map(marker => (
-              <motion.div
-                layout
-                key={marker.id}
-                className={`group flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all border ${
-                  selectedMarkerId === marker.id
-                    ? "bg-blue-600 border-blue-500 shadow-blue-200 shadow-lg translate-x-1"
-                    : "bg-white border-slate-100 hover:border-blue-200 hover:shadow-md"
-                }`}
-                onClick={() => setSelectedMarkerId(marker.id)}
-              >
-                <div 
-                  className={`w-2 h-2 rounded-full ring-2 ring-offset-2 transition-all ${
-                    selectedMarkerId === marker.id ? "ring-white bg-white" : "ring-transparent"
-                  }`}
-                  style={{ backgroundColor: selectedMarkerId === marker.id ? undefined : marker.color }}
-                />
-                <span className={`text-xs font-bold flex-1 truncate ${
-                  selectedMarkerId === marker.id ? "text-white" : "text-slate-700"
-                }`}>
-                  {marker.label}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    deleteMarker(marker.id)
-                  }}
-                  className={`p-1 rounded-md transition-all ${
-                    selectedMarkerId === marker.id 
-                      ? "text-blue-200 hover:text-white hover:bg-white/10" 
-                      : "opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 hover:bg-red-50"
-                  }`}
-                  title="Delete marker"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </motion.div>
-            ))}
-          </div>
-          
-          {isCreating && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              className="mt-3 pt-3 border-t border-slate-100"
-            >
-              <p className="text-[10px] text-blue-600 font-bold text-center flex items-center justify-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                </span>
-                Click on map to drop marker
-              </p>
-            </motion.div>
-          )}
-        </motion.div>
+        </>
       )}
 
       {/* Selected Marker Panel - only show after placement (not during creation) */}
@@ -532,8 +499,6 @@ export function AnalysisMarkerManager({
         />
       )}
     </>
-  )}
-  </>
   )
 }
 
@@ -810,31 +775,23 @@ function AnalysisMarkerPanel({
         <AnimatePresence>
           {marker.isExpanded && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full mt-[28px] left-1/2 -translate-x-1/2 bg-white rounded-lg shadow-lg border border-slate-200 p-2 flex items-center gap-2 z-[1003]"
+              initial={{ opacity: 0, scale: 0.8, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -20 }}
+              className="absolute top-full mt-[12px] left-1/2 -translate-x-1/2 z-[1003]"
             >
-              <span className="text-[10px] font-bold text-slate-500">1km</span>
-              <input
-                type="range"
-                min={1}
-                max={50}
-                value={marker.radiusKm}
-                onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
-                onKeyDown={(e) => {
-                  if (e.metaKey && e.key === 'Enter') {
-                    e.preventDefault()
-                    // Trigger data analysis or apply action
-                    if (marker.activeMode !== 'data') {
-                      handleModeChange('data')
-                    }
+              <ArcSlider 
+                value={marker.radiusKm} 
+                min={1} 
+                max={50} 
+                onChange={(val) => {
+                  handleRadiusChange(val)
+                  if (marker.activeMode !== 'data') {
+                    handleModeChange('data')
                   }
-                }}
-                className="w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                }} 
+                color={marker.color} 
               />
-              <span className="text-[10px] font-bold text-slate-500">50km</span>
-              <span className="text-[10px] font-bold text-purple-600 ml-1">{marker.radiusKm}km</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -900,10 +857,10 @@ function AnalysisMarkerPanel({
           />
           <motion.div
             initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: marker.activeMode === "data" ? 0 : 1, y: 0 }}
-            className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/90 px-2 py-0.5 rounded shadow-sm border border-slate-200"
+            animate={{ opacity: 0, y: 0 }} // Changed to always be opacity 0 to hide label
+            className="hidden absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-900/80 backdrop-blur-sm px-2.5 py-1 rounded-md shadow-md border border-slate-700/50 mt-1"
           >
-            <span className="text-[10px] font-bold text-slate-800 uppercase tracking-tight">{marker.label}</span>
+            <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">{marker.label}</span>
           </motion.div>
         </div>
 
@@ -1239,6 +1196,173 @@ function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage
   )
 }
 
+function ArcSlider({ 
+  value, 
+  min = 1, 
+  max = 50, 
+  onChange, 
+  color 
+}: { 
+  value: number; 
+  min?: number; 
+  max?: number; 
+  onChange: (val: number) => void; 
+  color: string;
+}) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const width = 280;
+  const height = 180; // Increased height to fit the pill above the arc
+  const cx = width / 2;
+  const cy = 0; // Moved further down to leave space at the top
+  const r = 90;
+  
+  const startAngle = 140;
+  const endAngle = 40;
+  
+  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
+    const angleInRadians = (angleInDegrees * Math.PI) / 180.0;
+    return {
+      x: centerX + (radius * Math.cos(angleInRadians)),
+      y: centerY + (radius * Math.sin(angleInRadians))
+    };
+  };
+
+  const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
+    const start = polarToCartesian(x, y, radius, startAngle);
+    const end = polarToCartesian(x, y, radius, endAngle);
+    // For a downward arch from 150 to 30, the arc should be drawn counter-clockwise (sweep-flag = 0)
+    const largeArcFlag = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1";
+    return [
+      "M", start.x, start.y, 
+      "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
+    ].join(" ");
+  };
+
+  const trackPath = describeArc(cx, cy, r, startAngle, endAngle);
+
+  // Map value to angle
+  const valueRatio = (value - min) / (max - min);
+  const currentAngle = startAngle + valueRatio * (endAngle - startAngle);
+  const thumbPos = polarToCartesian(cx, cy, r, currentAngle);
+  
+  // Create fill path, handle case where value is exactly min (no fill)
+  const fillPath = value > min ? describeArc(cx, cy, r, startAngle, currentAngle) : "";
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    updateValueFromEvent(e);
+    (e.target as Element).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (isDragging) {
+      updateValueFromEvent(e);
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    (e.target as Element).releasePointerCapture(e.pointerId);
+  };
+
+  const updateValueFromEvent = (e: React.PointerEvent) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Calculate angle from center
+    let angle = Math.atan2(y - cy, x - cx) * 180 / Math.PI;
+    if (angle < 0) angle += 360;
+    
+    let clampedAngle = angle;
+    
+    // For downward arc (140 to 40), valid range is 40..140
+    if (angle < endAngle) clampedAngle = endAngle; // < 40
+    if (angle > startAngle) { // > 140
+        // If they drag way past the end, we don't want it to jump back to start
+        if (angle < 270) clampedAngle = startAngle;
+        else clampedAngle = endAngle;
+    }
+
+    // Ratio is based on how far we are from startAngle (140) towards endAngle (40)
+    // We want 0km at left (140 deg) and 50km at right (40 deg)
+    const ratio = (startAngle - clampedAngle) / (startAngle - endAngle);
+    const newValue = Math.round(min + ratio * (max - min));
+    onChange(Math.max(min, Math.min(max, newValue)));
+  };
+
+  return (
+    <div className="relative flex flex-col items-center select-none w-[280px]">
+      <svg 
+        ref={svgRef}
+        width={width} 
+        height={height} 
+        className="touch-none"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        {/* Background track */}
+        <path 
+          d={trackPath} 
+          fill="none" 
+          stroke="rgba(30, 41, 59, 0.8)" 
+          strokeWidth="10" 
+          strokeLinecap="round" 
+          className="cursor-pointer"
+        />
+        {/* Fill track */}
+        {fillPath && (
+          <path 
+            d={fillPath} 
+            fill="none" 
+            stroke={color} 
+            strokeWidth="10" 
+            strokeLinecap="round" 
+            className="cursor-pointer pointer-events-none"
+          />
+        )}
+        {/* Thumb */}
+        <circle 
+          cx={thumbPos.x} 
+          cy={thumbPos.y} 
+          r={isDragging ? 12 : 10} 
+          fill="white" 
+          stroke={color}
+          strokeWidth="4"
+          className="cursor-grab hover:cursor-grabbing transition-all duration-150 ease-out pointer-events-none"
+          style={{ filter: "drop-shadow(0px 4px 6px rgba(0,0,0,0.4))" }}
+        />
+      </svg>
+      
+      {/* Value Display in the center of the arch */}
+      <div 
+        className="absolute top-[0px] left-1/2 -translate-x-1/2 flex flex-col items-center justify-center w-14 h-14 rounded-2xl shadow-lg backdrop-blur-md pointer-events-none"
+        style={{ 
+          background: `linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))`,
+          backgroundColor: `${color}15`,
+          border: `1px solid ${color}30`,
+          boxShadow: `0 4px 12px ${color}30, inset 0 1px 0 rgba(255,255,255,0.2)`
+        }}
+      >
+        <span className="text-[20px] font-black leading-none" style={{ color: color, textShadow: `0 2px 4px rgba(0,0,0,0.5)` }}>
+          {value}
+        </span>
+        <span className="text-[10px] font-black uppercase tracking-wider mt-0.5 opacity-80" style={{ color: color }}>
+          KM
+        </span>
+      </div>
+
+      {/* Range Labels */}
+      <div className="absolute top-[110px] left-8 text-[11px] font-bold text-slate-500 font-mono">0km</div>
+      <div className="absolute top-[110px] right-8 text-[11px] font-bold text-slate-500 font-mono">50km</div>
+    </div>
+  );
+}
+
 // Mini Comment View
 interface CommentMiniViewProps {
   comments: MarkerComment[]
@@ -1255,35 +1379,54 @@ function CommentMiniView({ comments, newComment, onNewCommentChange, onAddCommen
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex gap-1.5">
-        <input 
-          value={newComment}
-          onChange={e => onNewCommentChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Add comment..."
-          className="flex-1 text-xs px-2 py-1.5 border border-slate-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none"
-        />
-        <button 
-          onClick={onAddComment} 
-          disabled={!newComment.trim()}
-          className="bg-blue-600 text-white p-1.5 rounded-md disabled:bg-slate-300"
-        >
-          <Send className="w-3 h-3"/>
-        </button>
+    <div className="space-y-3 p-1">
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <input 
+            value={newComment}
+            onChange={e => onNewCommentChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Add a note or comment..."
+            className="w-full text-xs px-3 py-2 pr-8 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition-all"
+          />
+          <button 
+            onClick={onAddComment} 
+            disabled={!newComment.trim()}
+            className="absolute right-1 top-1 bottom-1 p-1.5 text-blue-600 hover:bg-blue-50 rounded-md disabled:text-slate-300 disabled:hover:bg-transparent transition-colors"
+          >
+            <Send className="w-3.5 h-3.5"/>
+          </button>
+        </div>
       </div>
-      <div className="space-y-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
-        {comments.length === 0 ? (
-          <div className="text-[10px] text-slate-400 text-center py-2">No comments yet</div>
-        ) : (
-          comments.map((c: any) => (
-            <div key={c.id} className="text-[10px] bg-slate-50 p-1.5 rounded border border-slate-100">
-              <span className="font-bold text-slate-700">{c.user}: </span>
-              <span className="text-slate-600">{c.text}</span>
+      
+      {comments.length > 0 && (
+        <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+          {comments.map((c: any) => (
+            <div key={c.id} className="flex gap-2 group">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold shadow-sm">
+                {c.user.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 bg-slate-50 border border-slate-100 rounded-xl rounded-tl-sm p-2.5 shadow-sm group-hover:border-slate-200 transition-colors">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-[10px] text-slate-700">{c.user}</span>
+                  <span className="text-[9px] text-slate-400">Just now</span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">{c.text}</p>
+              </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
+      
+      {comments.length === 0 && (
+        <div className="py-6 flex flex-col items-center justify-center text-center">
+          <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center mb-2">
+            <MessageSquare className="w-4 h-4 text-slate-300" />
+          </div>
+          <span className="text-[11px] font-medium text-slate-500">No notes yet</span>
+          <span className="text-[10px] text-slate-400 mt-0.5">Add a note to this area</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -1293,7 +1436,7 @@ function RadialDataVisualization({ stats, color, config, dynamicRadius }: { stat
   const size = (radius + config.vizMaxLineLength + 40) * 2;
   const cx = size / 2;
   const cy = size / 2;
-  const thickness = config.vizLineThickness * 3;
+  const thickness = config.vizLineThickness * 3 + 2; // Added 2px extra thickness
 
   // 1. Corrected Polar helper: Align 0 degrees with TOP (12 o'clock)
   const polarToCartesian = (centerX: number, centerY: number, r: number, angleInDegrees: number) => {
@@ -1328,41 +1471,50 @@ function RadialDataVisualization({ stats, color, config, dynamicRadius }: { stat
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
         
-        {/* 1. Radiating Bars - draw first */}
+        {/* 1. Radiating Bars - with smooth spring animations */}
         {rawData.map((item, i) => {
           // Normalize height: (current value / max value) * max length from config
-          const barLength = (item.value / maxDataValue) * config.vizMaxLineLength + 5;
+          // If value is 0, bar length is 0 (no minimum)
+          const targetBarLength = item.value === 0 ? 0 : (item.value / maxDataValue) * config.vizMaxLineLength * 1.5 + 5;
           
           // Convert angle to radians for trigonometry
-          // Note: SVG Y axis is inverted, so we negate the angle calculation
           const angleRad = (item.angle * Math.PI) / 180;
           
-          // Calculate inner point (on arc edge) using trigonometry
-          // At angle 0 (top), sin(0)=0, cos(0)=1, so we get (cx, cy - radius)
+          // Calculate inner point (on arc edge)
           const innerX = cx + radius * Math.sin(angleRad);
           const innerY = cy - radius * Math.cos(angleRad);
           
-          // Calculate outer point (extended by barLength along same angle)
-          const outerX = cx + (radius + barLength) * Math.sin(angleRad);
-          const outerY = cy - (radius + barLength) * Math.cos(angleRad);
-
           return (
             <g key={`bar-${item.label}`}>
-              {/* The Bar - from arc edge outward along angle */}
-              <line
+              {/* The Bar - animated with spring physics */}
+              <motion.line
                 x1={innerX}
                 y1={innerY}
-                x2={outerX}
-                y2={outerY}
+                x2={innerX + (item.value === 0 ? 0 : targetBarLength) * Math.sin(angleRad)}
+                y2={innerY - (item.value === 0 ? 0 : targetBarLength) * Math.cos(angleRad)}
                 stroke={item.color}
                 strokeWidth={thickness}
                 strokeLinecap="butt"
+                initial={{ 
+                  x2: innerX, 
+                  y2: innerY 
+                }}
+                animate={{ 
+                  x2: innerX + (item.value === 0 ? 0 : targetBarLength) * Math.sin(angleRad),
+                  y2: innerY - (item.value === 0 ? 0 : targetBarLength) * Math.cos(angleRad)
+                }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 120, 
+                  damping: 15,
+                  mass: 0.5
+                }}
               />
               
-              {/* Value Label: at outer end of bar, with white stroke outline */}
-              <text
-                x={outerX}
-                y={outerY - 8}
+              {/* Value Label: always show, positioned closer to bar */}
+              <motion.text
+                x={innerX + (item.value === 0 ? 0 : targetBarLength) * Math.sin(angleRad)}
+                y={innerY - (item.value === 0 ? 0 : targetBarLength) * Math.cos(angleRad) - 4}
                 textAnchor="middle"
                 fontSize="9"
                 fontWeight="bold"
@@ -1370,40 +1522,75 @@ function RadialDataVisualization({ stats, color, config, dynamicRadius }: { stat
                 stroke="white"
                 strokeWidth="2"
                 paintOrder="stroke"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 200, 
+                  damping: 20,
+                  delay: i * 0.05 
+                }}
               >
                 {item.value}
-              </text>
+              </motion.text>
             </g>
           );
         })}
 
-        {/* 2. Dynamic Arc: Split into Purple (Left) and Yellow (Right) */}
-        <path
+        {/* 2. Dynamic Arc: Split into Purple (Left) and Yellow (Right) - with subtle pulse */}
+        <motion.path
           d={describeArc(cx, cy, radius, -60, 0)}
           fill="none"
           stroke="#9333EA"
           strokeWidth={Math.max(8, thickness * 1.5)}
           strokeLinecap="butt"
           opacity="0.9"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 100, 
+            damping: 20,
+            duration: 0.6 
+          }}
         />
-        <path
+        <motion.path
           d={describeArc(cx, cy, radius, 0, 60)}
           fill="none"
           stroke="#EAB308"
           strokeWidth={Math.max(8, thickness * 1.5)}
           strokeLinecap="butt"
           opacity="0.9"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 100, 
+            damping: 20,
+            duration: 0.6,
+            delay: 0.1 
+          }}
         />
 
-        {/* 3. Category Labels - draw LAST so they appear on top */}
+        {/* 3. Category Labels - with fade animation */}
         {rawData.map((item, i) => {
           const angleRad = (item.angle * Math.PI) / 180;
           const innerX = cx + radius * Math.sin(angleRad);
           const innerY = cy - radius * Math.cos(angleRad);
 
           return (
-            <g key={`label-${item.label}`}>
-              {/* Category Label: at inner base of bar, with white bg on top of arc */}
+            <motion.g 
+              key={`label-${item.label}`}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 200, 
+                damping: 20,
+                delay: 0.3 + i * 0.05 
+              }}
+            >
+              {/* Category Label background */}
               <rect
                 x={innerX - 14}
                 y={innerY + 6}
@@ -1424,7 +1611,7 @@ function RadialDataVisualization({ stats, color, config, dynamicRadius }: { stat
               >
                 {item.label}
               </text>
-            </g>
+            </motion.g>
           );
         })}
       </svg>
