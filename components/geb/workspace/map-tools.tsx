@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Circle, Ruler, Trash2, X, Crosshair } from "lucide-react"
+import { cn } from "@/lib/utils"
 import SketchViewModel from "@arcgis/core/widgets/Sketch/SketchViewModel"
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer"
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine"
@@ -14,11 +15,12 @@ type MapToolsProps = {
     view: __esri.MapView | __esri.SceneView | null
     isAnalysisMarkerActive?: boolean
     onAnalysisMarkerToggle?: () => void
+    theme?: 'light' | 'dark'
 }
 
 type ActiveTool = "radius" | "line" | null
 
-export function MapTools({ view, isAnalysisMarkerActive, onAnalysisMarkerToggle }: MapToolsProps) {
+export function MapTools({ view, isAnalysisMarkerActive, onAnalysisMarkerToggle, theme = 'light' }: MapToolsProps) {
     const [activeTool, setActiveTool] = useState<ActiveTool>(null)
     const [measurement, setMeasurement] = useState<string | null>(null)
     const sketchVMRef = useRef<SketchViewModel | null>(null)
@@ -225,12 +227,20 @@ export function MapTools({ view, isAnalysisMarkerActive, onAnalysisMarkerToggle 
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2">
             {/* Measurement Display */}
             {measurement && (
-                <div className="bg-white/95 backdrop-blur px-4 py-2 rounded-lg shadow-lg border border-slate-200 text-sm font-mono font-bold text-slate-800 flex items-center gap-2">
+                <div className={cn(
+                    "px-4 py-2 rounded-lg shadow-lg border text-sm font-mono font-bold flex items-center gap-2 backdrop-blur",
+                    theme === 'dark' 
+                        ? "bg-slate-900/80 border-slate-700 text-slate-200" 
+                        : "bg-white/95 border-slate-200 text-slate-800"
+                )}>
                     <Ruler className="w-4 h-4 text-blue-500" />
                     {measurement}
                     <button
                         onClick={() => setMeasurement(null)}
-                        className="ml-2 p-0.5 hover:bg-slate-100 rounded"
+                        className={cn(
+                            "ml-2 p-0.5 rounded transition-colors",
+                            theme === 'dark' ? "hover:bg-slate-800" : "hover:bg-slate-100"
+                        )}
                     >
                         <X className="w-3 h-3 text-slate-400" />
                     </button>
@@ -238,53 +248,84 @@ export function MapTools({ view, isAnalysisMarkerActive, onAnalysisMarkerToggle 
             )}
 
             {/* Tools Toolbar */}
-            <div className="bg-white/95 backdrop-blur rounded-lg shadow-lg border border-slate-200 flex items-center p-1 gap-1">
+            <div className={cn(
+                "rounded-lg shadow-lg border flex items-center p-1 gap-1 backdrop-blur",
+                theme === 'dark' 
+                    ? "bg-slate-900/80 border-slate-700" 
+                    : "bg-white/95 border-slate-200"
+            )}>
                 <button
                     onClick={handleRadiusTool}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${activeTool === "radius"
-                        ? "bg-blue-500 text-white shadow-md"
-                        : "text-slate-600 hover:bg-slate-100"
-                        }`}
+                    className={cn(
+                        "flex items-center gap-2 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all",
+                        activeTool === "radius"
+                            ? "bg-blue-500 text-white shadow-md"
+                            : theme === 'dark'
+                                ? "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                                : "text-slate-600 hover:bg-slate-100"
+                    )}
                     title="Draw area circle"
                 >
                     <Circle className="w-4 h-4" />
                     Radius
                 </button>
 
-                <div className="w-px h-6 bg-slate-200" />
+                <div className={cn(
+                    "w-px h-6",
+                    theme === 'dark' ? "bg-slate-800" : "bg-slate-200"
+                )} />
 
                 <button
                     onClick={handleLineTool}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${activeTool === "line"
-                        ? "bg-blue-500 text-white shadow-md"
-                        : "text-slate-600 hover:bg-slate-100"
-                        }`}
+                    className={cn(
+                        "flex items-center gap-2 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all",
+                        activeTool === "line"
+                            ? "bg-blue-500 text-white shadow-md"
+                            : theme === 'dark'
+                                ? "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                                : "text-slate-600 hover:bg-slate-100"
+                    )}
                     title="Draw measurement line"
                 >
                     <Ruler className="w-4 h-4" />
                     Line
                 </button>
 
-                <div className="w-px h-6 bg-slate-200" />
+                <div className={cn(
+                    "w-px h-6",
+                    theme === 'dark' ? "bg-slate-800" : "bg-slate-200"
+                )} />
 
                 {/* Analysis Marker Tool */}
                 <button
                     onClick={onAnalysisMarkerToggle}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${isAnalysisMarkerActive
-                        ? "bg-blue-500 text-white shadow-md"
-                        : "text-slate-600 hover:bg-slate-100"
-                        }`}
+                    className={cn(
+                        "flex items-center gap-2 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all",
+                        isAnalysisMarkerActive
+                            ? "bg-blue-500 text-white shadow-md"
+                            : theme === 'dark'
+                                ? "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                                : "text-slate-600 hover:bg-slate-100"
+                    )}
                     title="Create analysis marker"
                 >
                     <Crosshair className="w-4 h-4" />
                     Marker
                 </button>
 
-                <div className="w-px h-6 bg-slate-200" />
+                <div className={cn(
+                    "w-px h-6",
+                    theme === 'dark' ? "bg-slate-800" : "bg-slate-200"
+                )} />
 
                 <button
                     onClick={handleClear}
-                    className="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wide text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all"
+                    className={cn(
+                        "flex items-center gap-2 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all",
+                        theme === 'dark'
+                            ? "text-slate-400 hover:bg-red-950/30 hover:text-red-400"
+                            : "text-slate-600 hover:bg-red-50 hover:text-red-600"
+                    )}
                     title="Clear all measurements"
                 >
                     <Trash2 className="w-4 h-4" />
@@ -294,7 +335,12 @@ export function MapTools({ view, isAnalysisMarkerActive, onAnalysisMarkerToggle 
 
             {/* Active Tool Hint */}
             {activeTool && (
-                <div className="text-xs text-white bg-slate-800/90 backdrop-blur px-3 py-1.5 rounded-full shadow-lg">
+                <div className={cn(
+                    "text-xs px-3 py-1.5 rounded-full shadow-lg backdrop-blur",
+                    theme === 'dark'
+                        ? "bg-slate-800/90 text-slate-200"
+                        : "bg-slate-800/90 text-white"
+                )}>
                     {activeTool === "radius" ? "Click and drag to draw a circle" : "Click to draw, double-click to finish"}
                 </div>
             )}

@@ -17,14 +17,16 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command"
+import { cn } from "@/lib/utils"
 
 interface BlockComparatorStripProps {
     selectedBlocks: BlockCommercialData[]
     onRemoveBlock: (id: string) => void
     onAddBlock: (id: string) => void
+    theme?: 'light' | 'dark'
 }
 
-export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock }: BlockComparatorStripProps) {
+export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock, theme = 'light' }: BlockComparatorStripProps) {
     const [isExpanded, setIsExpanded] = useState(true)
     const [showAddMenu, setShowAddMenu] = useState(false)
 
@@ -38,15 +40,26 @@ export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock
     const gridTemplateColumns = `140px repeat(${blocks.length}, minmax(200px, 1fr)) 180px`
 
     return (
-        <div className="flex-none bg-white border-t border-gray-200 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] transition-all duration-300">
+        <div className={cn(
+            "flex-none border-t z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] transition-all duration-300",
+            theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-gray-200"
+        )}>
             {/* Header / Toggle */}
             <div
-                className="h-8 flex items-center justify-between px-4 bg-slate-50 border-b border-gray-200 cursor-pointer hover:bg-slate-100"
+                className={cn(
+                    "h-8 flex items-center justify-between px-4 border-b cursor-pointer transition-colors",
+                    theme === 'dark' 
+                        ? "bg-slate-800/50 border-slate-700 hover:bg-slate-800 text-slate-300" 
+                        : "bg-slate-50 border-gray-200 hover:bg-slate-100 text-slate-700"
+                )}
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 <div className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    <BarChart3 className={cn(
+                        "w-4 h-4",
+                        theme === 'dark' ? "text-blue-400" : "text-primary"
+                    )} />
+                    <span className="text-xs font-bold uppercase tracking-wider">
                         Block Comparator ({blocks.length})
                     </span>
                 </div>
@@ -59,47 +72,86 @@ export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock
                     <div className="grid min-w-max" style={{ gridTemplateColumns }}>
 
                         {/* --- Header Row --- */}
-                        <div className="sticky left-0 z-10 bg-white p-3 border-b border-gray-200 border-r border-gray-100"></div>
+                        <div className={cn(
+                            "sticky left-0 z-10 p-3 border-b border-r",
+                            theme === 'dark' ? "bg-slate-900 border-slate-800 border-r-slate-800" : "bg-white border-gray-200 border-r-gray-100"
+                        )}></div>
                         {blocks.map(block => (
-                            <div key={`header-${block.id}`} className="p-3 border-b border-gray-200 border-r border-gray-100 bg-white relative group">
-                                <div className="font-bold text-sm text-slate-700 truncate pr-6" title={block.name}>
+                            <div key={`header-${block.id}`} className={cn(
+                                "p-3 border-b border-r relative group",
+                                theme === 'dark' ? "bg-slate-900 border-slate-800 border-r-slate-800" : "bg-white border-gray-200 border-r-gray-100"
+                            )}>
+                                <div className={cn(
+                                    "font-bold text-sm truncate pr-6",
+                                    theme === 'dark' ? "text-slate-200" : "text-slate-700"
+                                )} title={block.name}>
                                     {block.name}
                                 </div>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onRemoveBlock(block.id); }}
-                                    className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                                    className={cn(
+                                        "absolute top-2 right-2 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all",
+                                        theme === 'dark' ? "text-slate-500 hover:text-red-400 hover:bg-red-950/30" : "text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                    )}
                                 >
                                     <X className="w-3 h-3" />
                                 </button>
                             </div>
                         ))}
-                        <div className="p-3 border-b border-gray-200 bg-white"></div>
+                        <div className={cn(
+                            "p-3 border-b",
+                            theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-gray-200"
+                        )}></div>
 
                         {/* --- Data Rows --- */}
 
                         {/* Row 1: Operator */}
-                        <div className="sticky left-0 z-10 p-3 text-xs font-medium text-slate-500 text-right bg-slate-50 border-b border-gray-100 border-r">Operator</div>
+                        <div className={cn(
+                            "sticky left-0 z-10 p-3 text-xs font-medium text-right border-b border-r",
+                            theme === 'dark' 
+                                ? "bg-slate-800/30 text-slate-500 border-slate-800" 
+                                : "bg-slate-50 text-slate-500 border-gray-100"
+                        )}>Operator</div>
                         {blocks.map(block => (
-                            <div key={`op-${block.id}`} className="p-3 text-xs text-slate-700 bg-slate-50 border-b border-gray-100 border-r border-gray-200/50 flex items-center">
+                            <div key={`op-${block.id}`} className={cn(
+                                "p-3 text-xs border-b border-r flex items-center",
+                                theme === 'dark' 
+                                    ? "bg-slate-800/30 text-slate-400 border-slate-800" 
+                                    : "bg-slate-50 text-slate-700 border-gray-100"
+                            )}>
                                 {block.operator}
                             </div>
                         ))}
                         {/* Add Block Button (Spans all data rows) */}
-                        <div className="row-span-6 p-4 bg-white border-l border-gray-200 flex items-center justify-center">
+                        <div className={cn(
+                            "row-span-6 p-4 border-l flex items-center justify-center",
+                            theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-gray-200"
+                        )}>
                             <Popover open={showAddMenu} onOpenChange={setShowAddMenu}>
                                 <PopoverTrigger asChild>
                                     <button
-                                        className="w-full h-full min-h-[120px] border-2 border-dashed border-slate-300 rounded-md hover:border-primary hover:bg-primary/10/30 transition-all flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-primary"
+                                        className={cn(
+                                            "w-full h-full min-h-[120px] border-2 border-dashed rounded-md transition-all flex flex-col items-center justify-center gap-2",
+                                            theme === 'dark'
+                                                ? "border-slate-700 text-slate-500 hover:border-blue-500 hover:text-blue-400 hover:bg-blue-900/10"
+                                                : "border-slate-300 text-slate-400 hover:border-primary hover:text-primary hover:bg-primary/5"
+                                        )}
                                     >
                                         <Plus className="w-6 h-6" />
                                         <span className="text-xs font-medium">Add Block</span>
                                     </button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-64 p-0 bg-white border border-gray-200 text-slate-900 shadow-xl" align="start" side="top">
-                                    <Command className="bg-white text-slate-900 rounded-lg">
+                                <PopoverContent className={cn(
+                                    "w-64 p-0 border shadow-xl",
+                                    theme === 'dark' ? "bg-slate-900 border-slate-700 text-slate-200" : "bg-white border-gray-200 text-slate-900"
+                                )} align="start" side="top">
+                                    <Command className={theme === 'dark' ? "bg-slate-900 text-slate-200" : "bg-white text-slate-900"}>
                                         <CommandInput
                                             placeholder="Search blocks..."
-                                            className="h-9 border-b border-gray-100 text-xs"
+                                            className={cn(
+                                                "h-9 border-b text-xs",
+                                                theme === 'dark' ? "border-slate-800" : "border-gray-100"
+                                            )}
                                         />
                                         <CommandList className="max-h-[200px] overflow-y-auto py-1">
                                             <CommandEmpty className="py-3 text-center text-xs text-slate-500">
@@ -113,10 +165,18 @@ export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock
                                                             onAddBlock(block.id)
                                                             setShowAddMenu(false)
                                                         }}
-                                                        className="flex items-center justify-between px-3 py-2 text-xs hover:bg-primary/10 hover:text-primary/70 cursor-pointer data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary/70"
+                                                        className={cn(
+                                                            "flex items-center justify-between px-3 py-2 text-xs cursor-pointer transition-colors",
+                                                            theme === 'dark'
+                                                                ? "hover:bg-slate-800 aria-selected:bg-slate-800"
+                                                                : "hover:bg-primary/10 aria-selected:bg-primary/10"
+                                                        )}
                                                     >
                                                         <div className="flex flex-col gap-0.5">
-                                                            <div className="font-bold text-slate-700">{block.name}</div>
+                                                            <div className={cn(
+                                                                "font-bold",
+                                                                theme === 'dark' ? "text-slate-200" : "text-slate-700"
+                                                            )}>{block.name}</div>
                                                             <div className="text-[10px] text-slate-500">{block.operator}</div>
                                                         </div>
                                                         <Plus className="w-3 h-3 text-slate-400" />
@@ -130,57 +190,117 @@ export function BlockComparatorStrip({ selectedBlocks, onRemoveBlock, onAddBlock
                         </div>
 
                         {/* Row 2: Status */}
-                        <div className="sticky left-0 z-10 p-3 text-xs font-medium text-slate-500 text-right bg-white border-b border-gray-100 border-r">Status</div>
+                        <div className={cn(
+                            "sticky left-0 z-10 p-3 text-xs font-medium text-right border-b border-r",
+                            theme === 'dark' 
+                                ? "bg-slate-900 text-slate-500 border-slate-800" 
+                                : "bg-white text-slate-500 border-gray-100"
+                        )}>Status</div>
                         {blocks.map(block => (
-                            <div key={`status-${block.id}`} className="p-3 text-xs bg-white border-b border-gray-100 border-r border-gray-200/50 flex items-center">
-                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${block.status === 'Production' ? 'bg-emerald-100 text-emerald-700' :
-                                    block.status === 'Development' ? 'bg-blue-100 text-blue-700' :
-                                        'bg-amber-100 text-amber-700'
-                                    }`}>
+                            <div key={`status-${block.id}`} className={cn(
+                                "p-3 text-xs border-b border-r flex items-center",
+                                theme === 'dark' 
+                                    ? "bg-slate-900 border-slate-800" 
+                                    : "bg-white border-gray-100"
+                            )}>
+                                <span className={cn(
+                                    "px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border",
+                                    block.status === 'Production' 
+                                        ? theme === 'dark' ? "bg-emerald-950/30 text-emerald-400 border-emerald-900/50" : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                        : block.status === 'Development' 
+                                            ? theme === 'dark' ? "bg-blue-950/30 text-blue-400 border-blue-900/50" : "bg-blue-100 text-blue-700 border-blue-200"
+                                            : theme === 'dark' ? "bg-amber-950/30 text-amber-400 border-amber-900/50" : "bg-amber-100 text-amber-700 border-amber-200"
+                                )}>
                                     {block.status}
                                 </span>
                             </div>
                         ))}
 
                         {/* Row 3: Fiscal */}
-                        <div className="sticky left-0 z-10 p-3 text-xs font-medium text-slate-500 text-right bg-slate-50 border-b border-gray-100 border-r">Fiscal (Govt/Tax)</div>
+                        <div className={cn(
+                            "sticky left-0 z-10 p-3 text-xs font-medium text-right border-b border-r",
+                            theme === 'dark' 
+                                ? "bg-slate-800/30 text-slate-500 border-slate-800" 
+                                : "bg-slate-50 text-slate-500 border-gray-100"
+                        )}>Fiscal (Govt/Tax)</div>
                         {blocks.map(block => (
-                            <div key={`fiscal-${block.id}`} className="p-3 text-xs text-slate-700 bg-slate-50 border-b border-gray-100 border-r border-gray-200/50 flex items-center gap-1">
+                            <div key={`fiscal-${block.id}`} className={cn(
+                                "p-3 text-xs border-b border-r flex items-center gap-1",
+                                theme === 'dark' 
+                                    ? "bg-slate-800/30 text-slate-400 border-slate-800" 
+                                    : "bg-slate-50 text-slate-700 border-gray-100"
+                            )}>
                                 <span className="font-mono font-medium">{block.fiscalTerms.royaltyRate}%</span>
-                                <span className="text-slate-400">/</span>
+                                <span className="text-slate-500">/</span>
                                 <span className="font-mono font-medium">{block.fiscalTerms.taxRate}%</span>
                             </div>
                         ))}
 
                         {/* Row 4: Reserves */}
-                        <div className="sticky left-0 z-10 p-3 text-xs font-medium text-slate-500 text-right bg-white border-b border-gray-100 border-r">Reserves (2P)</div>
+                        <div className={cn(
+                            "sticky left-0 z-10 p-3 text-xs font-medium text-right border-b border-r",
+                            theme === 'dark' 
+                                ? "bg-slate-900 text-slate-500 border-slate-800" 
+                                : "bg-white text-slate-500 border-gray-100"
+                        )}>Reserves (2P)</div>
                         {blocks.map(block => (
-                            <div key={`res-${block.id}`} className="p-3 text-xs text-slate-700 bg-white border-b border-gray-100 border-r border-gray-200/50 flex items-center">
-                                <span className="font-mono font-bold text-sm">{block.resources.oilReserves2P || block.resources.gasReserves2P || 0}</span>
+                            <div key={`res-${block.id}`} className={cn(
+                                "p-3 text-xs border-b border-r flex items-center",
+                                theme === 'dark' 
+                                    ? "bg-slate-900 text-slate-400 border-slate-800" 
+                                    : "bg-white text-slate-700 border-gray-100"
+                            )}>
+                                <span className={cn(
+                                    "font-mono font-bold text-sm",
+                                    theme === 'dark' ? "text-slate-200" : "text-slate-700"
+                                )}>{block.resources.oilReserves2P || block.resources.gasReserves2P || 0}</span>
                                 <span className="text-[10px] text-slate-500 ml-1 uppercase">{block.resources.oilReserves2P ? 'MMbbl' : 'Bcf'}</span>
                             </div>
                         ))}
 
                         {/* Row 5: Risk */}
-                        <div className="sticky left-0 z-10 p-3 text-xs font-medium text-slate-500 text-right bg-slate-50 border-b border-gray-100 border-r">Risk (Tech/Comm)</div>
+                        <div className={cn(
+                            "sticky left-0 z-10 p-3 text-xs font-medium text-right border-b border-r",
+                            theme === 'dark' 
+                                ? "bg-slate-800/30 text-slate-500 border-slate-800" 
+                                : "bg-slate-50 text-slate-500 border-gray-100"
+                        )}>Risk (Tech/Comm)</div>
                         {blocks.map(block => (
-                            <div key={`risk-${block.id}`} className="p-3 text-xs bg-slate-50 border-b border-gray-100 border-r border-gray-200/50 flex items-center gap-3">
+                            <div key={`risk-${block.id}`} className={cn(
+                                "p-3 text-xs border-b border-r flex items-center gap-3",
+                                theme === 'dark' 
+                                    ? "bg-slate-800/30 border-slate-800" 
+                                    : "bg-slate-50 border-gray-100"
+                            )}>
                                 <div className="flex items-center gap-1.5" title="Technical Risk">
-                                    <span className="text-[10px] text-slate-400">T:</span>
+                                    <span className="text-[10px] text-slate-500">T:</span>
                                     <RiskDot value={block.risks.technical} />
                                 </div>
                                 <div className="flex items-center gap-1.5" title="Commercial Risk">
-                                    <span className="text-[10px] text-slate-400">C:</span>
+                                    <span className="text-[10px] text-slate-500">C:</span>
                                     <RiskDot value={block.risks.commercial} />
                                 </div>
                             </div>
                         ))}
 
                         {/* Row 6: NPV */}
-                        <div className="sticky left-0 z-10 p-3 text-xs font-medium text-slate-500 text-right bg-white border-r border-gray-100">NPV (Est)</div>
+                        <div className={cn(
+                            "sticky left-0 z-10 p-3 text-xs font-medium text-right border-r",
+                            theme === 'dark' 
+                                ? "bg-slate-900 text-slate-500 border-slate-800" 
+                                : "bg-white text-slate-500 border-gray-100"
+                        )}>NPV (Est)</div>
                         {blocks.map(block => (
-                            <div key={`npv-${block.id}`} className="p-3 text-xs text-slate-900 bg-white border-r border-gray-200/50 flex items-center">
-                                <span className="font-mono font-bold text-primary/90">${block.economics?.npv10 || 0}M</span>
+                            <div key={`npv-${block.id}`} className={cn(
+                                "p-3 text-xs border-r flex items-center",
+                                theme === 'dark' 
+                                    ? "bg-slate-900 border-slate-800" 
+                                    : "bg-white border-gray-100"
+                            )}>
+                                <span className={cn(
+                                    "font-mono font-bold",
+                                    theme === 'dark' ? "text-blue-400" : "text-primary/90"
+                                )}>${block.economics?.npv10 || 0}M</span>
                             </div>
                         ))}
 

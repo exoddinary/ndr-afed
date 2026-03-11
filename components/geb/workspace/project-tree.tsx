@@ -34,9 +34,16 @@ const INITIAL_TREE: TreeNode[] = [
     ]
   },
   { id: 'hc-fields', label: 'Hydrocarbon Fields', type: 'layer' },
-  { id: 'licenses', label: 'Awarded Blocks', type: 'layer' },
+  {
+    id: 'blocks-folder',
+    label: 'Blocks',
+    type: 'folder',
+    children: [
+      { id: 'licenses', label: 'Awarded Blocks', type: 'layer' },
+      { id: 'offshore-blocks-detailed', label: 'Open Blocks (Offshore)', type: 'layer', style: 'text-slate-600 text-xs' },
+    ]
+  },
   { id: 'gng-projects', label: 'G&G Project Data Outlines', type: 'layer' },
-  { id: 'offshore-blocks-detailed', label: 'Open Blocks (Offshore)', type: 'layer', style: 'text-slate-600 text-xs' },
 ]
 
 interface ProjectTreeProps {
@@ -45,6 +52,7 @@ interface ProjectTreeProps {
   activeTab?: 'map' | 'subsurface'
   filteredBlockName?: string | null
   onClearFilter?: () => void
+  theme?: 'light' | 'dark'
 }
 
 type BlockData = {
@@ -53,7 +61,7 @@ type BlockData = {
   operator: string
 }
 
-export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map', filteredBlockName, onClearFilter }: ProjectTreeProps) {
+export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map', filteredBlockName, onClearFilter, theme = 'light' }: ProjectTreeProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     'wells-folder': true,
     'seismic': true,
@@ -116,8 +124,15 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
         <div
           ref={node.id === 'seismic-2d' ? seismic2dRef : undefined}
           className={cn(
-            "flex items-center h-7 hover:bg-gray-100 cursor-pointer select-none group",
-            isActive && "bg-primary/10 text-primary border-r-2 border-primary"
+            "flex items-center h-7 cursor-pointer select-none group transition-colors",
+            theme === 'dark' 
+              ? "hover:bg-slate-800" 
+              : "hover:bg-gray-100",
+            isActive && (
+              theme === 'dark'
+                ? "bg-blue-500/20 text-blue-400 border-r-2 border-blue-500"
+                : "bg-primary/10 text-primary border-r-2 border-primary"
+            )
           )}
           onClick={() => {
             if (hasChildren) {
@@ -135,7 +150,10 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
         >
           <div className="flex items-center flex-1 min-w-0" style={{ paddingLeft }}>
             {hasChildren ? (
-              <span className="mr-1 text-slate-400">
+              <span className={cn(
+                "mr-1",
+                theme === 'dark' ? "text-slate-500" : "text-slate-400"
+              )}>
                 {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
               </span>
             ) : (
@@ -143,7 +161,12 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
             )}
 
             {/* Icon */}
-            <span className="mr-1.5 text-slate-400">
+            <span className={cn(
+              "mr-1.5",
+              isActive 
+                ? theme === 'dark' ? "text-blue-400" : "text-primary"
+                : theme === 'dark' ? "text-slate-500" : "text-slate-400"
+            )}>
               {node.icon ? node.icon : (
                 node.type === 'folder' ? <Folder className="w-3 h-3" /> :
                   node.type === 'layer' ? <Layers className="w-3 h-3" /> :
@@ -153,10 +176,16 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
 
             {/* Color strip indicator */}
             {node.id === 'offshore-blocks-detailed' && (
-              <div className="w-1 h-3 rounded-sm bg-[#e5e5e5] mr-1.5" />
+              <div className={cn(
+                "w-1 h-3 rounded-sm mr-1.5",
+                theme === 'dark' ? "bg-slate-700" : "bg-[#e5e5e5]"
+              )} />
             )}
             {node.id === 'wells' && (
-              <div className="w-1 h-3 rounded-sm bg-black mr-1.5" />
+              <div className={cn(
+                "w-1 h-3 rounded-sm mr-1.5",
+                theme === 'dark' ? "bg-slate-200" : "bg-black"
+              )} />
             )}
             {node.id === 'well-trajectories' && (
               <div className="w-1 h-3 rounded-sm bg-yellow-300 mr-1.5" />
@@ -193,7 +222,11 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
             <span className={cn(
               "truncate font-medium",
               node.style || "text-xs",
-              isActive ? "text-primary" : node.style ? "" : "text-slate-700 group-hover:text-slate-900"
+              isActive 
+                ? theme === 'dark' ? "text-blue-400" : "text-primary"
+                : theme === 'dark'
+                  ? "text-slate-300 group-hover:text-slate-100"
+                  : "text-slate-700 group-hover:text-slate-900"
             )}>
               {node.label}
             </span>
@@ -205,9 +238,17 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
             isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           )}>
             {isActive ? (
-              <Eye className="w-3 h-3 text-primary" />
+              <Eye className={cn(
+                "w-3 h-3",
+                theme === 'dark' ? "text-blue-400" : "text-primary"
+              )} />
             ) : (
-              <EyeOff className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+              <EyeOff className={cn(
+                "w-3 h-3",
+                theme === 'dark' 
+                  ? "text-slate-600 hover:text-slate-400" 
+                  : "text-slate-300 hover:text-slate-500"
+              )} />
             )}
           </div>
         </div>
@@ -246,7 +287,13 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
             {displayedBlocks.map(block => (
               <div
                 key={block.id}
-                className="flex items-center h-10 px-3 hover:bg-gray-50 cursor-pointer select-none group border-b border-gray-100 last:border-0"
+                className={cn(
+                  "flex items-center h-8 px-3 cursor-pointer select-none group transition-colors",
+                  theme === 'dark' 
+                    ? "hover:bg-slate-800 text-slate-300" 
+                    : "hover:bg-gray-100 text-slate-700"
+                )}
+                style={{ paddingLeft: '16px' }}
               >
                 <div className="flex items-center flex-1 min-w-0 gap-3">
                   <div className="flex-none p-1.5 bg-slate-100 rounded text-slate-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors">
@@ -277,39 +324,48 @@ export function ProjectTree({ activeLayers = [], onToggleLayer, activeTab = 'map
   }
 
   return (
-    <div className="w-[240px] flex flex-col border-r border-gray-200 bg-white h-full relative">
-      {/* Tooltip for Seismic 2D - positioned at layer */}
-      {showTooltip && seismic2dRef.current && (
-        <div 
-          className="absolute left-full ml-1 z-50 flex items-center"
-          style={{ 
-            top: seismic2dRef.current.offsetTop + 2,
-          }}
-        >
-          {/* Arrow pointing left */}
-          <div className="w-0 h-0 border-y-4 border-y-transparent border-r-[6px] border-r-blue-500" />
-          {/* Compact tooltip pill */}
-          <div className="bg-blue-500 text-white px-2 py-1 rounded text-[10px] font-medium whitespace-nowrap shadow-md ml-0.5 flex items-center gap-1">
-            <span>Zoom to 1:600k</span>
-            <button
-              onClick={() => setShowTooltip(false)}
-              className="text-white/80 hover:text-white"
-            >
-              <X className="w-3 h-3" />
-            </button>
+      <div className={cn(
+        "w-[240px] flex flex-col border-r h-full relative",
+        theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-gray-200"
+      )}>
+        {/* Tooltip for Seismic 2D - positioned at layer */}
+        {showTooltip && seismic2dRef.current && (
+          <div 
+            className="absolute left-full ml-1 z-50 flex items-center"
+            style={{ 
+              top: seismic2dRef.current.offsetTop + 2,
+            }}
+          >
+            {/* Arrow pointing left */}
+            <div className="w-0 h-0 border-y-4 border-y-transparent border-r-[6px] border-r-blue-500" />
+            {/* Compact tooltip pill */}
+            <div className="bg-blue-500 text-white px-2 py-1 rounded text-[10px] font-medium whitespace-nowrap shadow-md ml-0.5 flex items-center gap-1">
+              <span>Zoom to 1:600k</span>
+              <button
+                onClick={() => setShowTooltip(false)}
+                className="text-white/80 hover:text-white"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className={cn(
+          "h-8 flex items-center px-3 border-b",
+          theme === 'dark' ? "bg-slate-800 border-slate-700" : "bg-gray-50 border-gray-200"
+        )}>
+          <span className={cn(
+            "text-xs font-bold uppercase tracking-wider",
+            theme === 'dark' ? "text-slate-300" : "text-slate-500"
+          )}>Project Tree</span>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto">
+          <div className="py-2">
+            {INITIAL_TREE.map(node => renderNode(node))}
           </div>
         </div>
-      )}
-
-      <div className="h-8 flex items-center px-3 border-b border-gray-200 bg-gray-50">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Project Tree</span>
       </div>
-      
-      <div className="flex-1 overflow-y-auto">
-        <div className="py-2">
-          {INITIAL_TREE.map(node => renderNode(node))}
-        </div>
-      </div>
-    </div>
-  )
+    )
 }

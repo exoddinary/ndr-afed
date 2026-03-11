@@ -13,6 +13,7 @@ import Graphic from "@arcgis/core/Graphic"
 import Extent from "@arcgis/core/geometry/Extent"
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils"
 import "@arcgis/core/assets/esri/themes/light/main.css"
+import { cn } from "@/lib/utils"
 
 import { PanelContext } from "./contextual-panel"
 import { GNGProjectFloatingPanel } from "./gng-floating-panel"
@@ -39,6 +40,9 @@ type MapAreaProps = {
    onGNGPanelExpandChange?: (expanded: boolean) => void
    isPanelOpen?: boolean
    isAnalysisMarkerActive?: boolean
+   theme?: 'light' | 'dark'
+   basemapStyle?: 'oceans' | 'light-gray'
+   onBasemapChange?: (style: 'oceans' | 'light-gray') => void
 }
 
 // Map AI layer names → layersRef keys
@@ -80,7 +84,10 @@ export function MapArea({
    isGNGPanelExpanded,
    onGNGPanelExpandChange,
    isPanelOpen = false,
-   isAnalysisMarkerActive = false
+   isAnalysisMarkerActive = false,
+   theme = 'light',
+   basemapStyle = 'oceans',
+   onBasemapChange
 }: MapAreaProps = {}) {
    const mapDiv = useRef<HTMLDivElement>(null)
    const viewRef = useRef<MapView | SceneView | null>(null)
@@ -88,7 +95,19 @@ export function MapArea({
    const layersRef = useRef<Record<string, __esri.Layer>>({})
    const f3HorizonGraphicsLayerRef = useRef<__esri.GraphicsLayer | null>(null)
    const [mounted, setMounted] = useState(false)
-   const [basemapStyle, setBasemapStyle] = useState<'oceans' | 'light-gray'>('oceans')
+   const [internalBasemapStyle, setInternalBasemapStyle] = useState<'oceans' | 'light-gray'>(basemapStyle)
+   
+   // Sync with external basemap style prop
+   useEffect(() => {
+      if (basemapStyle !== internalBasemapStyle) {
+         setInternalBasemapStyle(basemapStyle)
+      }
+   }, [basemapStyle])
+
+   const handleBasemapChange = useCallback((style: 'oceans' | 'light-gray') => {
+      setInternalBasemapStyle(style)
+      onBasemapChange?.(style)
+   }, [onBasemapChange])
    const [isFocused, setIsFocused] = useState(false)
    const [currentScale, setCurrentScale] = useState<number | null>(null)
    const [selectedProject, setSelectedProject] = useState<string | null>(null)
@@ -185,8 +204,16 @@ export function MapArea({
       }
 
       // 2. Create new Map instance
+      // Determine initial basemap based on theme and basemapStyle
+      let initialBasemap: string
+      if (basemapStyle === 'oceans') {
+         initialBasemap = 'oceans'
+      } else {
+         // light-gray style - use dark version in dark mode
+         initialBasemap = theme === 'dark' ? 'dark-gray-vector' : 'gray-vector'
+      }
       const map = new Map({
-         basemap: "oceans",
+         basemap: initialBasemap,
          ground: is3D ? "world-elevation" : undefined
       })
       mapRef.current = map
@@ -537,8 +564,8 @@ export function MapArea({
             type: "simple",
             symbol: {
                type: "simple-line",
-               color: [0, 0, 0, 1], // Black
-               width: 2.5
+               color: [180, 180, 180, 1], // Light Grey
+               width: 1.5
             } as any
          },
          popupTemplate: {
@@ -691,7 +718,7 @@ export function MapArea({
             center: currentCenter as [number, number],
             zoom: currentZoom,
             ui: {
-               components: ["zoom", "attribution"]
+               components: ["zoom", "attribution", "compass"]
             }
          })
 
@@ -1049,10 +1076,16 @@ export function MapArea({
    // Separate effect for reactive basemap switching (no view rebuild needed)
    useEffect(() => {
       if (!mapRef.current || !mounted) return
-      // Use built-in named IDs: 'oceans' and 'gray-vector' (no API key required)
-      const basemapId = basemapStyle === 'oceans' ? 'oceans' : 'gray-vector'
+      // Use built-in named IDs: 'oceans', 'gray-vector' (light), 'dark-gray-vector' (dark)
+      let basemapId: string
+      if (basemapStyle === 'oceans') {
+         basemapId = 'oceans'
+      } else {
+         // light-gray style - use dark version in dark mode
+         basemapId = theme === 'dark' ? 'dark-gray-vector' : 'gray-vector'
+      }
       mapRef.current.basemap = basemapId as any
-   }, [basemapStyle, mounted])
+   }, [basemapStyle, mounted, theme])
 
    // Separate effect just for toggling visibility (lightweight)
    useEffect(() => {
@@ -1311,11 +1344,12 @@ export function MapArea({
          </div>
 
          {/* G&G Project Floating Panel - hidden by default, shown via View Other G&G Data button */}
-         <GNGProjectFloatingPanel
-            onProjectClick={handleGNGProjectClick}
+         <GNGProjectFloatingPanel 
+            onProjectClick={handleGNGProjectClick} 
             isRightPanelOpen={isRightPanelOpen}
             isExpanded={isGNGPanelExpanded}
             onExpandChange={onGNGPanelExpandChange}
+            theme={theme}
          />
 
          {/* Analysis Marker Manager - interactive spatial analysis tool */}
@@ -1350,7 +1384,12 @@ export function MapArea({
             <div className="absolute top-4 left-20 z-10">
                <button
                   onClick={() => onToggle3D?.()}
-                  className="bg-white/90 backdrop-blur text-slate-700 px-3 py-1.5 rounded shadow-md text-xs font-bold uppercase tracking-wider border border-slate-200 hover:bg-white transition-colors flex items-center gap-2"
+                  className={cn(
+                     "px-3 py-1.5 rounded shadow-md text-xs font-bold uppercase tracking-wider backdrop-blur transition-colors flex items-center gap-2 border",
+                     theme === 'dark'
+                        ? "bg-slate-900/80 text-slate-200 border-slate-700 hover:bg-slate-800"
+                        : "bg-white/90 text-slate-700 border-slate-200 hover:bg-white"
+                  )}
                >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
                   Return to 2D
@@ -1358,10 +1397,15 @@ export function MapArea({
             </div>
          )}
 
-         {/* Scale Display - bottom right */}
+         {/* Scale Display - bottom left (moved from right to avoid AI button overlap) */}
          {!is3D && currentScale && (
-            <div className="absolute bottom-4 right-4 z-10">
-               <div className="bg-white/90 backdrop-blur px-3 py-1.5 rounded shadow-md text-xs font-mono text-slate-700">
+            <div className="absolute bottom-4 left-4 z-10">
+               <div className={cn(
+                  "backdrop-blur px-3 py-1.5 rounded shadow-md text-xs font-mono border",
+                  theme === 'dark'
+                     ? "bg-slate-900/80 text-slate-300 border-slate-700"
+                     : "bg-white/90 text-slate-700 border-slate-200"
+               )}>
                   1:{Math.round(currentScale).toLocaleString()}
                </div>
             </div>
@@ -1371,9 +1415,14 @@ export function MapArea({
          {!is3D && (
             <div className="absolute bottom-8 left-3 z-10 flex flex-col gap-1.5">
                <button
-                  onClick={() => setBasemapStyle('oceans')}
+                  onClick={() => handleBasemapChange('oceans')}
                   title="World Ocean Base"
-                  className={`w-12 h-12 rounded-md border-2 shadow-md overflow-hidden transition-all ${basemapStyle === 'oceans' ? 'border-blue-500 ring-2 ring-blue-400/50 scale-105' : 'border-white/80 hover:border-blue-300'}`}
+                  className={cn(
+                     "w-12 h-12 rounded-md border-2 shadow-md overflow-hidden transition-all",
+                     internalBasemapStyle === 'oceans' 
+                        ? "border-blue-500 ring-2 ring-blue-400/50 scale-105" 
+                        : theme === 'dark' ? "border-slate-700 hover:border-blue-500" : "border-white/80 hover:border-blue-300"
+                  )}
                >
                   <div className="w-full h-full bg-[#c8daea] flex flex-col items-center justify-center gap-0.5">
                      <div className="w-6 h-1 rounded bg-[#7bafd4]" />
@@ -1382,14 +1431,22 @@ export function MapArea({
                   </div>
                </button>
                <button
-                  onClick={() => setBasemapStyle('light-gray')}
+                  onClick={() => handleBasemapChange('light-gray')}
                   title="Light Gray Base"
-                  className={`w-12 h-12 rounded-md border-2 shadow-md overflow-hidden transition-all ${basemapStyle === 'light-gray' ? 'border-blue-500 ring-2 ring-blue-400/50 scale-105' : 'border-white/80 hover:border-blue-300'}`}
+                  className={cn(
+                     "w-12 h-12 rounded-md border-2 shadow-md overflow-hidden transition-all",
+                     internalBasemapStyle === 'light-gray' 
+                        ? "border-blue-500 ring-2 ring-blue-400/50 scale-105" 
+                        : theme === 'dark' ? "border-slate-700 hover:border-blue-500" : "border-white/80 hover:border-blue-300"
+                  )}
                >
-                  <div className="w-full h-full bg-[#e8e8e8] flex flex-col items-center justify-center gap-0.5">
-                     <div className="w-6 h-1 rounded bg-[#c0c0c0]" />
-                     <div className="w-5 h-1 rounded bg-[#a8a8a8]" />
-                     <div className="w-3 h-1 rounded bg-[#909090]" />
+                  <div className={cn(
+                     "w-full h-full flex flex-col items-center justify-center gap-0.5",
+                     theme === 'dark' ? "bg-slate-800" : "bg-[#e8e8e8]"
+                  )}>
+                     <div className={cn("w-6 h-1 rounded", theme === 'dark' ? "bg-slate-600" : "bg-[#c0c0c0]")} />
+                     <div className={cn("w-5 h-1 rounded", theme === 'dark' ? "bg-slate-500" : "bg-[#a8a8a8]")} />
+                     <div className={cn("w-3 h-1 rounded", theme === 'dark' ? "bg-slate-400" : "bg-[#909090]")} />
                   </div>
                </button>
             </div>

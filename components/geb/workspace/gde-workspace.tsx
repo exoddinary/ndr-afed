@@ -5,7 +5,7 @@ import { ProjectTree } from "./project-tree"
 import dynamic from "next/dynamic"
 import { ContextualPanel, type ContextualData, type PanelContext } from "./contextual-panel"
 import { BlockComparatorStrip } from "./block-comparator-strip"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { MapTools } from "./map-tools"
 import { AIChatPanel } from "./ai-chat-panel"
 import { AIChatTrigger } from "./ai-chat-trigger"
@@ -29,6 +29,8 @@ export function GDEWorkspace() {
   const [is3DMode, setIs3DMode] = useState(false)
   const [activeTab, setActiveTab] = useState<'map' | 'subsurface'>('map')
   const [filteredBlockName, setFilteredBlockName] = useState<string | null>(null)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [basemapStyle, setBasemapStyle] = useState<'oceans' | 'light-gray'>('oceans')
 
   const [isAIChatOpen, setIsAIChatOpen] = useState(false)
   const [aiInitialQuestion, setAiInitialQuestion] = useState<string | undefined>(undefined)
@@ -192,15 +194,39 @@ export function GDEWorkspace() {
     setIsGNGPanelExpanded(true)
   }, [])
 
+  const handleViewF3Horizon = useCallback(() => {
+    // Toggle the F3 Shallow Horizon layer visibility
+    setActiveLayers(prev => {
+      if (prev.includes('f3-horizon')) {
+        return prev.filter(id => id !== 'f3-horizon')
+      } else {
+        return [...prev, 'f3-horizon']
+      }
+    })
+  }, [])
+
+  const handleThemeChange = useCallback(() => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light')
+  }, [])
+
+  const handleBasemapChange = useCallback(() => {
+    setBasemapStyle(prev => prev === 'oceans' ? 'light-gray' : 'oceans')
+  }, [])
+
   return (
     <div className="flex flex-col h-full w-full bg-gray-50 text-slate-900 overflow-hidden font-sans selection:bg-primary/20 selection:text-primary/70">
       {/* Top Fixed Bar */}
       <div className="flex-none z-50 relative">
-        <BasinHeader activeTab={activeTab} onTabChange={setActiveTab} />
+        <BasinHeader 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab}
+          theme={theme}
+          onThemeChange={handleThemeChange}
+        />
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className={`flex-1 flex overflow-hidden ${theme === 'dark' ? 'bg-slate-900' : 'bg-gray-50'}`}>
 
         {/* Left Panel - Project Tree */}
         <div className="flex-none z-30 relative self-stretch">
@@ -210,6 +236,7 @@ export function GDEWorkspace() {
             activeTab={activeTab}
             filteredBlockName={filteredBlockName}
             onClearFilter={handleClearFilter}
+            theme={theme}
           />
         </div>
 
@@ -236,12 +263,16 @@ export function GDEWorkspace() {
                   onGNGPanelExpandChange={setIsGNGPanelExpanded}
                   isPanelOpen={isPanelOpen}
                   isAnalysisMarkerActive={isAnalysisMarkerActive}
+                  theme={theme}
+                  basemapStyle={basemapStyle}
+                  onBasemapChange={handleBasemapChange}
                 />
                 {/* Map Tools Overlay */}
                 <MapTools 
                   view={mapView} 
                   isAnalysisMarkerActive={isAnalysisMarkerActive}
                   onAnalysisMarkerToggle={() => setIsAnalysisMarkerActive(!isAnalysisMarkerActive)}
+                  theme={theme}
                 />
               </div>
             ) : (
@@ -259,6 +290,7 @@ export function GDEWorkspace() {
               selectedBlocks={selectedBlocks}
               onRemoveBlock={handleRemoveFromCompare}
               onAddBlock={handleAddToCompare}
+              theme={theme}
             />
           )}
 
@@ -271,6 +303,7 @@ export function GDEWorkspace() {
             onClose={handleCloseAIChat}
             onMapAction={handleMapAction}
             initialQuestion={aiInitialQuestion}
+            theme={theme}
           />
         ) : (
           <ContextualPanel
@@ -282,6 +315,8 @@ export function GDEWorkspace() {
             onToggle3D={handleToggle3D}
             onViewSubsurface={handleViewSubsurface}
             onViewGNGData={handleViewGNGData}
+            onViewF3Horizon={handleViewF3Horizon}
+            theme={theme}
           />
         )}
 

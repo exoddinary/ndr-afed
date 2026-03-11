@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { X, Send, Sparkles, Loader2, MessageSquare, Zap, Map } from "lucide-react"
+import { cn } from "@/lib/utils"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
@@ -40,6 +41,7 @@ type AIChatPanelProps = {
     }) => void
     mapView?: __esri.MapView | __esri.SceneView | null
     initialQuestion?: string
+    theme?: 'light' | 'dark'
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -54,12 +56,12 @@ const SUGGESTED_QUESTIONS = [
 ]
 
 const AGENT_COLORS: Record<string, string> = {
-    ASSET: 'bg-blue-100 text-blue-700',
-    SPATIAL: 'bg-emerald-100 text-emerald-700',
-    INSIGHT: 'bg-amber-100 text-amber-700',
+    ASSET: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    SPATIAL: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    INSIGHT: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 }
 
-export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQuestion }: AIChatPanelProps) {
+export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQuestion, theme = 'light' }: AIChatPanelProps) {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: "welcome",
@@ -174,8 +176,11 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
 
     return (
         <div
-            className={`relative h-full bg-white shadow-xl z-20 transition-all duration-300 ease-in-out border-l border-gray-200 ${isOpen ? "w-[400px]" : "w-0"
-                }`}
+            className={cn(
+                "relative h-full shadow-xl z-20 transition-all duration-300 ease-in-out border-l",
+                theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-gray-200",
+                isOpen ? "w-[400px]" : "w-0"
+            )}
         >
             <div className="w-[400px] h-full flex flex-col">
                 {/* Header */}
@@ -195,7 +200,10 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+                <div className={cn(
+                    "flex-1 overflow-y-auto p-4 space-y-4",
+                    theme === 'dark' ? "bg-slate-900" : "bg-slate-50"
+                )}>
                     {messages.map((message) => (
                         <div
                             key={message.id}
@@ -203,27 +211,35 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                         >
                             <div className={`max-w-[88%] ${message.role === "user" ? "space-y-1" : "space-y-2"}`}>
                                 <div
-                                    className={`rounded-2xl px-4 py-3 ${message.role === "user"
-                                        ? "bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-br-md"
-                                        : "bg-white text-slate-700 border border-slate-200 shadow-sm rounded-bl-md"
-                                        }`}
+                                    className={cn(
+                                        "rounded-2xl px-4 py-3",
+                                        message.role === "user"
+                                            ? "bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-br-md"
+                                            : theme === 'dark'
+                                                ? "bg-slate-800 text-slate-200 border border-slate-700 shadow-sm rounded-bl-md"
+                                                : "bg-white text-slate-700 border border-slate-200 shadow-sm rounded-bl-md"
+                                    )}
                                 >
                                     {message.role === "user" ? (
                                         <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                                     ) : (
-                                        <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-headings:my-3 prose-headings:text-slate-800 prose-strong:text-slate-900 prose-table:my-4 prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-slate-200 prose-th:bg-slate-50 prose-th:p-2 prose-th:text-left prose-th:text-xs prose-th:font-semibold prose-th:text-slate-700 prose-td:border prose-td:border-slate-200 prose-td:p-2 prose-td:text-xs prose-td:text-slate-600">
+                                        <div className={cn(
+                                            "text-sm leading-relaxed prose prose-sm max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-headings:my-3",
+                                            theme === 'dark'
+                                                ? "prose-headings:text-slate-200 prose-strong:text-slate-100 prose-p:text-slate-300 prose-li:text-slate-300"
+                                                : "prose-headings:text-slate-800 prose-strong:text-slate-900"
+                                        )}>
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}
                                                 components={{
-                                                    table: ({ ...props }) => <table className="w-full border-collapse border border-slate-200 my-4 rounded-lg overflow-hidden" {...props} />,
-                                                    thead: ({ ...props }) => <thead className="bg-slate-50 border-b border-slate-200" {...props} />,
-                                                    th: ({ ...props }) => <th className="text-left p-3 text-xs font-semibold text-slate-700 border-r border-slate-200 last:border-r-0" {...props} />,
-                                                    td: ({ ...props }) => <td className="p-3 text-xs text-slate-600 border-r border-slate-200 last:border-r-0 border-b border-slate-100 last:border-b-0" {...props} />,
-                                                    p: ({ ...props }) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
+                                                    table: ({ ...props }) => <table className={cn("w-full border-collapse my-4 rounded-lg overflow-hidden", theme === 'dark' ? "border-slate-700" : "border-slate-200")} {...props} />,
+                                                    thead: ({ ...props }) => <thead className={cn("border-b", theme === 'dark' ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200")} {...props} />,
+                                                    th: ({ ...props }) => <th className={cn("text-left p-3 text-xs font-semibold border-r last:border-r-0", theme === 'dark' ? "text-slate-300 border-slate-700" : "text-slate-700 border-slate-200")} {...props} />,
+                                                    td: ({ ...props }) => <td className={cn("p-3 text-xs border-r last:border-r-0 border-b last:border-b-0", theme === 'dark' ? "text-slate-400 border-slate-700" : "text-slate-600 border-slate-200")} {...props} />,
+                                                    strong: ({ ...props }) => <strong className={cn("font-semibold", theme === 'dark' ? "text-slate-100" : "text-slate-900")} {...props} />,
                                                     ul: ({ ...props }) => <ul className="list-disc list-outside ml-4 mb-3 space-y-1" {...props} />,
                                                     ol: ({ ...props }) => <ol className="list-decimal list-outside ml-4 mb-3 space-y-1" {...props} />,
                                                     li: ({ ...props }) => <li className="pl-1" {...props} />,
-                                                    strong: ({ ...props }) => <strong className="font-semibold text-slate-900" {...props} />,
                                                 }}
                                             >
                                                 {message.content}
@@ -251,11 +267,16 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                                 {message.mapActions && message.mapActions.length > 0 && onMapAction && (
                                     <button
                                         onClick={() => onMapAction(message.mapActions![0])}
-                                        className="flex items-center gap-1.5 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-lg px-2.5 py-1.5 w-fit hover:bg-emerald-100 hover:border-emerald-400 transition-colors cursor-pointer"
+                                        className={cn(
+                                            "flex items-center gap-1.5 text-[10px] rounded-lg px-2.5 py-1.5 w-fit transition-colors cursor-pointer border",
+                                            theme === 'dark'
+                                                ? "text-emerald-400 bg-emerald-900/20 border-emerald-800/50 hover:bg-emerald-900/30"
+                                                : "text-emerald-700 bg-emerald-50 border-emerald-300 hover:bg-emerald-100"
+                                        )}
                                     >
                                         <Map className="w-3 h-3" />
                                         <span className="font-semibold">Focus on map</span>
-                                        <span className="text-emerald-500">· zoom to {message.mapActions[0].identifiers.length} feature{message.mapActions[0].identifiers.length !== 1 ? 's' : ''}</span>
+                                        <span className={theme === 'dark' ? "text-emerald-500" : "text-emerald-500"}>· zoom to {message.mapActions[0].identifiers.length} feature{message.mapActions[0].identifiers.length !== 1 ? 's' : ''}</span>
                                     </button>
                                 )}
 
@@ -266,9 +287,17 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                                             <button
                                                 key={i}
                                                 onClick={() => handleSendMessage(q)}
-                                                className="text-left px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all shadow-sm group w-fit max-w-full"
+                                                className={cn(
+                                                    "text-left px-3 py-2 text-xs rounded-lg transition-all shadow-sm group w-fit max-w-full border",
+                                                    theme === 'dark'
+                                                        ? "bg-slate-800 border-slate-700 hover:border-purple-500 hover:bg-slate-700"
+                                                        : "bg-white border-slate-200 hover:border-purple-300 hover:bg-purple-50"
+                                                )}
                                             >
-                                                <span className="text-slate-500 group-hover:text-purple-700">↪ {q}</span>
+                                                <span className={cn(
+                                                    "group-hover:text-purple-400",
+                                                    theme === 'dark' ? "text-slate-400" : "text-slate-500"
+                                                )}>↪ {q}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -280,7 +309,10 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                     {/* Initial Suggestions */}
                     {showSuggestions && messages.length === 1 && !isLoading && (
                         <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                            <div className={cn(
+                                "flex items-center gap-2 text-xs font-medium",
+                                theme === 'dark' ? "text-slate-500" : "text-slate-500"
+                            )}>
                                 <MessageSquare className="w-3.5 h-3.5" />
                                 <span>Ask about the map layers</span>
                             </div>
@@ -289,9 +321,17 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                                     <button
                                         key={index}
                                         onClick={() => handleSendMessage(question)}
-                                        className="text-left px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all shadow-sm hover:shadow group"
+                                        className={cn(
+                                            "text-left px-3 py-2 text-xs rounded-lg transition-all shadow-sm hover:shadow group border",
+                                            theme === 'dark'
+                                                ? "bg-slate-800 border-slate-700 hover:border-purple-500 hover:bg-slate-700"
+                                                : "bg-white border-slate-200 hover:border-purple-300 hover:bg-purple-50"
+                                        )}
                                     >
-                                        <span className="text-slate-600 group-hover:text-purple-700">{question}</span>
+                                        <span className={cn(
+                                            "group-hover:text-purple-400",
+                                            theme === 'dark' ? "text-slate-300" : "text-slate-600"
+                                        )}>{question}</span>
                                     </button>
                                 ))}
                             </div>
@@ -301,10 +341,18 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                     {/* Loading */}
                     {isLoading && (
                         <div className="flex justify-start">
-                            <div className="bg-white text-slate-700 border border-slate-200 shadow-sm rounded-2xl rounded-bl-md px-4 py-3">
+                            <div className={cn(
+                                "shadow-sm rounded-2xl rounded-bl-md px-4 py-3 border",
+                                theme === 'dark'
+                                    ? "bg-slate-800 text-slate-300 border-slate-700"
+                                    : "bg-white text-slate-700 border-slate-200"
+                            )}>
                                 <div className="flex items-center gap-2">
                                     <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
-                                    <span className="text-sm text-slate-500">Agents running...</span>
+                                    <span className={cn(
+                                        "text-sm",
+                                        theme === 'dark' ? "text-slate-400" : "text-slate-500"
+                                    )}>Agents running...</span>
                                 </div>
                                 <div className="flex gap-1 mt-2">
                                     {['ASSET', 'SPATIAL', 'INSIGHT'].map(a => (
@@ -321,7 +369,10 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                 </div>
 
                 {/* Input Area */}
-                <div className="flex-none p-4 border-t border-gray-200 bg-white">
+                <div className={cn(
+                    "flex-none p-4 border-t",
+                    theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-gray-200"
+                )}>
                     <div className="flex items-center gap-2">
                         <input
                             ref={inputRef}
@@ -330,7 +381,12 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder="Ask about wells, fields, blocks, seismic..."
-                            className="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-slate-50"
+                            className={cn(
+                                "flex-1 px-4 py-2.5 text-sm border rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent",
+                                theme === 'dark'
+                                    ? "bg-slate-800 border-slate-700 text-slate-200 placeholder:text-slate-500"
+                                    : "bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400"
+                            )}
                             disabled={isLoading}
                         />
                         <button
@@ -343,7 +399,10 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                     </div>
                     <div className="flex items-center justify-center gap-1.5 mt-2">
                         <Zap className="w-3 h-3 text-amber-400" />
-                        <p className="text-[10px] text-slate-400">Powered by Groq · Asset · Spatial · Insight agents</p>
+                        <p className={cn(
+                            "text-[10px]",
+                            theme === 'dark' ? "text-slate-500" : "text-slate-400"
+                        )}>Powered by Groq · Asset · Spatial · Insight agents</p>
                     </div>
                 </div>
             </div>

@@ -18,6 +18,7 @@ interface GNGProjectFloatingPanelProps {
   isRightPanelOpen?: boolean
   isExpanded?: boolean
   onExpandChange?: (expanded: boolean) => void
+  theme?: 'light' | 'dark'
 }
 
 const appLogos: Record<string, string> = {
@@ -31,7 +32,8 @@ export function GNGProjectFloatingPanel({
   onProjectClick, 
   isRightPanelOpen,
   isExpanded: controlledExpanded,
-  onExpandChange 
+  onExpandChange,
+  theme = 'light'
 }: GNGProjectFloatingPanelProps) {
   const [internalExpanded, setInternalExpanded] = useState(false)
   const isExpanded = controlledExpanded ?? internalExpanded
@@ -89,24 +91,42 @@ export function GNGProjectFloatingPanel({
 
   // Expanded state - show full panel
   return (
-    <div className="absolute top-4 right-4 z-30 w-80 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden">
+    <div className={cn(
+      "absolute top-4 right-4 z-30 w-80 rounded-lg shadow-xl border overflow-hidden backdrop-blur-md",
+      theme === 'dark' ? "bg-slate-900/90 border-slate-700" : "bg-white border-slate-200"
+    )}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+      <div className={cn(
+        "flex items-center justify-between px-4 py-3 border-b",
+        theme === 'dark' ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"
+      )}>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-purple-500" />
-          <span className="text-xs font-bold uppercase text-slate-500 tracking-wider">G&G Project Data</span>
+          <span className={cn(
+            "text-xs font-bold uppercase tracking-wider",
+            theme === 'dark' ? "text-slate-400" : "text-slate-500"
+          )}>G&G Project Data</span>
         </div>
         <button
           onClick={() => setIsExpanded(false)}
-          className="text-slate-400 hover:text-slate-600 transition-colors"
+          className={cn(
+            "transition-colors",
+            theme === 'dark' ? "text-slate-500 hover:text-slate-300" : "text-slate-400 hover:text-slate-600"
+          )}
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Summary */}
-      <div className="px-4 py-3 border-b border-slate-100">
-        <div className="text-sm font-semibold text-slate-800">
+      <div className={cn(
+        "px-4 py-3 border-b",
+        theme === 'dark' ? "border-slate-800" : "border-slate-100"
+      )}>
+        <div className={cn(
+          "text-sm font-semibold",
+          theme === 'dark' ? "text-slate-200" : "text-slate-800"
+        )}>
           Summary: No of Projects: {projects.length}
         </div>
         <p className="text-[10px] text-slate-500 mt-0.5">
@@ -115,8 +135,11 @@ export function GNGProjectFloatingPanel({
       </div>
 
       {/* Project List */}
-      <div className="max-h-[400px] overflow-y-auto">
-        <div className="px-3 py-2 bg-slate-50 text-[10px] font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+      <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+        <div className={cn(
+          "px-3 py-2 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5",
+          theme === 'dark' ? "bg-slate-800/30 text-slate-500" : "bg-slate-50 text-slate-500"
+        )}>
           <Database className="w-3 h-3" />
           Project Summary ({projects.length} Projects)
         </div>
@@ -124,7 +147,10 @@ export function GNGProjectFloatingPanel({
         {loading ? (
           <div className="p-4 text-center text-xs text-slate-400">Loading...</div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className={cn(
+            "divide-y",
+            theme === 'dark' ? "divide-slate-800" : "divide-slate-100"
+          )}>
             {projects.map((project, index) => {
               const logoUrl = getLogoUrl(project.applicationName)
               return (
@@ -132,13 +158,18 @@ export function GNGProjectFloatingPanel({
                   key={project.id}
                   onClick={() => onProjectClick?.(project.projectName)}
                   className={cn(
-                    "px-3 py-3 cursor-pointer hover:bg-slate-50 transition-colors group",
-                    index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                    "px-3 py-3 cursor-pointer transition-colors group",
+                    theme === 'dark' 
+                      ? index % 2 === 0 ? "bg-slate-900/50 hover:bg-slate-800" : "bg-slate-800/30 hover:bg-slate-800"
+                      : index % 2 === 0 ? "bg-white hover:bg-slate-50" : "bg-slate-50/50 hover:bg-slate-50"
                   )}
                 >
                   <div className="flex items-start gap-3">
                     {/* App Logo or Fallback */}
-                    <div className="flex-shrink-0 w-10 h-10 rounded bg-slate-100 flex items-center justify-center overflow-hidden">
+                    <div className={cn(
+                      "flex-shrink-0 w-10 h-10 rounded flex items-center justify-center overflow-hidden border",
+                      theme === 'dark' ? "bg-slate-800 border-slate-700" : "bg-slate-100 border-transparent"
+                    )}>
                       {logoUrl ? (
                         <img 
                           src={logoUrl} 
@@ -146,28 +177,45 @@ export function GNGProjectFloatingPanel({
                           className="w-8 h-8 object-contain"
                         />
                       ) : (
-                        <FolderOpen className="w-5 h-5 text-slate-400" />
+                        <FolderOpen className={cn(
+                          "w-5 h-5",
+                          theme === 'dark' ? "text-slate-500" : "text-slate-400"
+                        )} />
                       )}
                     </div>
                     
                     {/* Project Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-slate-800 truncate">
+                        <span className={cn(
+                          "text-sm font-semibold truncate",
+                          theme === 'dark' ? "text-slate-200 group-hover:text-blue-400" : "text-slate-800 group-hover:text-primary"
+                        )}>
                           {project.projectName}
                         </span>
                         {project.interpretationYear !== '-' && (
-                          <span className="flex-shrink-0 px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-medium rounded">
+                          <span className={cn(
+                            "flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium rounded border",
+                            theme === 'dark' 
+                              ? "bg-green-900/30 text-green-400 border-green-800/50" 
+                              : "bg-green-100 text-green-700 border-green-200"
+                          )}>
                             {project.interpretationYear}
                           </span>
                         )}
                       </div>
                       
-                      <div className="mt-1 flex items-center gap-3 text-[11px] text-slate-500">
+                      <div className={cn(
+                        "mt-1 flex items-center gap-3 text-[11px]",
+                        theme === 'dark' ? "text-slate-400" : "text-slate-500"
+                      )}>
                         <span>App: {project.applicationName}</span>
                         <span>Wells: {project.noOfWells}</span>
                       </div>
-                      <div className="text-[11px] text-slate-500">
+                      <div className={cn(
+                        "text-[11px]",
+                        theme === 'dark' ? "text-slate-400" : "text-slate-500"
+                      )}>
                         Reports: {project.noOfReports}
                       </div>
                     </div>
@@ -180,7 +228,10 @@ export function GNGProjectFloatingPanel({
       </div>
 
       {/* Footer */}
-      <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 text-[10px] text-slate-500 text-center">
+      <div className={cn(
+        "px-3 py-2 border-t text-[10px] text-center",
+        theme === 'dark' ? "bg-slate-800/50 border-slate-700 text-slate-500" : "bg-slate-50 border-slate-200 text-slate-500"
+      )}>
         Powered by AFED Digital Sdn. Bhd.
       </div>
     </div>

@@ -2,16 +2,18 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { LogOut, Crown } from "lucide-react"
+import { LogOut, Crown, Moon, Sun } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 interface BasinHeaderProps {
   activeTab?: 'map' | 'subsurface'
   onTabChange?: (tab: 'map' | 'subsurface') => void
+  theme?: 'light' | 'dark'
+  onThemeChange?: (theme: 'light' | 'dark') => void
 }
 
-export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps) {
+export function BasinHeader({ activeTab = 'map', onTabChange, theme = 'light', onThemeChange }: BasinHeaderProps) {
   const [isPremium, setIsPremium] = useState(false)
   const router = useRouter()
 
@@ -30,8 +32,18 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
     router.push("/auth/login")
   }
 
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light'
+    onThemeChange?.(newTheme)
+  }
+
   return (
-    <div className="bg-white border-b border-gray-200 text-slate-900 select-none">
+    <div className={cn(
+      "border-b select-none transition-colors duration-200",
+      theme === 'dark' 
+        ? "bg-slate-900 border-slate-800 text-slate-100" 
+        : "bg-white border-gray-200 text-slate-900"
+    )}>
       {/* Top Bar - Always visible */}
       <div className="h-12 px-4 flex items-center text-sm relative">
         {/* Left Section */}
@@ -43,12 +55,21 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
               alt="Vibecodes VDR Logo"
               width={100}
               height={32}
-              className="h-8 w-auto mr-2"
+              className={cn(
+                "h-8 w-auto mr-2",
+                theme === 'dark' && "brightness-90"
+              )}
               priority
             />
           </div>
-          <div className="h-6 w-px bg-gray-300" />
-          <span className="font-bold text-lg tracking-tight text-slate-900 uppercase">EDAFY Data Platform</span>
+          <div className={cn(
+            "h-6 w-px",
+            theme === 'dark' ? "bg-slate-700" : "bg-gray-300"
+          )} />
+          <span className={cn(
+            "font-bold text-lg tracking-tight uppercase",
+            theme === 'dark' ? "text-slate-100" : "text-slate-900"
+          )}>Data Platform Netherlands</span>
 
           {isPremium && (
             <div className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-200 to-yellow-400 rounded text-[10px] font-black text-amber-900 uppercase tracking-wider shadow-sm border border-yellow-500/50">
@@ -60,14 +81,23 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
 
         {/* Center Tabs */}
         <div className="flex-none flex items-center justify-center h-full">
-          <div className="flex items-center p-1 bg-slate-100 rounded-lg border border-slate-200">
+          <div className={cn(
+            "flex items-center p-1 rounded-lg border",
+            theme === 'dark' 
+              ? "bg-slate-800 border-slate-700" 
+              : "bg-slate-100 border-slate-200"
+          )}>
             <button
               onClick={() => onTabChange?.('map')}
               className={cn(
                 "px-4 py-1.5 text-xs font-semibold rounded-md transition-all",
                 activeTab === 'map'
-                  ? "bg-white text-primary shadow-sm ring-1 ring-black/5"
-                  : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
+                  ? theme === 'dark'
+                    ? "bg-slate-700 text-white shadow-sm ring-1 ring-slate-600"
+                    : "bg-white text-primary shadow-sm ring-1 ring-black/5"
+                  : theme === 'dark'
+                    ? "text-slate-400 hover:text-slate-100 hover:bg-slate-700/50"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
               )}
             >
               Map Data
@@ -77,8 +107,12 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
               className={cn(
                 "px-4 py-1.5 text-xs font-semibold rounded-md transition-all",
                 activeTab === 'subsurface'
-                  ? "bg-white text-primary shadow-sm ring-1 ring-black/5"
-                  : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
+                  ? theme === 'dark'
+                    ? "bg-slate-700 text-white shadow-sm ring-1 ring-slate-600"
+                    : "bg-white text-primary shadow-sm ring-1 ring-black/5"
+                  : theme === 'dark'
+                    ? "text-slate-400 hover:text-slate-100 hover:bg-slate-700/50"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
               )}
             >
               3D Viewer
@@ -88,21 +122,32 @@ export function BasinHeader({ activeTab = 'map', onTabChange }: BasinHeaderProps
 
         {/* Right Section */}
         <div className="flex-1 flex items-center justify-end gap-4">
-          {/* Basin Card Toggle Hidden
+          {/* Theme Toggle */}
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors"
+            onClick={toggleTheme}
+            className={cn(
+              "flex items-center justify-center w-8 h-8 rounded-lg transition-colors",
+              theme === 'dark'
+                ? "bg-slate-800 text-amber-400 hover:bg-slate-700"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            )}
+            title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            <span className="text-xs uppercase tracking-wider">Basin Card</span>
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
           </button>
-
-          <div className="h-4 w-px bg-gray-300" />
-          */}
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-slate-400 hover:text-red-600 transition-colors"
+            className={cn(
+              "flex items-center gap-2 transition-colors",
+              theme === 'dark'
+                ? "text-slate-400 hover:text-red-400"
+                : "text-slate-400 hover:text-red-600"
+            )}
             title="Log Out"
           >
             <LogOut className="w-4 h-4" />
