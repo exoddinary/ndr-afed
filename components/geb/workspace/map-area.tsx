@@ -748,14 +748,25 @@ export function MapArea({
                console.log(`🗺️ Added ${labelGraphics.length} block labels that scale with map`)
                
                // Function to update label sizes based on zoom
+               // At 1:5,000,000 scale = size 10 (max), smaller when zoomed out
                const updateLabelSizes = (scale: number) => {
-                  const isZoomedIn = scale < 600000
-                  const newSize = isZoomedIn ? 10 : 5 // Double size when zoomed in
+                  const MAX_SCALE = 5000000 // 1:5M
+                  const MIN_SIZE = 5
+                  const MAX_SIZE = 10
+                  
+                  let newSize: number
+                  if (scale <= MAX_SCALE) {
+                     newSize = MAX_SIZE // 10 at 1:5M or closer
+                  } else {
+                     // Scale down proportionally when zoomed out beyond 1:5M
+                     const ratio = MAX_SCALE / scale
+                     newSize = Math.max(MIN_SIZE, MIN_SIZE + (MAX_SIZE - MIN_SIZE) * ratio)
+                  }
                   
                   labelGraphics.forEach((graphic: __esri.Graphic) => {
                      const symbol = graphic.symbol as __esri.TextSymbol
                      if (symbol && symbol.font) {
-                        symbol.font = { ...symbol.font, size: newSize }
+                        symbol.font = { ...symbol.font, size: Math.round(newSize) }
                      }
                   })
                   
