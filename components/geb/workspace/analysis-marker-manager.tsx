@@ -953,34 +953,45 @@ interface OrbitalButtonProps {
   buttonSize?: number
 }
 
-function OrbitalButton({ icon: Icon, label, angle, distance, isActive, onClick, color, className = "", buttonSize = 40 }: OrbitalButtonProps) {
+function OrbitalButton({ icon: Icon, label, angle, distance, isActive, onClick, color, className = "", buttonSize = 44 }: OrbitalButtonProps) {
   const x = Math.cos((angle * Math.PI) / 180) * distance
   const y = Math.sin((angle * Math.PI) / 180) * distance
   const halfSize = buttonSize / 2
 
   const isDelete = label === "Delete"
-  const bgColor = isDelete ? "bg-red-500" : (isActive ? "bg-white" : "bg-white")
-  const textColor = isDelete ? "text-white" : (isActive ? color : "text-slate-400")
-  const borderColor = isDelete ? "border-red-600" : (isActive ? color : "transparent")
+  
+  // Clean, modern aesthetic matching the screenshot
+  const bgColor = isDelete ? "bg-red-500" : "bg-white"
+  const textColor = isDelete ? "text-white" : (isActive ? "text-blue-600" : "text-slate-400")
+  const borderColor = isDelete ? "border-red-600" : (isActive ? "border-blue-200" : "border-slate-100")
+  const shadowClass = isDelete ? "shadow-md" : (isActive ? "shadow-md shadow-blue-500/20" : "shadow-sm")
 
   return (
     <motion.button
       initial={{ scale: 0, opacity: 0, x: 0, y: 0 }}
       animate={{ scale: 1, opacity: 1, x: x - halfSize, y: y - halfSize }}
       exit={{ scale: 0, opacity: 0, x: 0, y: 0 }}
-      whileHover={{ scale: 1.15, zIndex: 1002 }}
-      whileTap={{ scale: 0.9 }}
+      whileHover={{ scale: 1.1, zIndex: 1002 }}
+      whileTap={{ scale: 0.95 }}
       onClick={onClick}
-      className={`absolute rounded-full flex items-center justify-center shadow-lg transition-colors border-2 ${bgColor} ${textColor} ${borderColor} ${className}`}
+      className={`absolute rounded-full flex items-center justify-center transition-all duration-200 border-[3px] ${bgColor} ${textColor} ${borderColor} ${shadowClass} ${className}`}
       style={{
         left: "50%",
         top: "50%",
         width: buttonSize,
         height: buttonSize,
+        // Add subtle blue glow if active
+        boxShadow: isActive ? "0 4px 12px rgba(59, 130, 246, 0.2), inset 0 2px 4px rgba(255,255,255,0.5)" : "0 2px 8px rgba(0, 0, 0, 0.08)"
       }}
       title={label}
     >
-      <Icon style={{ width: buttonSize * 0.5, height: buttonSize * 0.5 }} />
+      <Icon 
+        style={{ 
+          width: buttonSize * 0.45, 
+          height: buttonSize * 0.45,
+          strokeWidth: isActive ? 2.5 : 2
+        }} 
+      />
     </motion.button>
   )
 }
