@@ -1,40 +1,18 @@
-import Groq from 'groq-sdk'
-import { runAssetQueryAgent, type AssetQueryResult } from './asset-query-agent'
+/**
+ * NDR AI Orchestrator - Refactored 3-Lane Architecture
+ */
+
+import { classifyQuery, shouldUseGraph, type ExecutionTier } from './query-classifier'
+import { handleDirectQuery, type DirectQueryResult } from './direct-query-handler'
 import { runSpatialReasoningAgent, type SpatialResult } from './spatial-agent'
 import { runInsightAgent, type InsightResult } from './insight-agent'
+import { ensureGraphLazy } from './graph-manager'
 import { runGraphAgent, type GraphQueryResult } from './graph-agent'
-import { buildKnowledgeGraph, getKnowledgeGraph, getGraphRagContextString } from './tools/graph-index'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-const MODEL = 'llama-3.3-70b-versatile'
-
-const ROUTING_PROMPT = `You are the NDR AI Orchestrator. Analyze the user query and decide which specialist agents to invoke.
-
-Available agents:
-- ASSET: Query and filter structured feature attributes (operators, statuses, results, counts)
-- SPATIAL: Spatial relationships, proximity, distances, areas, filtering by map view
-- GRAPH: Entity relationships, operator-block associations, provenance explanation
-- INSIGHT: Synthesize and interpret data, generate exploration insights
-
-Respond with a JSON object like:
-{
-  "agents": ["ASSET", "SPATIAL", "GRAPH", "INSIGHT"],
-  "reasoning": "brief explanation",
-  "primary": "ASSET"
+// Check for API key
+if (!process.env.GROQ_API_KEY) {
+  console.error('[Orchestrator] CRITICAL: GROQ_API_KEY environment variable is not set!')
 }
-
-Rules:
-- If query mentions proximity, distance, nearby, within, around, this area → include SPATIAL
-- If query mentions filtering, listing, counting, operators in this area → include SPATIAL + ASSET
-- If query mentions filtering, listing, counting, operators → include ASSET
-- If query asks about relationships, associations, "which operator in block", reliability, provenance, explain → include GRAPH
-- If query mentions "reliability of", "how was this derived", "confidence" → include GRAPH
-- If query asks "what is interesting", opportunities, summary, recommend → include INSIGHT
-- Most queries need at least ASSET + INSIGHT
-- Relationship queries: GRAPH + ASSET + INSIGHT
-- Spatial queries usually go SPATIAL + ASSET + INSIGHT
-- Simple factual lookups: ASSET only
-Only return valid JSON, nothing else.`
 
 export type OrchestratorResponse = {
     answer: string
@@ -44,15 +22,13 @@ export type OrchestratorResponse = {
         action: 'highlight' | 'zoom'
         layer: string
         identifiers: string[]
-        radiusInfo?: {
-            originLayer: string
-            originId: string
-            radiusKm: number
-        }
+        radiusInfo?: { originLayer: string; originId: string; radiusKm: number }
     }[]
     metadata: {
         routing: string[]
+        tier: ExecutionTier
         latencyMs: number
+        graphUsed: boolean
     }
 }
 
@@ -61,154 +37,145 @@ export async function runOrchestrator(
     context: Record<string, unknown>
 ): Promise<OrchestratorResponse> {
     const startMs = Date.now()
-
-    // Step 1: Route the query
-    let routing: { agents: string[]; reasoning: string; primary: string } = {
-        agents: ['ASSET', 'INSIGHT'],
-        reasoning: 'default routing',
-        primary: 'ASSET'
-    }
-
-    // If we have spatial context (map extent) and query mentions area, include SPATIAL
-    const hasSpatialContext = context?.extent && 
-        typeof context.extent === 'object' &&
-        'xmin' in context.extent &&
-        'xmax' in context.extent
     
-    const mentionsArea = /\b(this area|current view|visible area|on the map)\b/i.test(userQuery)
+    const hasSpatialContext = !!(context?.extent && typeof context.extent === 'object')
     
-    if (hasSpatialContext && mentionsArea) {
-        routing = {
-            agents: ['ASSET', 'SPATIAL', 'INSIGHT'],
-            reasoning: 'Query about current map area with spatial context available',
-            primary: 'SPATIAL'
+    // Step 1: Classify query (regex-based, no LLM)
+    const classification = classifyQuery(userQuery, hasSpatialContext)
+    console.log('[Orchestrator] Query classified as:', classification.type, 'Tier:', classification.tier)
+    
+    let directResult: DirectQueryResult | null = null
+    let spatialResult: SpatialResult | null = null
+    let graphResult: GraphQueryResult | null = null
+    let insightResult: InsightResult | null = null
+    const agents: string[] = []
+    let graphWasUsed = false
+    
+    // LANE A: CHEAP TIER - Direct deterministic handling
+    if (classification.tier === 'CHEAP') {
+        console.log('[Orchestrator] Using CHEAP tier - deterministic handling')
+        directResult = await handleDirectQuery(userQuery, classification.suggestedLayer || null)
+        
+        if (directResult) {
+            agents.push('DIRECT')
+            const latency = Date.now() - startMs
+            console.log(`[QueryClassifier] Type: ${classification.type}`)
+            console.log(`[ExecutionTier] CHEAP`)
+            console.log(`[Graph] Skipped`)
+            console.log(`[Agents] DIRECT`)
+            console.log(`[Latency] ${latency}ms`)
+            
+            return {
+                answer: directResult.answer,
+                followUpQuestions: [
+                    'Which operators are most active in this area?',
+                    'What seismic coverage exists nearby?',
+                    'Show me wells with gas discoveries in this region.'
+                ],
+                agents,
+                mapActions: directResult.suggestedMapActions,
+                metadata: {
+                    routing: agents,
+                    tier: 'CHEAP',
+                    latencyMs: latency,
+                    graphUsed: false
+                }
+            }
         }
+        console.log('[Orchestrator] Direct handler failed, escalating')
     }
-
-    try {
-        const routeCompletion = await groq.chat.completions.create({
-            model: MODEL,
-            messages: [
-                { role: 'system', content: ROUTING_PROMPT },
-                { role: 'user', content: hasSpatialContext ? `${userQuery}\n\n[Context: User is viewing map area with bounds ${JSON.stringify(context.extent)}]` : userQuery }
-            ],
-            temperature: 0,
-            max_tokens: 200,
-        })
-        const raw = routeCompletion.choices[0]?.message?.content || ''
-        const jsonMatch = raw.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-            routing = JSON.parse(jsonMatch[0])
-        }
-    } catch {
-        // fallback routing already set
-    }
-
-    const agents = routing.agents || ['ASSET', 'INSIGHT']
-
-    // Check for graph/relationship query patterns
-    const isGraphQuery = /\b(reliability|confidence|how was|derived|explain|association|relationship|provenance)\b/i.test(userQuery) ||
-                        /\b(operator.*block|block.*operator)\b/i.test(userQuery)
     
-    if (isGraphQuery && !agents.includes('GRAPH')) {
-        agents.push('GRAPH')
-    }
-
-    // Step 2: Run specialist agents in parallel where possible
-    const results: {
-        asset?: AssetQueryResult
-        spatial?: SpatialResult
-        graph?: GraphQueryResult
-        insight?: InsightResult
-    } = {}
-
-    const parallelTasks: Promise<void>[] = []
-
-    if (agents.includes('ASSET')) {
-        parallelTasks.push(
-            runAssetQueryAgent(userQuery, context).then(r => { results.asset = r }).catch(e => {
-                console.error('[Asset Agent Error]', e)
-            })
-        )
-    }
-
-    if (agents.includes('SPATIAL')) {
-        parallelTasks.push(
-            runSpatialReasoningAgent(userQuery, context).then(r => { results.spatial = r }).catch(e => {
-                console.error('[Spatial Agent Error]', e)
-            })
-        )
-    }
-
-    if (agents.includes('GRAPH')) {
-        parallelTasks.push(
-            runGraphAgent(userQuery, context).then(r => { results.graph = r }).catch(e => {
-                console.error('[Graph Agent Error]', e)
-            })
-        )
-    }
-
-    await Promise.all(parallelTasks)
-
-    // Step 3: Build Knowledge Graph context for richer insights
-    const graphContext = getGraphRagContextString(userQuery)
-    console.log('[Orchestrator] Graph context length:', graphContext.length)
-
-    // Step 4: Run Insight agent with combined outputs + graph context
-    if (agents.includes('INSIGHT')) {
+    // LANE B: MEDIUM TIER - Spatial queries
+    if (classification.tier === 'MEDIUM' || classification.type === 'SPATIAL') {
+        console.log('[Orchestrator] Using MEDIUM tier - spatial handling')
+        agents.push('SPATIAL')
+        
         try {
-            results.insight = await runInsightAgent(
+            spatialResult = await runSpatialReasoningAgent(userQuery, context)
+            
+            if (spatialResult?.answer && !shouldUseGraph(classification)) {
+                const latency = Date.now() - startMs
+                return {
+                    answer: spatialResult.answer,
+                    followUpQuestions: spatialResult.followUpQuestions || [],
+                    agents,
+                    mapActions: spatialResult.mapActions,
+                    metadata: {
+                        routing: agents,
+                        tier: 'MEDIUM',
+                        latencyMs: latency,
+                        graphUsed: false
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[Spatial Agent Error]', e)
+        }
+    }
+    
+    // LANE C: HEAVY TIER - Graph + Insight with large model
+    if (classification.tier === 'HEAVY' || shouldUseGraph(classification)) {
+        console.log('[Orchestrator] Using HEAVY tier - graph and insight')
+        
+        if (shouldUseGraph(classification)) {
+            console.log('[Orchestrator] Lazy-loading graph for relationship query')
+            const graph = await ensureGraphLazy()
+            graphWasUsed = !!graph
+            
+            if (graph) {
+                agents.push('GRAPH')
+                try {
+                    graphResult = await runGraphAgent(userQuery, context)
+                } catch (e) {
+                    console.error('[Graph Agent Error]', e)
+                }
+            }
+        }
+        
+        agents.push('INSIGHT')
+        try {
+            insightResult = await runInsightAgent(
                 userQuery,
-                results.asset?.answer || '',
-                results.spatial?.answer || '',
-                graphContext,
-                results.graph?.answer || ''
+                directResult?.answer || '',
+                spatialResult?.answer || '',
+                graphResult?.answer || ''
             )
         } catch (e) {
             console.error('[Insight Agent Error]', e)
         }
     }
-
-    // Step 4: Merge map actions
-    const allMapActions = [
-        ...(results.asset?.suggestedMapActions || []),
-        ...(results.spatial?.mapActions || []),
-    ]
-
-    // Step 5: Synthesize final answer
-    let finalAnswer = ''
-
-    if (results.graph?.answer && !results.asset?.answer && !results.spatial?.answer) {
-        // Pure graph query - use graph answer directly
-        finalAnswer = results.graph.answer
-    } else if (results.insight?.answer) {
-        finalAnswer = results.insight.answer
-    } else if (results.graph?.answer && (results.asset?.answer || results.spatial?.answer)) {
-        finalAnswer = `**Relationship Analysis:**\n${results.graph.answer}\n\n${results.asset?.answer ? `**Asset Data:**\n${results.asset.answer}` : ''}\n${results.spatial?.answer ? `**Spatial Context:**\n${results.spatial.answer}` : ''}`
-    } else if (results.asset?.answer && results.spatial?.answer) {
-        finalAnswer = `**Asset Analysis:**\n${results.asset.answer}\n\n**Spatial Context:**\n${results.spatial.answer}`
-    } else if (results.asset?.answer) {
-        finalAnswer = results.asset.answer
-    } else if (results.spatial?.answer) {
-        finalAnswer = results.spatial.answer
-    } else {
-        finalAnswer = 'I was unable to retrieve results for this query. Please try rephrasing.'
-    }
-
-    const followUpQuestions = results.insight?.followUpQuestions || [
-        'Which operators are most active in this area?',
-        'What seismic coverage exists nearby?',
-        'Show me wells with gas discoveries in this region.'
-    ]
-
+    
+    // Synthesize final answer
+    let finalAnswer = insightResult?.answer || 
+                      graphResult?.answer || 
+                      spatialResult?.answer || 
+                      directResult?.answer || 
+                      'I was unable to retrieve results for this query.'
+    
+    const latency = Date.now() - startMs
+    console.log(`[QueryClassifier] Type: ${classification.type}`)
+    console.log(`[ExecutionTier] ${classification.tier}`)
+    console.log(`[Graph] ${graphWasUsed ? 'Used' : 'Skipped'}`)
+    console.log(`[Agents] ${agents.join(', ')}`)
+    console.log(`[Latency] ${latency}ms`)
+    
     return {
         answer: finalAnswer,
-        followUpQuestions,
+        followUpQuestions: insightResult?.followUpQuestions || [
+            'Which operators are most active in this area?',
+            'What seismic coverage exists nearby?',
+            'Show me wells with gas discoveries in this region.'
+        ],
         agents,
-        mapActions: allMapActions.length > 0 ? allMapActions as OrchestratorResponse['mapActions'] : undefined,
+        mapActions: [
+            ...(directResult?.suggestedMapActions || []),
+            ...(spatialResult?.mapActions || []),
+        ],
         metadata: {
             routing: agents,
-            latencyMs: Date.now() - startMs,
+            tier: classification.tier,
+            latencyMs: latency,
+            graphUsed: graphWasUsed
         }
     }
 }

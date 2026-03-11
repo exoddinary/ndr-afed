@@ -127,7 +127,7 @@ export default function NewLandingPage() {
             {/* 1. Header (Top-Left) */}
             <div className="absolute top-6 left-8 z-50 pointer-events-none flex items-center gap-4">
                 <Image
-                    src="/vdr-logo.png"
+                    src={theme === 'dark' ? "/data/edafy-vdr-light.png" : "/data/edafy-vdr.png"}
                     alt="Logo"
                     width={32}
                     height={32}

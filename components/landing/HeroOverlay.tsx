@@ -189,7 +189,7 @@ export default function HeroOverlay({
       >
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <img src="/vdr-logo.png" alt="VDR Logo" className="h-8 md:h-10 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]" />
+            <img src="/data/edafy-vdr.png" alt="VDR Logo" className="h-8 md:h-10 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]" />
             <div className="flex flex-col">
               <span className="text-white font-bold text-[12.5px] md:text-[14.5px] tracking-[0.4em] uppercase">EDAFY VIRTUAL DATA ROOM</span>
               <span className="text-cyan-500/50 font-light text-[9.5px] tracking-[0.3em] uppercase">Data Intelligence</span>

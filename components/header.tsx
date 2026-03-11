@@ -42,7 +42,7 @@ export function Header({ showNavigation = false, titleOverride }: HeaderProps) {
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <Image 
-              src="/vdr-logo.png?v=2" 
+              src="/data/edafy-vdr.png?v=2" 
               alt="VDR Logo" 
               width={120} 
               height={40}

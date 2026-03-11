@@ -177,11 +177,12 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
     return (
         <div
             className={cn(
-                "relative h-full shadow-xl z-20 transition-all duration-300 ease-in-out border-l",
+                "relative h-full shadow-xl z-20 transition-all duration-300 ease-in-out border-l overflow-hidden",
                 theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-gray-200",
                 isOpen ? "w-[400px]" : "w-0"
             )}
         >
+            {isOpen && (
             <div className="w-[400px] h-full flex flex-col">
                 {/* Header */}
                 <div className="h-12 flex-none flex items-center justify-between px-4 border-b border-gray-200 bg-gradient-to-r from-violet-600 to-purple-700">
@@ -406,6 +407,7 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                     </div>
                 </div>
             </div>
+            )}
         </div>
     )
 }

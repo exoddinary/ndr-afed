@@ -1,7 +1,7 @@
 import Groq from 'groq-sdk'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-const MODEL = 'llama-3.3-70b-versatile'
+const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
 
 const SYSTEM_PROMPT = `You are the Insight Agent for the Netherlands National Data Room (NDR).
 Your role: interpret and synthesize structured data outputs from the Asset Query Agent and Spatial Reasoning Agent.

@@ -86,7 +86,7 @@ export function MapArea({
    isPanelOpen = false,
    isAnalysisMarkerActive = false,
    theme = 'light',
-   basemapStyle = 'oceans',
+   basemapStyle = 'light-gray',
    onBasemapChange
 }: MapAreaProps = {}) {
    const mapDiv = useRef<HTMLDivElement>(null)
@@ -1323,23 +1323,23 @@ export function MapArea({
          <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden">
             {/* Top Left */}
             <div className="absolute top-[10%] left-[10%] opacity-[0.12]">
-               <img src="/watermark-afed.png" alt="" className="w-52 h-auto" />
+               <img src="/data/edafy-watermark.png" alt="" className="w-52 h-auto" />
             </div>
             {/* Top Right */}
             <div className="absolute top-[10%] right-[10%] opacity-[0.12]">
-               <img src="/watermark-afed.png" alt="" className="w-52 h-auto" />
+               <img src="/data/edafy-watermark.png" alt="" className="w-52 h-auto" />
             </div>
             {/* Center */}
             <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 opacity-[0.12]">
-               <img src="/watermark-afed.png" alt="" className="w-52 h-auto" />
+               <img src="/data/edafy-watermark.png" alt="" className="w-52 h-auto" />
             </div>
             {/* Bottom Left */}
             <div className="absolute bottom-[10%] left-[10%] opacity-[0.12]">
-               <img src="/watermark-afed.png" alt="" className="w-52 h-auto" />
+               <img src="/data/edafy-watermark.png" alt="" className="w-52 h-auto" />
             </div>
             {/* Bottom Right */}
             <div className="absolute bottom-[10%] right-[10%] opacity-[0.12]">
-               <img src="/watermark-afed.png" alt="" className="w-52 h-auto" />
+               <img src="/data/edafy-watermark.png" alt="" className="w-52 h-auto" />
             </div>
          </div>
 
@@ -1357,6 +1357,8 @@ export function MapArea({
             view={viewRef.current}
             visible={isAnalysisMarkerActive}
             isPanelOpen={isPanelOpen}
+            onJumpToMainAI={onJumpToMainAI}
+            theme={theme}
          />
 
          {/* Return to Original View — shown when AI focus mode is active */}

@@ -7,6 +7,7 @@ import {
   Activity,
   Asterisk,
   Bot,
+  Zap,
   MessageSquare,
   X,
   Move,
@@ -47,6 +48,7 @@ interface AnalysisMarkerManagerProps {
   onMarkerSelect?: (marker: AnalysisMarker | null) => void
   onJumpToMainAI?: (question: string, spatialContext: SpatialContext) => void
   isPanelOpen?: boolean
+  theme?: 'light' | 'dark'
 }
 
 const MARKER_COLORS = [
@@ -81,7 +83,8 @@ export function AnalysisMarkerManager({
   onMarkerDelete,
   onMarkerSelect,
   onJumpToMainAI,
-  isPanelOpen = false
+  isPanelOpen = false,
+  theme = 'light'
 }: AnalysisMarkerManagerProps) {
   const [markers, setMarkers] = useState<AnalysisMarker[]>([])
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null)
@@ -496,6 +499,7 @@ export function AnalysisMarkerManager({
           view={view}
           designConfig={designConfig}
           onJumpToMainAI={onJumpToMainAI}
+          theme={theme}
         />
       )}
     </>
@@ -542,6 +546,7 @@ interface AnalysisMarkerPanelProps {
     miniViewWidth: number
   }
   onJumpToMainAI?: (question: string, spatialContext: SpatialContext) => void
+  theme?: 'light' | 'dark'
 }
 
 function AnalysisMarkerPanel({
@@ -552,7 +557,8 @@ function AnalysisMarkerPanel({
   onClose,
   view,
   designConfig,
-  onJumpToMainAI
+  onJumpToMainAI,
+  theme = 'light'
 }: AnalysisMarkerPanelProps) {
   const [spatialContext, setSpatialContext] = useState<SpatialContext | null>(null)
   const [stats, setStats] = useState<MarkerStats | null>(null)
@@ -748,13 +754,13 @@ function AnalysisMarkerPanel({
                 buttonSize={designConfig.orbitalButtonSize}
               />
               <OrbitalButton
-                icon={Bot}
+                icon={Zap}
                 label="Ask AI"
                 angle={-90}
                 distance={designConfig.orbitalDistance}
                 isActive={marker.activeMode === "ai"}
                 onClick={() => handleModeChange(marker.activeMode === "ai" ? null : "ai")}
-                color={marker.color}
+                color="#9333EA"
                 buttonSize={designConfig.orbitalButtonSize}
               />
               <OrbitalButton
@@ -764,7 +770,7 @@ function AnalysisMarkerPanel({
                 distance={designConfig.orbitalDistance}
                 isActive={marker.activeMode === "comment"}
                 onClick={() => handleModeChange(marker.activeMode === "comment" ? null : "comment")}
-                color={marker.color}
+                color="#9333EA"
                 buttonSize={designConfig.orbitalButtonSize}
               />
             </>
@@ -895,14 +901,14 @@ function AnalysisMarkerPanel({
                 scale: 1 
               }}
               exit={{ x: 20, opacity: 0, scale: 0.95 }}
-              className="absolute top-0 w-64 bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-100"
+              className={`absolute top-0 w-64 rounded-xl shadow-2xl overflow-hidden border z-[1000] pointer-events-auto ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}
               style={{ transform: "translateY(-50%)" }}
             >
-              <div className="p-3 border-b border-slate-50 flex items-center justify-between" style={{ backgroundColor: `${marker.color}15` }}>
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+              <div className={`p-3 border-b flex items-center justify-between ${theme === 'dark' ? 'border-slate-800' : 'border-slate-50'}`} style={{ backgroundColor: `${marker.color}15` }}>
+                <span className={`text-xs font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
                   {marker.activeMode}
                 </span>
-                <button onClick={() => handleModeChange(null)} className="text-slate-400 hover:text-slate-600">
+                <button onClick={() => handleModeChange(null)} className={`transition-colors ${theme === 'dark' ? 'text-slate-400 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
                   <X className="w-3 h-3" />
                 </button>
               </div>
@@ -922,6 +928,7 @@ function AnalysisMarkerPanel({
                     newMessage={newAIMessage}
                     onNewMessageChange={setNewAIMessage}
                     onJumpToMainAI={onJumpToMainAI}
+                    theme={theme}
                   />
                 )}
                 {marker.activeMode === "comment" && (
@@ -930,6 +937,7 @@ function AnalysisMarkerPanel({
                     newComment={newComment}
                     onNewCommentChange={setNewComment}
                     onAddComment={handleAddComment}
+                    theme={theme}
                   />
                 )}
               </div>
@@ -960,11 +968,13 @@ function OrbitalButton({ icon: Icon, label, angle, distance, isActive, onClick, 
 
   const isDelete = label === "Delete"
   
-  // Clean, modern aesthetic matching the screenshot
+  // Clean, modern aesthetic
   const bgColor = isDelete ? "bg-red-500" : "bg-white"
-  const textColor = isDelete ? "text-white" : (isActive ? "text-blue-600" : "text-slate-400")
-  const borderColor = isDelete ? "border-red-600" : (isActive ? "border-blue-200" : "border-slate-100")
-  const shadowClass = isDelete ? "shadow-md" : (isActive ? "shadow-md shadow-blue-500/20" : "shadow-sm")
+  const textColor = isDelete ? "text-white" : (isActive ? "text-purple-600" : "text-slate-400")
+  const borderColor = isDelete ? "border-red-600" : (isActive ? "border-purple-200" : "border-slate-100")
+  const shadowClass = isDelete ? "shadow-md" : (isActive ? "shadow-md shadow-purple-500/30" : "shadow-sm")
+
+  const isAI = label === "Ask AI"
 
   return (
     <motion.button
@@ -980,18 +990,44 @@ function OrbitalButton({ icon: Icon, label, angle, distance, isActive, onClick, 
         top: "50%",
         width: buttonSize,
         height: buttonSize,
-        // Add subtle blue glow if active
-        boxShadow: isActive ? "0 4px 12px rgba(59, 130, 246, 0.2), inset 0 2px 4px rgba(255,255,255,0.5)" : "0 2px 8px rgba(0, 0, 0, 0.08)"
+        // Add subtle purple glow if active
+        boxShadow: isActive ? "0 4px 12px rgba(147, 51, 234, 0.3), inset 0 2px 4px rgba(255,255,255,0.5)" : "0 2px 8px rgba(0, 0, 0, 0.08)"
       }}
       title={label}
     >
-      <Icon 
-        style={{ 
-          width: buttonSize * 0.45, 
-          height: buttonSize * 0.45,
-          strokeWidth: isActive ? 2.5 : 2
-        }} 
-      />
+      {/* If this is the AI button, render a wrapper that spins the hue/glow continuously */}
+      {isAI ? (
+        <motion.div
+          animate={{ 
+            filter: [
+              "hue-rotate(0deg) drop-shadow(0 0 2px rgba(147,51,234,0.5))", 
+              "hue-rotate(90deg) drop-shadow(0 0 6px rgba(147,51,234,0.8))", 
+              "hue-rotate(180deg) drop-shadow(0 0 2px rgba(147,51,234,0.5))", 
+              "hue-rotate(270deg) drop-shadow(0 0 6px rgba(147,51,234,0.8))", 
+              "hue-rotate(360deg) drop-shadow(0 0 2px rgba(147,51,234,0.5))"
+            ] 
+          }}
+          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          className="flex items-center justify-center"
+        >
+          <Icon 
+            style={{ 
+              width: buttonSize * 0.45, 
+              height: buttonSize * 0.45,
+              strokeWidth: isActive ? 2.5 : 2
+            }} 
+            fill={isActive ? "currentColor" : "none"}
+          />
+        </motion.div>
+      ) : (
+        <Icon 
+          style={{ 
+            width: buttonSize * 0.45, 
+            height: buttonSize * 0.45,
+            strokeWidth: isActive ? 2.5 : 2
+          }} 
+        />
+      )}
     </motion.button>
   )
 }
@@ -1083,9 +1119,10 @@ interface AIMiniViewProps {
   newMessage: string
   onNewMessageChange: (text: string) => void
   onJumpToMainAI?: (question: string, spatialContext: SpatialContext) => void
+  theme?: 'light' | 'dark'
 }
 
-function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage, onNewMessageChange, onJumpToMainAI }: AIMiniViewProps) {
+function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage, onNewMessageChange, onJumpToMainAI, theme = 'light' }: AIMiniViewProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && newMessage.trim()) {
       if (onJumpToMainAI) {
@@ -1130,17 +1167,17 @@ function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage
   return (
     <div className="space-y-3">
       {/* Context Summary */}
-      <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-        <div className="text-[10px] text-slate-500 uppercase tracking-wide font-bold mb-1">Current Context</div>
+      <div className={`rounded-lg p-2 border ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
+        <div className={`text-[10px] uppercase tracking-wide font-bold mb-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Current Context</div>
         <div className="flex flex-wrap gap-1">
           {contextItems.length > 0 ? (
             contextItems.map((item, i) => (
-              <span key={i} className="text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">
+              <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border ${theme === 'dark' ? 'bg-slate-800 border-slate-600 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
                 {item}
               </span>
             ))
           ) : (
-            <span className="text-[10px] text-slate-400">No features in range</span>
+            <span className={`text-[10px] ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>No features in range</span>
           )}
         </div>
       </div>
@@ -1149,8 +1186,8 @@ function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage
       <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
         {chatMessages.length === 0 ? (
           <div className="text-center py-4">
-            <Bot className="w-8 h-8 text-blue-200 mx-auto mb-2" />
-            <p className="text-[10px] text-slate-400">Ask about the current analysis area</p>
+            <Zap className={`w-8 h-8 mx-auto mb-2 ${theme === 'dark' ? 'text-blue-500/30' : 'text-blue-200'}`} />
+            <p className={`text-[10px] ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>Ask about the current analysis area</p>
           </div>
         ) : (
           chatMessages.map((msg) => (
@@ -1158,8 +1195,8 @@ function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage
               key={msg.id} 
               className={`text-[11px] p-2 rounded-lg ${
                 msg.role === 'user' 
-                  ? 'bg-blue-50 text-blue-900 ml-4 border border-blue-100' 
-                  : 'bg-slate-50 text-slate-700 mr-4 border border-slate-100'
+                  ? `${theme === 'dark' ? 'bg-blue-900/30 text-blue-100 border-blue-800/50' : 'bg-blue-50 text-blue-900 border-blue-100'} ml-4 border` 
+                  : `${theme === 'dark' ? 'bg-slate-800/80 text-slate-300 border-slate-700/50' : 'bg-slate-50 text-slate-700 border-slate-100'} mr-4 border`
               }`}
             >
               <div className="font-bold text-[9px] uppercase tracking-wide mb-0.5 opacity-70">
@@ -1170,7 +1207,7 @@ function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage
           ))
         )}
         {isLoading && (
-          <div className="text-[11px] text-slate-500 italic animate-pulse bg-slate-50 p-2 rounded-lg mr-4 border border-slate-100">
+          <div className={`text-[11px] italic animate-pulse p-2 rounded-lg mr-4 border ${theme === 'dark' ? 'text-slate-400 bg-slate-800/50 border-slate-700/50' : 'text-slate-500 bg-slate-50 border-slate-100'}`}>
             AI is analyzing...
           </div>
         )}
@@ -1180,25 +1217,25 @@ function AIMiniView({ chatMessages, spatialContext, isLoading, onAsk, newMessage
       {chatMessages.length === 0 && !isLoading && (
         <button 
           onClick={handleQuickAnalysis}
-          className="w-full py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm"
+          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
         >
           Ask AI Analysis
         </button>
       )}
 
       {/* Chat Input */}
-      <div className="flex gap-1.5 pt-2 border-t border-slate-100">
+      <div className={`flex gap-1.5 pt-2 border-t ${theme === 'dark' ? 'border-slate-700/50' : 'border-slate-100'}`}>
         <input 
           value={newMessage}
           onChange={e => onNewMessageChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask about these features..."
-          className="flex-1 text-xs px-2 py-1.5 border border-slate-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          className={`flex-1 text-xs px-2 py-1.5 rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'}`}
         />
         <button 
           onClick={handleSend}
           disabled={!newMessage.trim() || isLoading}
-          className="bg-blue-600 text-white p-1.5 rounded-md disabled:bg-slate-300"
+          className={`bg-blue-600 text-white p-1.5 rounded-md transition-colors ${theme === 'dark' ? 'disabled:bg-slate-700' : 'disabled:bg-slate-300'}`}
         >
           <Send className="w-3 h-3"/>
         </button>
@@ -1380,9 +1417,10 @@ interface CommentMiniViewProps {
   newComment: string
   onNewCommentChange: (text: string) => void
   onAddComment: () => void
+  theme?: 'light' | 'dark'
 }
 
-function CommentMiniView({ comments, newComment, onNewCommentChange, onAddComment }: CommentMiniViewProps) {
+function CommentMiniView({ comments, newComment, onNewCommentChange, onAddComment, theme = 'light' }: CommentMiniViewProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && newComment.trim()) {
       onAddComment()
@@ -1398,12 +1436,12 @@ function CommentMiniView({ comments, newComment, onNewCommentChange, onAddCommen
             onChange={e => onNewCommentChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Add a note or comment..."
-            className="w-full text-xs px-3 py-2 pr-8 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition-all"
+            className={`w-full text-xs px-3 py-2 pr-8 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-100 focus:bg-slate-700 placeholder:text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white placeholder:text-slate-400'}`}
           />
           <button 
             onClick={onAddComment} 
             disabled={!newComment.trim()}
-            className="absolute right-1 top-1 bottom-1 p-1.5 text-blue-600 hover:bg-blue-50 rounded-md disabled:text-slate-300 disabled:hover:bg-transparent transition-colors"
+            className={`absolute right-1 top-1 bottom-1 p-1.5 rounded-md disabled:hover:bg-transparent transition-colors ${theme === 'dark' ? 'text-blue-400 hover:bg-blue-900/30 disabled:text-slate-600' : 'text-blue-600 hover:bg-blue-50 disabled:text-slate-300'}`}
           >
             <Send className="w-3.5 h-3.5"/>
           </button>
@@ -1417,12 +1455,12 @@ function CommentMiniView({ comments, newComment, onNewCommentChange, onAddCommen
               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold shadow-sm">
                 {c.user.charAt(0).toUpperCase()}
               </div>
-              <div className="flex-1 bg-slate-50 border border-slate-100 rounded-xl rounded-tl-sm p-2.5 shadow-sm group-hover:border-slate-200 transition-colors">
+              <div className={`flex-1 rounded-xl rounded-tl-sm p-2.5 shadow-sm transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 group-hover:border-slate-600' : 'bg-slate-50 border-slate-100 group-hover:border-slate-200'}`}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-[10px] text-slate-700">{c.user}</span>
-                  <span className="text-[9px] text-slate-400">Just now</span>
+                  <span className={`font-bold text-[10px] ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>{c.user}</span>
+                  <span className={`text-[9px] ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>Just now</span>
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed">{c.text}</p>
+                <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>{c.text}</p>
               </div>
             </div>
           ))}
@@ -1431,11 +1469,11 @@ function CommentMiniView({ comments, newComment, onNewCommentChange, onAddCommen
       
       {comments.length === 0 && (
         <div className="py-6 flex flex-col items-center justify-center text-center">
-          <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center mb-2">
-            <MessageSquare className="w-4 h-4 text-slate-300" />
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+            <MessageSquare className={`w-4 h-4 ${theme === 'dark' ? 'text-slate-500' : 'text-slate-300'}`} />
           </div>
-          <span className="text-[11px] font-medium text-slate-500">No notes yet</span>
-          <span className="text-[10px] text-slate-400 mt-0.5">Add a note to this area</span>
+          <span className={`text-[11px] font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>No notes yet</span>
+          <span className={`text-[10px] mt-0.5 ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>Add a note to this area</span>
         </div>
       )}
     </div>

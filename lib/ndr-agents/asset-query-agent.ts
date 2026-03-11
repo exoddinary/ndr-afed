@@ -10,7 +10,7 @@ import {
 } from './tools/geo-tools'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-const MODEL = 'llama-3.3-70b-versatile'
+const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
 
 const SYSTEM_PROMPT = `You are the Asset Query Agent for the Netherlands National Data Room (NDR).
 Your role: query and analyze structured attribute data from GeoJSON map layers.
@@ -47,6 +47,7 @@ export type AssetQueryResult = {
 export async function runAssetQueryAgent(userQuery: string, context: AgentContext): Promise<AssetQueryResult> {
     // Build a data snapshot relevant to the query
     const toolResults: Record<string, unknown> = {}
+    console.log('[Asset Agent] Processing query:', userQuery)
 
     // Try to determine relevant layer from query keywords
     const q = userQuery.toLowerCase()
@@ -57,6 +58,8 @@ export async function runAssetQueryAgent(userQuery: string, context: AgentContex
     if (q.includes('seismic') && q.includes('3d')) layers.push('seismic3d')
     if (q.includes('seismic') && q.includes('2d')) layers.push('seismic2d')
     if (layers.length === 0) layers.push('wells', 'fields', 'blocks')
+    
+    console.log('[Asset Agent] Selected layers:', layers)
 
     // Build operator filters
     const operatorMatch = userQuery.match(/operator[:\s]+([A-Za-z\s&.]+?)(?:\s|$|,)/i)
@@ -127,8 +130,14 @@ export async function runAssetQueryAgent(userQuery: string, context: AgentContex
                 toolResults[`${layer}_aggregation`] = await tool_aggregate_features(layer, groupField)
             } else if (q.includes('gas') && layer === 'fields') {
                 toolResults['fields_gas'] = await tool_filter_features('fields', { RESULT: 'Gas' }, 30)
+            } else if (q.includes('gas') && layer === 'wells') {
+                toolResults['wells_gas'] = await tool_filter_features('wells', { WELL_RESUL: 'Gas' }, 50)
             } else if (q.includes('oil') && layer === 'fields') {
                 toolResults['fields_oil'] = await tool_filter_features('fields', { RESULT: 'Oil' }, 30)
+            } else if (q.includes('oil') && layer === 'wells') {
+                toolResults['wells_oil'] = await tool_filter_features('wells', { WELL_RESUL: 'Oil' }, 50)
+            } else if (q.includes('dry') && layer === 'wells') {
+                toolResults['wells_dry'] = await tool_filter_features('wells', { WELL_RESUL: 'Dry' }, 50)
             } else if (q.includes('abandoned') && layer === 'wells') {
                 toolResults['wells_abandoned'] = await tool_filter_features('wells', { STATUS: 'Abandoned' }, 30)
             } else if (q.includes('active') && layer === 'wells') {
@@ -138,10 +147,13 @@ export async function runAssetQueryAgent(userQuery: string, context: AgentContex
             }
         } catch (e) {
             toolResults[`${layer}_error`] = String(e)
+            console.error(`[Asset Agent] Error processing layer ${layer}:`, e)
         }
     }
 
     const dataContext = JSON.stringify(toolResults, null, 2).slice(0, 8000)
+    console.log('[Asset Agent] Data retrieved:', Object.keys(toolResults))
+    console.log('[Asset Agent] Data context size:', dataContext.length, 'chars')
 
     const completion = await groq.chat.completions.create({
         model: MODEL,
@@ -157,6 +169,13 @@ export async function runAssetQueryAgent(userQuery: string, context: AgentContex
     })
 
     const answer = completion.choices[0]?.message?.content || 'No response generated.'
+    console.log('[Asset Agent] Generated answer:', answer.substring(0, 200))
+    console.log('[Asset Agent] Answer length:', answer.length)
+
+    // If answer is empty or generic failure message, return data anyway
+    if (!answer || answer.length < 10 || answer.includes('unable to retrieve')) {
+        console.log('[Asset Agent] Warning: Empty or failed response, returning raw data')
+    }
 
     // Extract potential identifiers for map highlighting
     const identifierMatches = answer.match(/\b([A-Z]\d{1,2}[-\w]*)/g) || []

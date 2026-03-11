@@ -29,7 +29,7 @@ export function GDEWorkspace() {
   const [is3DMode, setIs3DMode] = useState(false)
   const [activeTab, setActiveTab] = useState<'map' | 'subsurface'>('map')
   const [filteredBlockName, setFilteredBlockName] = useState<string | null>(null)
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const [basemapStyle, setBasemapStyle] = useState<'oceans' | 'light-gray'>('oceans')
 
   const [isAIChatOpen, setIsAIChatOpen] = useState(false)
@@ -206,7 +206,12 @@ export function GDEWorkspace() {
   }, [])
 
   const handleThemeChange = useCallback(() => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light')
+    setTheme(prev => {
+      const newTheme = prev === 'light' ? 'dark' : 'light'
+      // Sync basemap with theme - dark mode uses oceans, light mode uses light-gray
+      setBasemapStyle(newTheme === 'dark' ? 'oceans' : 'light-gray')
+      return newTheme
+    })
   }, [])
 
   const handleBasemapChange = useCallback(() => {

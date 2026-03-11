@@ -61,7 +61,7 @@ export default function LandingPage() {
                 }`}>
                 {/* Logo */}
                 <Image
-                    src="/landing-logo.png"
+                    src="/data/edafy-vdr.png"
                     alt="Logo"
                     width={32}
                     height={32}

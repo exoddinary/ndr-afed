@@ -10,15 +10,15 @@ The Netherlands Data Room (NDR) AI system is a multi-agent orchestration framewo
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                           USER QUERY                                 │
+│                           USER QUERY                                │
 └──────────────────────┬──────────────────────────────────────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         ORCHESTRATOR                                 │
-│  - Routes query to appropriate agents                                 │
-│  - Handles spatial context detection                                  │
-│  - Synthesizes final responses                                        │
+│                          ORCHESTRATOR                                │
+│  - Routes query to appropriate agents                               │
+│  - Handles spatial context detection                                │
+│  - Synthesizes final responses                                      │
 └──────────────────────┬──────────────────────────────────────────────┘
                        │
          ┌─────────────┼─────────────┐
@@ -37,8 +37,8 @@ The Netherlands Data Room (NDR) AI system is a multi-agent orchestration framewo
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      KNOWLEDGE GRAPH                                  │
-│  - Entity relationships & provenance                                  │
+│                      KNOWLEDGE GRAPH                                │
+│  - Entity relationships & provenance                                │
 │  - GraphRAG context for richer insights                             │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -353,3 +353,348 @@ The Netherlands Data Room (NDR) AI system is a multi-agent orchestration framewo
 4. **Advanced Spatial**: WKT geometry queries, shapefile upload
 5. **Caching**: LLM response caching for common queries
 6. **Feedback Loop**: User feedback to improve agent routing
+
+---
+
+## Spatial Analysis Architecture
+
+### Overview
+
+The **Analysis Marker Manager** (`analysis-marker-manager.tsx`) provides an interactive spatial analysis interface that allows users to drop markers on the map, define analysis radii, and query AI about specific geographic regions. This bridges the gap between visual map exploration and AI-powered data analysis.
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     ANALYSIS MARKER MANAGER                              │
+│                                                                          │
+│  ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐       │
+│  │  Marker State   │    │  Spatial Engine  │    │   AI Integration │       │
+│  │                 │    │                  │    │                  │       │
+│  │ • position      │◄──►│ • Radius calc    │◄──►│ • AIMiniView     │       │
+│  │ • radiusKm      │    │ • Feature query  │    │ • Jump to Main   │       │
+│  │ • activeMode    │    │ • Intersections  │    │ • Context Pass   │       │
+│  │ • isExpanded    │    │ • Stats compute  │    │                  │       │
+│  └─────────────────┘    └──────────────────┘    └─────────────────┘       │
+│           │                       │                      │              │
+│           ▼                       ▼                      ▼              │
+│  ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐       │
+│  │ Orbital Buttons │    │ Radial Data Viz  │    │  Comment System │       │
+│  │  (Data/AI/Chat) │    │  (6-bar layout)  │    │   (Annotations) │       │
+│  └─────────────────┘    └──────────────────┘    └─────────────────┘       │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Marker State Management
+
+**AnalysisMarker Interface**:
+```typescript
+interface AnalysisMarker {
+  id: string
+  position: { latitude: number; longitude: number }
+  radiusKm: number              // Analysis radius (1-50km)
+  isExpanded: boolean          // Show/hide orbital menu
+  activeMode: 'data' | 'ai' | 'comment' | 'stats' | 'graph' | null
+  color: string                // Marker color (dynamic)
+  label: string                // Generated label
+}
+```
+
+### Spatial Engine Components
+
+#### 1. Feature Intersection Detection
+
+Uses point-in-polygon and distance calculations to find features within the marker radius:
+
+```typescript
+// Spatial detection flow
+for (const layer of ['wells', 'fields', 'blocks']) {
+  const features = await queryLayer(layer)
+  const withinRadius = features.filter(f => {
+    const distance = haversineDistance(marker.position, f.geometry)
+    return distance <= marker.radiusKm
+  })
+  stats[layer] = aggregate(withinRadius)
+}
+```
+
+**Computed Statistics**:
+- Wells: total, gas count, oil count, dry count, byOperator
+- Fields: total, byResult (Gas/Oil), byStatus
+- Blocks: total count
+- Seismic coverage: 2D lines, 3D surveys within area
+
+#### 2. Radius Slider (ArcSlider)
+
+Interactive arc-based slider for adjusting analysis radius:
+- **Visual**: Semi-circular arc (140° to 40°) with draggable thumb
+- **Range**: 1-50 km
+- **Display**: Center pill showing current value with color-coded background
+- **Interaction**: Click/touch anywhere on arc to jump; drag for fine control
+
+#### 3. Radial Data Visualization
+
+6-bar radial chart showing feature distribution around the marker:
+
+```
+       Wells (-55°)
+          │
+    Fields (-35°)
+          │
+    Blocks (-15°) ────●──── Gas (+15°)
+          │                    │
+         ...                  Oil (+35°)
+                               │
+                              Dry (+55°)
+```
+
+**Design**:
+- 6 bars split evenly: 3 negative angles (-55°, -35°, -15°), 3 positive (15°, 35°, 55°)
+- Bar thickness: 8px (2px padding between bars)
+- Center arc: Thick arc aligned with radius bars
+- No secondary center point (clean design)
+- Spring animation for bar growth
+
+### Orbital Menu System
+
+**OrbitalButton Component**:
+```typescript
+interface OrbitalButtonProps {
+  angle: number           // Position angle (-140 to -40 degrees)
+  distance: number       // Orbit radius from center
+  isActive: boolean
+  color: string
+  label: string          // "Data", "Ask AI", "Chat", "Delete"
+  icon: LucideIcon
+}
+```
+
+**Button Positions**:
+- Data: -140° (top-left)
+- Ask AI: -90° (top-center) - Special continuous hue-rotate animation
+- Chat: -40° (top-right)
+- Delete: 90° (bottom-center, follows radius)
+
+**Animation**:
+- Entry: Scale from 0, fade in
+- Active: Purple theme (#9333EA), glowing border
+- AI Button: Continuous 4-second hue-rotate + glow pulse
+- Hover: Scale 1.1, z-index boost
+
+### AI Integration (AIMiniView)
+
+**Purpose**: Provide quick AI interaction without leaving the map context.
+
+**Features**:
+- Chat interface within marker panel
+- Spatial context auto-passed to AI
+- "Jump to Main AI" - transfers query + context to full sidebar
+- Pre-computed statistics as context
+
+**Context Passed to AI**:
+```typescript
+interface SpatialContext {
+  center: [lon, lat]
+  radiusKm: number
+  featuresInside: { wells: [], fields: [], blocks: [] }
+  statsSummary: {
+    wellsCount, fieldsCount, blocksCount,
+    seismicCoverage, operatorsCount
+  }
+}
+```
+
+**Example Query Flow**:
+1. User drops marker on map
+2. Radius auto-set to 10km
+3. User clicks "Ask AI" orbital button
+4. Mini-view opens with spatial context
+5. User types: "What operators work here?"
+6. Context + query sent to AI
+7. Response shown in mini-view
+8. User can "Jump to Main AI" for deeper analysis
+
+### Comment System (CommentMiniView)
+
+**Purpose**: Annotate specific geographic locations with notes.
+
+**Features**:
+- Add text comments tied to marker location
+- User avatars with initials
+- "Just now" timestamp
+- Empty state with prompt
+
+### Data Flow: Marker → AI
+
+```
+User drops marker
+       │
+       ▼
+┌──────────────┐
+│ Compute      │◄─── Query ArcGIS layers
+│ Spatial Stats│      (wells, fields, blocks)
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ Build        │◄─── Aggregate counts
+│ Context      │      (by operator, result, status)
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ User Query   │◄─── "What operators work here?"
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ AI Request   │◄─── Context + Query sent to
+│ (to Main AI) │      orchestrator via onJumpToMainAI
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ Full AI      │◄─── Sidebar opens with
+│ Response     │      inherited context
+└──────────────┘
+```
+
+### Theming Support
+
+All components support light/dark mode via `theme` prop:
+- Mini-view panel: Conditional bg-slate-900 (dark) / bg-white (light)
+- Input fields: Conditional border/text colors
+- Chat bubbles: Color-coded by role (user=blue, AI=slate)
+- Orbital buttons: Inherit theme from parent
+
+### Performance Optimizations
+
+1. **Spatial Indexing**: Pre-computed bounding boxes for quick filtering
+2. **Lazy Loading**: Stats computed only when mode activated
+3. **Debounced Radius**: Updates only after slider release
+4. **Memoization**: Feature counts cached per marker session
+
+---
+
+## CSV Export for AI Training
+
+### Purpose
+
+Enable bulk export of layer data with pre-computed spatial relationships for:
+- AI training datasets
+- External analysis tools
+- Data quality verification
+
+### Generated Files
+
+| File | Rows | Content |
+|------|------|---------|
+| `wells_with_relationships.csv` | 3,000 | All wells with field/block associations |
+| `well_field_block_relationships.csv` | 3,200+ | Normalized relationship rows |
+| `export_statistics.json` | - | Summary stats |
+
+### Spatial Relationship Computation
+
+```typescript
+// For each well:
+1. Get well coordinates (Point)
+2. Check against all field polygons (point-in-polygon)
+3. Check against all block polygons (point-in-polygon)
+4. Record containing field names, codes, operators
+5. Record containing block names, areas
+```
+
+### Key Columns
+
+**Wells Export**:
+- `well_id`, `well_name`, `latitude`, `longitude`
+- `well_type`, `status`, `result`
+- `operator`, `drilling_contractor`, `platform`
+- `field_name`, `field_code`, `field_operator`
+- `block_name`, `block_area_sqkm`
+- `in_field` (Yes/No), `in_block` (Yes/No)
+
+### Usage for AI
+
+The CSV can be loaded as a knowledge base for semantic search:
+
+```
+User: "Find gas wells in K06-T field deeper than 3000m"
+AI: [Queries CSV] → Returns matching wells with all metadata
+```
+
+---
+
+## Model Configuration Update
+
+**Current Setup** (all agents):
+```typescript
+const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
+```
+
+**Environment Variable**:
+```bash
+# Optional: Override default 70B model
+# GROQ_MODEL=llama-3.1-8b-instant  # Use 8B instead (not recommended)
+# Unset or omit to use 70B (default, recommended)
+```
+
+**Why 70B is Recommended**:
+- Reliable JSON output for routing decisions
+- Better tool-use adherence
+- Consistent structured responses
+- 8B may fail on complex multi-agent orchestration
+
+---
+
+## Complete Data Flow Diagram
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│                              USER INTERFACE                                   │
+│                                                                              │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────────────┐    │
+│  │ Map View   │  │ AI Sidebar │  │  Markers   │  │ CSV Export Script  │    │
+│  │            │  │            │  │            │  │                    │    │
+│  │ ArcGIS     │◄─┤  Chat      │  │ Analysis   │  │ GeoJSON → CSV      │    │
+│  │ Components │  │  Panel     │  │ Points     │  │ + Relationships    │    │
+│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘  └────────────────────┘    │
+│        │               │               │                                    │
+└────────┼───────────────┼───────────────┼────────────────────────────────────┘
+         │               │               │
+         ▼               ▼               ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                          AI ORCHESTRATION LAYER                             │
+│                                                                              │
+│  ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐       │
+│  │   Orchestrator  │───►   Asset Agent     │    │   Insight Agent  │       │
+│  │                 │◄────  • Layer query    │◄───│  • Synthesis     │       │
+│  │ • Routing       │    │  • Filtering     │    │  • Follow-ups    │       │
+│  │ • Synthesis     │◄───┤  • Aggregation   │    │                  │       │
+│  │                 │    │                  │    │                  │       │
+│  │                 │───►   Spatial Agent   │    └─────────────────┘       │
+│  │                 │◄────  • Proximity     │                               │
+│  │                 │    │  • Distance      │                               │
+│  │                 │    │  • Intersection  │                               │
+│  │                 │    │                  │                               │
+│  │                 │◄───┤                  │                               │
+│  └────────┬────────┘    └──────────────────┘                               │
+│           │                                                                  │
+│           ▼                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                      KNOWLEDGE GRAPH / DATA                         │   │
+│  │                                                                      │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐  │   │
+│  │  │  Wells   │  │  Fields  │  │  Blocks  │  │ Seismic  │  │ Graph  │  │   │
+│  │  │  (3K)    │  │  (560)   │  │  (176)   │  │  (2D/3D) │  │ RAG   │  │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └────────┘  │   │
+│  │                                                                      │   │
+│  │  Data Sources: GeoJSON files, real-time spatial calcs, CSV exports   │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+*Last Updated: March 11, 2026*
+*Components: Orchestrator, Asset Agent, Spatial Agent, Insight Agent, GraphRAG, Analysis Marker Manager, CSV Export*

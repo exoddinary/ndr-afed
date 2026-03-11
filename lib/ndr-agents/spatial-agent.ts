@@ -17,7 +17,7 @@ import {
 } from './tools/geo-tools'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-const MODEL = 'llama-3.3-70b-versatile'
+const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
 
 const SYSTEM_PROMPT = `You are the Spatial Reasoning Agent for the Netherlands National Data Room (NDR).
 Your role: analyze geospatial relationships between map features — proximity, containment, overlap, direction, and spatial extent.

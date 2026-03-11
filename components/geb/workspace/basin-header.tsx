@@ -51,7 +51,7 @@ export function BasinHeader({ activeTab = 'map', onTabChange, theme = 'light', o
           {/* Logo Section */}
           <div className="flex items-center">
             <Image
-              src="/vdr-logo.png?v=2"
+              src={theme === 'dark' ? "/data/edafy-vdr-light.png?v=1" : "/data/edafy-vdr.png?v=3"}
               alt="Vibecodes VDR Logo"
               width={100}
               height={32}
