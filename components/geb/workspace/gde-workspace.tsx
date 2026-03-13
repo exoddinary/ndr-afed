@@ -233,17 +233,19 @@ export function GDEWorkspace() {
       {/* Main Content Area */}
       <div className={`flex-1 flex overflow-hidden ${theme === 'dark' ? 'bg-slate-900' : 'bg-gray-50'}`}>
 
-        {/* Left Panel - Project Tree */}
-        <div className="flex-none z-30 relative self-stretch">
-          <ProjectTree
-            activeLayers={activeLayers}
-            onToggleLayer={handleToggleLayer}
-            activeTab={activeTab}
-            filteredBlockName={filteredBlockName}
-            onClearFilter={handleClearFilter}
-            theme={theme}
-          />
-        </div>
+        {/* Left Panel - Project Tree - Hidden in 3D mode */}
+        {!is3DMode && (
+          <div className="flex-none z-30 relative self-stretch">
+            <ProjectTree
+              activeLayers={activeLayers}
+              onToggleLayer={handleToggleLayer}
+              activeTab={activeTab}
+              filteredBlockName={filteredBlockName}
+              onClearFilter={handleClearFilter}
+              theme={theme}
+            />
+          </div>
+        )}
 
         {/* Center Column - Map + Timeline + Comparator */}
         <div className="flex-1 flex flex-col min-w-0 relative bg-white">

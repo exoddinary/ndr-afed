@@ -204,14 +204,8 @@ export function MapArea({
       }
 
       // 2. Create new Map instance
-      // Determine initial basemap based on theme and basemapStyle
-      let initialBasemap: string
-      if (basemapStyle === 'oceans') {
-         initialBasemap = 'oceans'
-      } else {
-         // light-gray style - use dark version in dark mode
-         initialBasemap = theme === 'dark' ? 'dark-gray-vector' : 'gray-vector'
-      }
+      // Use dark-gray-vector by default, switch to oceans in light mode
+      const initialBasemap = theme === 'light' ? 'oceans' : 'dark-gray-vector'
       const map = new Map({
          basemap: initialBasemap,
          ground: is3D ? "world-elevation" : undefined
@@ -609,8 +603,12 @@ export function MapArea({
             symbol: {
                type: "simple-marker",
                style: "circle",
-               color: [0, 0, 0, 1], // Black
-               size: 4
+               color: theme === 'light' ? [255, 255, 255, 1] : [0, 0, 0, 1], // White on light/ocean maps, Black on dark maps
+               size: 4,
+               outline: theme === 'light' ? {
+                  color: [0, 0, 0, 1],
+                  width: 0.5
+               } : undefined
             } as any
          },
          labelingInfo: [
@@ -1413,46 +1411,7 @@ export function MapArea({
             </div>
          )}
 
-         {/* Basemap Switcher - bottom left */}
-         {!is3D && (
-            <div className="absolute bottom-8 left-3 z-10 flex flex-col gap-1.5">
-               <button
-                  onClick={() => handleBasemapChange('oceans')}
-                  title="World Ocean Base"
-                  className={cn(
-                     "w-12 h-12 rounded-md border-2 shadow-md overflow-hidden transition-all",
-                     internalBasemapStyle === 'oceans' 
-                        ? "border-blue-500 ring-2 ring-blue-400/50 scale-105" 
-                        : theme === 'dark' ? "border-slate-700 hover:border-blue-500" : "border-white/80 hover:border-blue-300"
-                  )}
-               >
-                  <div className="w-full h-full bg-[#c8daea] flex flex-col items-center justify-center gap-0.5">
-                     <div className="w-6 h-1 rounded bg-[#7bafd4]" />
-                     <div className="w-5 h-1 rounded bg-[#5a9bc2]" />
-                     <div className="w-3 h-1 rounded bg-[#3b7da8]" />
-                  </div>
-               </button>
-               <button
-                  onClick={() => handleBasemapChange('light-gray')}
-                  title="Light Gray Base"
-                  className={cn(
-                     "w-12 h-12 rounded-md border-2 shadow-md overflow-hidden transition-all",
-                     internalBasemapStyle === 'light-gray' 
-                        ? "border-blue-500 ring-2 ring-blue-400/50 scale-105" 
-                        : theme === 'dark' ? "border-slate-700 hover:border-blue-500" : "border-white/80 hover:border-blue-300"
-                  )}
-               >
-                  <div className={cn(
-                     "w-full h-full flex flex-col items-center justify-center gap-0.5",
-                     theme === 'dark' ? "bg-slate-800" : "bg-[#e8e8e8]"
-                  )}>
-                     <div className={cn("w-6 h-1 rounded", theme === 'dark' ? "bg-slate-600" : "bg-[#c0c0c0]")} />
-                     <div className={cn("w-5 h-1 rounded", theme === 'dark' ? "bg-slate-500" : "bg-[#a8a8a8]")} />
-                     <div className={cn("w-3 h-1 rounded", theme === 'dark' ? "bg-slate-400" : "bg-[#909090]")} />
-                  </div>
-               </button>
-            </div>
-         )}
+         {/* Basemap Switcher - Hidden as per user request */}
 
       </div>
    )

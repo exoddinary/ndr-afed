@@ -3,7 +3,7 @@
 "use client"
 
 import ReactECharts from "echarts-for-react"
-import { X, Database, GitCompare, ChevronRight, FileText, FileDown, Download, ExternalLink, Info } from "lucide-react"
+import { X, Database, GitCompare, ChevronRight, FileText, FileDown, Download, ExternalLink, Info, ChevronDown } from "lucide-react"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 
@@ -480,7 +480,7 @@ function BlockDetailsContent({
                                     <div className={cn(
                                         "text-[10px]",
                                         theme === 'dark' ? "text-slate-400" : "text-slate-500"
-                                    )}>{blockData.contact.email}</div>
+                                    )}>ndr@afed.com.my</div>
                                 </div>
                                 <Mail className={cn(
                                     "w-5 h-5",
@@ -1452,6 +1452,158 @@ function AttributeTable({ items, theme = 'light' }: { items: { label: string; va
     )
 }
 
+// Expandable Attribute Table for F03 Project - makes NO OF WELLS, REPORTS, HORIZONS expandable
+function ExpandableAttributeTable({ 
+    items, 
+    theme = 'light', 
+    expandedSections,
+    onToggleSection 
+}: { 
+    items: { label: string; value: any }[], 
+    theme?: 'light' | 'dark',
+    expandedSections: Record<string, boolean>,
+    onToggleSection: (section: string) => void
+}) {
+    // Define which labels are expandable
+    const expandableLabels = ['No. of Wells', 'No. of Reports', 'No. of Horizons', 'NO_OF_WELLS', 'NO_OF_REPORTS', 'NO_OF_HORIZONS', 'NO_OF_INTER_HORIZONS']
+    
+    // Links data for each section
+    const sectionData: Record<string, {name: string, url: string}[]> = {
+        'wells': [
+            { name: "F03 Well Completion Report.pdf", url: "https://www.nlog.nl/brh-web/rest/brh/document/276073141" },
+            { name: "F06 Composite Log.pdf", url: "https://www.nlog.nl/brh-web/rest/brh/document/673402306" },
+            { name: "F03 Deviation report.pdf", url: "https://www.nlog.nl/brh-web/rest/brh/document/650523475" },
+            { name: "F03 Geological Well report.pdf", url: "https://www.nlog.nl/brh-web/rest/brh/document/643842200" }
+        ],
+        'reports': [
+            { name: "F03 Interpretation Report.pdf", url: "https://www.nlog.nl/field-web/rest/field/document/266908169" },
+            { name: "F03 Stratigraphy Report.pdf", url: "https://www.nlog.nl/field-web/rest/field/document/2176423597" },
+            { name: "F03 Summary.pdf", url: "https://dgbes.com/images/PDF/stratigrahic_surfaces_london2007.pdf" }
+        ],
+        'horizons': [
+            { name: "F3 Shallow Horizon Data", url: "https://terranubis.com/datainfo/F3-Demo-2023" }
+        ]
+    }
+    
+    // Map label to section key
+    const getSectionKey = (label: string): string | null => {
+        const lowerLabel = label.toLowerCase()
+        if (lowerLabel.includes('well')) return 'wells'
+        if (lowerLabel.includes('report')) return 'reports'
+        if (lowerLabel.includes('horizon')) return 'horizons'
+        return null
+    }
+    
+    // Get icon color for section
+    const getSectionColor = (section: string) => {
+        switch(section) {
+            case 'wells': return theme === 'dark' ? "text-blue-400" : "text-blue-600"
+            case 'reports': return theme === 'dark' ? "text-green-400" : "text-green-600"
+            case 'horizons': return theme === 'dark' ? "text-amber-400" : "text-amber-600"
+            default: return theme === 'dark' ? "text-slate-400" : "text-slate-500"
+        }
+    }
+    
+    return (
+        <div className={cn(
+            "border rounded-lg overflow-hidden shadow-sm transition-colors",
+            theme === 'dark' ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200"
+        )}>
+            {items.map((item, idx) => {
+                const sectionKey = getSectionKey(item.label)
+                const isExpandable = sectionKey !== null
+                
+                return (
+                    <div key={idx} className={cn(
+                        "border-b last:border-0 transition-colors",
+                        theme === 'dark' ? "border-slate-700" : "border-slate-100"
+                    )}>
+                        {/* Main Row */}
+                        <div
+                            className={cn(
+                                "flex flex-col sm:flex-row sm:items-center text-xs py-3 px-4 transition-colors",
+                                isExpandable 
+                                    ? theme === 'dark' 
+                                        ? "hover:bg-slate-700/50 cursor-pointer" 
+                                        : "hover:bg-slate-50 cursor-pointer bg-white"
+                                    : theme === 'dark' 
+                                        ? "hover:bg-slate-700/50" 
+                                        : "hover:bg-slate-50 bg-white"
+                            )}
+                            onClick={() => isExpandable && onToggleSection(sectionKey)}
+                        >
+                            <span className={cn(
+                                "w-full sm:w-1/3 flex-none text-[10px] uppercase tracking-wider mb-1 sm:mb-0 flex items-center gap-2",
+                                theme === 'dark' ? "text-slate-400" : "text-slate-500"
+                            )}>
+                                {isExpandable && (
+                                    <ChevronDown className={cn(
+                                        "w-3 h-3 transition-transform",
+                                        expandedSections[sectionKey] ? "rotate-180" : "",
+                                        getSectionColor(sectionKey)
+                                    )} />
+                                )}
+                                {item.label}
+                            </span>
+                            <div className="flex-1 flex items-center justify-between">
+                                <span className={cn(
+                                    "text-xs break-words whitespace-normal font-medium",
+                                    theme === 'dark' ? "text-slate-200" : "text-slate-700"
+                                )}>{String(item.value || "-")}</span>
+                                {isExpandable && (
+                                    <span className={cn(
+                                        "text-[10px] px-1.5 py-0.5 rounded ml-2",
+                                        sectionKey === 'wells' 
+                                            ? theme === 'dark' ? "bg-blue-900/30 text-blue-400" : "bg-blue-100 text-blue-700"
+                                            : sectionKey === 'reports'
+                                                ? theme === 'dark' ? "bg-green-900/30 text-green-400" : "bg-green-100 text-green-700"
+                                                : theme === 'dark' ? "bg-amber-900/30 text-amber-400" : "bg-amber-100 text-amber-700"
+                                    )}>
+                                        {sectionData[sectionKey]?.length || 0} links
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        
+                        {/* Expandable Content */}
+                        {isExpandable && expandedSections[sectionKey] && (
+                            <div className={cn(
+                                "px-4 pb-3 space-y-1 border-t",
+                                theme === 'dark' ? "border-slate-700 bg-slate-800/30" : "border-slate-200 bg-slate-50/50"
+                            )}>
+                                {sectionData[sectionKey]?.map((link, linkIdx) => (
+                                    <a 
+                                        key={linkIdx}
+                                        href={link.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className={cn(
+                                            "flex items-center justify-between p-2 rounded transition-colors group border border-dashed",
+                                            theme === 'dark' 
+                                                ? "hover:bg-slate-700/50 border-slate-600 hover:border-slate-400" 
+                                                : "hover:bg-white border-slate-300 hover:border-slate-500"
+                                        )}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <span className={cn(
+                                            "text-xs",
+                                            theme === 'dark' ? "text-slate-300" : "text-slate-700"
+                                        )}>{link.name}</span>
+                                        <ExternalLink className={cn(
+                                            "w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity",
+                                            getSectionColor(sectionKey)
+                                        )} />
+                                    </a>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )
+            })}
+        </div>
+    )
+}
+
 // Documents & Reports Section
 function DocumentsSection({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
     const docs = [
@@ -2132,6 +2284,20 @@ function LicenseDetailsContent({ data, theme = 'light' }: { data: any, theme?: '
 function GNGProjectContent({ data, onToggle3D, onViewGNGData, onViewF3Horizon, theme = 'light' }: { data: any, onToggle3D?: () => void, onViewGNGData?: () => void, onViewF3Horizon?: () => void, theme?: 'light' | 'dark' }) {
     // Handle both direct properties and nested properties (GeoJSON format)
     const props = data?.properties || data || {};
+    
+    // State for expandable sections
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+        wells: false,
+        reports: false,
+        horizons: false
+    });
+    
+    const toggleSection = (section: string) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [section]: !prev[section]
+        }));
+    };
 
     const getAttr = (key: string) => {
         if (!props) return "-";
@@ -2328,7 +2494,16 @@ function GNGProjectContent({ data, onToggle3D, onViewGNGData, onViewF3Horizon, t
                     <Database className="w-3.5 h-3.5" />
                     Project Attributes
                 </h4>
-                <AttributeTable items={projectItems} theme={theme} />
+                {isF03Project ? (
+                    <ExpandableAttributeTable 
+                        items={projectItems} 
+                        theme={theme} 
+                        expandedSections={expandedSections}
+                        onToggleSection={toggleSection}
+                    />
+                ) : (
+                    <AttributeTable items={projectItems} theme={theme} />
+                )}
             </div>
         </div>
     );
