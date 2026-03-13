@@ -1578,15 +1578,13 @@ function ExpandableAttributeTable({
                                         target="_blank" 
                                         rel="noopener noreferrer" 
                                         className={cn(
-                                            "flex items-center justify-between p-2 rounded transition-colors group border border-dashed",
-                                            theme === 'dark' 
-                                                ? "hover:bg-slate-700/50 border-slate-600 hover:border-slate-400" 
-                                                : "hover:bg-white border-slate-300 hover:border-slate-500"
+                                            "flex items-center justify-between p-2 rounded transition-colors group",
+                                            theme === 'dark' ? "hover:bg-slate-700/50" : "hover:bg-white"
                                         )}
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <span className={cn(
-                                            "text-xs",
+                                            "text-xs underline underline-offset-2 decoration-dotted",
                                             theme === 'dark' ? "text-slate-300" : "text-slate-700"
                                         )}>{link.name}</span>
                                         <ExternalLink className={cn(
