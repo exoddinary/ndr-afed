@@ -629,16 +629,16 @@ function BlockDetailsContent({
 
                             {/* Subsurface Data Uncertainty - ECharts Tornado Chart */}
                             {(() => {
-                                // Base Case P50 = 45 MMbbl
-                                const baseCase = 45
+                                // Base Case P50 = 220.8 (Baseline: 191,831,485.26 but scaled/shifted for the chart center which is around 220)
+                                const baseCase = 220
                                 
                                 // Proper tornado data ordered from bottom to top (ECharts y-axis order)
                                 const tornadoData = [
-                                    { variable: "Boi", low: 43, high: 50, lowLabel: "LOW P90: 45", highLabel: "50 MMbbl" },
-                                    { variable: "Soi", low: 43, high: 50, lowLabel: "LOW P90: 45", highLabel: "50 MMbbl" },
-                                    { variable: "Avg Porosity (Φ)", low: 40, high: 60, lowLabel: "LOW P90: 40", highLabel: "60 MMbbl" },
-                                    { variable: "NTG", low: 30, high: 60, lowLabel: "LOW P90: 30 MMbbl", highLabel: "60 MMbbl" },
-                                    { variable: "GRV", low: 20, high: 82, lowLabel: "LOW P90: 20 MMbbl", highLabel: "P10 100 MMbbl" },
+                                    { variable: "1/Bo", low: 200, high: 235 },
+                                    { variable: "NTG", low: 185, high: 245 },
+                                    { variable: "So", low: 175, high: 250 },
+                                    { variable: "POROSITY ( Φ )", low: 162, high: 265 },
+                                    { variable: "GRV (bbl)", low: 145, high: 280 },
                                 ]
 
                                 const tornadoOptions = {
@@ -651,87 +651,92 @@ function BlockDetailsContent({
                                             const high = params[1];
                                             return `
                                                 <div class="font-bold mb-1">${low.name}</div>
-                                                <div>Low Case (P90): <span class="font-mono text-red-500">${(low.value + baseCase).toFixed(0)} MMbbl</span></div>
-                                                <div>High Case (P10): <span class="font-mono text-emerald-500">${(high.value + baseCase).toFixed(0)} MMbbl</span></div>
+                                                <div>Input Low: <span class="font-mono text-[#a51130]">${(low.value + baseCase).toFixed(0)} Millions</span></div>
+                                                <div>Input High: <span class="font-mono text-[#cb425e]">${(high.value + baseCase).toFixed(0)} Millions</span></div>
                                             `;
                                         }
                                     },
                                     grid: {
-                                        left: '25%', // More space for labels
-                                        right: '5%',
+                                        left: '25%', // Space for labels
+                                        right: '25%', // Space for legend
                                         bottom: '15%',
                                         top: '10%',
                                         containLabel: false
                                     },
                                     xAxis: {
                                         type: 'value',
-                                        min: 10 - baseCase, // -35
-                                        max: 100 - baseCase, // 55
-                                        interval: 10,
+                                        min: 120 - baseCase,
+                                        max: 280 - baseCase,
+                                        interval: 20,
                                         splitLine: {
-                                            show: false // Hide vertical grid lines to match image
+                                            show: false // Hide vertical grid lines
                                         },
                                         axisLabel: {
                                             formatter: function(value: number) {
-                                                const val = value + baseCase;
-                                                // Only show specific ticks to match image: 10, 20, 30, 45, 60, 70, 80, 90, 100
-                                                if ([10, 20, 30, 45, 60, 70, 80, 90, 100].includes(val)) {
-                                                    return val;
-                                                }
-                                                return '';
+                                                return value + baseCase;
                                             },
-                                            color: theme === 'dark' ? '#94a3b8' : '#64748b',
+                                            color: theme === 'dark' ? '#e2e8f0' : '#1e293b',
                                             fontSize: 10,
-                                            margin: 15
+                                            margin: 15,
+                                            rotate: 90
                                         },
-                                        axisLine: { show: false },
-                                        axisTick: { show: false }
+                                        axisLine: { 
+                                            show: true,
+                                            lineStyle: {
+                                                color: '#1e3a8a', // dark blue axis line
+                                                width: 2
+                                            }
+                                        },
+                                        axisTick: { 
+                                            show: true,
+                                            length: 8,
+                                            lineStyle: {
+                                                color: '#1e3a8a',
+                                                width: 2
+                                            }
+                                        }
                                     },
                                     yAxis: {
                                         type: 'category',
                                         data: tornadoData.map(d => d.variable),
-                                        axisLine: { show: false },
+                                        axisLine: { 
+                                            show: true,
+                                            lineStyle: {
+                                                color: '#1e3a8a', // dark blue axis line
+                                                width: 2
+                                            }
+                                        },
                                         axisTick: { show: false },
                                         axisLabel: {
-                                            color: theme === 'dark' ? '#cbd5e1' : '#334155',
+                                            color: theme === 'dark' ? '#f8fafc' : '#0f172a',
                                             fontSize: 11,
-                                            fontWeight: '500',
-                                            margin: 20
+                                            fontWeight: 'bold',
+                                            margin: 15
                                         }
                                     },
                                     series: [
                                         {
-                                            name: 'LOW CASE (P90)',
+                                            name: 'Input Low',
                                             type: 'bar',
                                             stack: 'Total',
-                                            itemStyle: { color: '#dc2626', borderRadius: [4, 0, 0, 4] }, // red-600
-                                            barWidth: 16,
-                                            label: {
-                                                show: true,
-                                                position: 'left',
-                                                formatter: (params: any) => tornadoData[params.dataIndex].lowLabel,
-                                                color: theme === 'dark' ? '#cbd5e1' : '#334155',
-                                                fontSize: 9,
-                                                align: 'right',
-                                                distance: 8
+                                            itemStyle: { 
+                                                color: '#a51130', // dark red
+                                                borderColor: '#0f172a',
+                                                borderWidth: 1.5
                                             },
+                                            barWidth: 24,
                                             data: tornadoData.map(d => d.low - baseCase)
                                         },
                                         {
-                                            name: 'HIGH CASE (P10)',
+                                            name: 'Input High',
                                             type: 'bar',
                                             stack: 'Total',
-                                            itemStyle: { color: '#059669', borderRadius: [0, 4, 4, 0] }, // emerald-600
-                                            barWidth: 16,
-                                            label: {
-                                                show: true,
-                                                position: 'right',
-                                                formatter: (params: any) => tornadoData[params.dataIndex].highLabel,
-                                                color: theme === 'dark' ? '#cbd5e1' : '#334155',
-                                                fontSize: 9,
-                                                align: 'left',
-                                                distance: 8
+                                            itemStyle: { 
+                                                color: '#cb425e', // lighter red/pink
+                                                borderColor: '#0f172a',
+                                                borderWidth: 1.5
                                             },
+                                            barWidth: 24,
                                             data: tornadoData.map(d => d.high - baseCase)
                                         }
                                     ]
@@ -741,66 +746,73 @@ function BlockDetailsContent({
                                     <div>
                                         <div className={cn("h-px mb-6", theme === 'dark' ? "bg-slate-800" : "bg-gray-100")} />
                                         
-                                        {/* Title & Base Case Header */}
-                                        <div className={cn(
-                                            "flex flex-col items-center justify-center gap-4 mb-2 p-4 rounded-lg border",
-                                            theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
-                                        )}>
-                                            <span className={cn(
-                                                "text-[15px] font-bold tracking-wide",
+                                        {/* Title Header */}
+                                        <div className="mb-4 text-center">
+                                            <h4 className={cn(
+                                                "text-[16px] font-bold mb-1",
+                                                theme === 'dark' ? "text-slate-100" : "text-slate-900"
+                                            )}>Static Tornado Uncertainties</h4>
+                                            <div className={cn(
+                                                "text-[14px] font-medium mb-1",
                                                 theme === 'dark' ? "text-slate-200" : "text-slate-800"
-                                            )}>Base Case (P50): {baseCase} MMbbl</span>
-                                            
-                                            <div className="flex items-center gap-8">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded-full bg-[#dc2626]" />
-                                                    <span className={cn("text-[10px] uppercase", theme === 'dark' ? "text-slate-400" : "text-slate-600")}>LOW CASE (P90)</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded-full bg-[#059669]" />
-                                                    <span className={cn("text-[10px] uppercase", theme === 'dark' ? "text-slate-400" : "text-slate-600")}>HIGH CASE (P10)</span>
-                                                </div>
-                                            </div>
+                                            )}>STOIIP (bbl)</div>
+                                            <p className={cn(
+                                                "text-[11px] italic",
+                                                theme === 'dark' ? "text-slate-400" : "text-slate-600"
+                                            )}>Input Ranked by Effect on Output 50% Percentile</p>
                                         </div>
 
                                         {/* Tornado Chart Container */}
                                         <div className={cn(
-                                            "border rounded pt-2 pb-0 relative",
-                                            theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                                            "pt-2 pb-0 relative",
                                         )}>
                                             {/* Base case center line */}
-                                            <div className="absolute top-[30px] bottom-[40px] w-0 border-l border-dashed z-0" 
+                                            <div className="absolute top-[20px] bottom-[60px] w-0 border-l-[1.5px] border-[#dc2626] z-0" 
                                                  style={{ 
-                                                     left: `calc(25% + ${((baseCase - 10) / 90) * 70}%)`,
-                                                     borderColor: theme === 'dark' ? '#475569' : '#cbd5e1'
+                                                     left: `calc(25% + ${((baseCase - 120) / 160) * 50}%)`,
                                                  }} />
+                                            
+                                            {/* Baseline Label */}
+                                            <div className="absolute bottom-[50px] z-10 bg-white border border-slate-800 px-2 py-1 text-[9px] text-slate-800 whitespace-nowrap"
+                                                 style={{ 
+                                                     left: `calc(25% + ${((baseCase - 120) / 160) * 50}%)`,
+                                                     transform: 'translateX(-50%)'
+                                                 }}>
+                                                Baseline: 191,831,485.26
+                                            </div>
+
+                                            {/* Custom Legend */}
+                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col gap-6 mr-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-5 h-5 bg-[#a51130] border border-slate-900" />
+                                                    <span className={cn("text-[11px]", theme === 'dark' ? "text-slate-300" : "text-slate-800")}>Input Low</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-5 h-5 bg-[#cb425e] border border-slate-900" />
+                                                    <span className={cn("text-[11px]", theme === 'dark' ? "text-slate-300" : "text-slate-800")}>Input High</span>
+                                                </div>
+                                            </div>
                                                  
                                             <ReactECharts
                                                 option={tornadoOptions}
-                                                style={{ height: '300px', width: '100%' }}
+                                                style={{ height: '350px', width: '100%' }}
                                                 opts={{ renderer: 'svg' }}
                                             />
-                                            <div className={cn(
-                                                "absolute bottom-3 left-0 right-0 text-center text-[10px] font-bold",
-                                                theme === 'dark' ? "text-slate-400" : "text-slate-500"
-                                            )}>
-                                                STOIIP (MILLION BARRELS)
+                                            
+                                            <div className="text-center mt-[-10px] pb-4">
+                                                <div className={cn(
+                                                    "text-[11px] font-bold",
+                                                    theme === 'dark' ? "text-slate-200" : "text-slate-900"
+                                                )}>
+                                                    STOIIP (bbl)
+                                                </div>
+                                                <div className={cn(
+                                                    "text-[10px]",
+                                                    theme === 'dark' ? "text-slate-400" : "text-slate-700"
+                                                )}>
+                                                    Values in Millions
+                                                </div>
                                             </div>
-                                        </div>
-
-                                        {/* Interpretation note */}
-                                        <div className={cn(
-                                            "mt-3 p-2.5 rounded border flex items-start gap-2",
-                                            theme === 'dark' ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-100"
-                                        )}>
-                                            <Info className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                                            <p className={cn(
-                                                "text-[10px] leading-relaxed",
-                                                theme === 'dark' ? "text-slate-400" : "text-slate-500"
-                                            )}>
-                                                Sensitivity analysis shows GRV has the largest impact on STOIIP (20-100 MMbbl range), 
-                                                followed by NTG and Porosity. Soi and Boi have minimal impact. Full data packages available in NDR subsurface library.
-                                            </p>
                                         </div>
                                     </div>
                                 )
