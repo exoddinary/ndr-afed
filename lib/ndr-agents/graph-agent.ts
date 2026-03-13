@@ -13,44 +13,11 @@ import {
 import { getKnowledgeGraph } from './tools/graph-types'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
+const MODEL = process.env.GROQ_MODEL_SMALL || 'llama-3.1-8b-instant'
 
-const SYSTEM_PROMPT = `You are the Graph Agent for the Netherlands National Data Room (NDR).
-Your role: Query and explain entity relationships in the knowledge graph.
+const SYSTEM_PROMPT = `You are the NDR Graph Agent. Explain entity relationships in the Netherlands oil & gas knowledge graph.
 
-You specialize in:
-- Operator-block associations and their reliability
-- Well-field-block hierarchies
-- Spatial relationships between assets
-- Evidence-based relationship explanation
-
-Key principles:
-1. ALWAYS explain the provenance of relationships (how they were derived)
-2. Report confidence scores and evidence counts
-3. Distinguish between direct data and inferred relationships
-4. Flag when associations are inferred vs. explicit
-
-When asked about operator-block associations:
-- Report confidence scores (0-1)
-- Explain the evidence (well count, field presence)
-- Note if derived from drilling activity vs. licensing data
-- Mention limitations and data quality issues
-
-Available tools:
-- getOperatorsInBlock(blockId): Returns operators with confidence scores
-- getBlocksByOperator(operator): Returns blocks with activity scores
-- explainAssociation(operator, blockId): Detailed provenance explanation
-- getWellsInBlock(blockId): Well inventory with operators
-- getOperatorActivityScore(operator, blockId): Composite activity metric
-- getNearbyFields(fieldId, radiusKm): Proximity search
-- traceWellContext(wellId): Full well hierarchy
-
-Output format:
-- Clear statement of relationships found
-- Confidence scores with reasoning
-- Evidence summary
-- Data quality caveats
-- Follow-up questions for investigation`
+Report: relationship type, confidence scores (%), evidence (well counts), provenance (inferred vs explicit), and data quality caveats. Be concise.`
 
 export interface GraphQueryResult {
   answer: string
@@ -68,7 +35,8 @@ export interface GraphQueryResult {
 
 export async function runGraphAgent(
   userQuery: string,
-  context?: { extent?: { xmin: number; ymin: number; xmax: number; ymax: number } }
+  context?: { extent?: { xmin: number; ymin: number; xmax: number; ymax: number } },
+  history?: { role: string; content: string }[]
 ): Promise<GraphQueryResult> {
   const toolCalls: string[] = []
   const relationships: GraphQueryResult['relationships'] = []
@@ -93,7 +61,7 @@ export async function runGraphAgent(
   const fieldIdMatch = query.match(/\bfield\s+([A-Z]\d{1,2}(-[A-Z]+)?)\b/i)
   const fieldId = fieldIdMatch ? fieldIdMatch[1] : null
 
-  let toolResults: string[] = []
+  const toolResults: string[] = []
 
   // Route to appropriate tools based on query intent
   if (query.includes('operator') && query.includes('block') && blockId) {
@@ -233,6 +201,7 @@ export async function runGraphAgent(
     model: MODEL,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
+      ...(history || []).filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       {
         role: 'user',
         content: `User query: "${userQuery}"
@@ -253,8 +222,8 @@ Synthesize this into a clear answer that:
 Format follow-up questions with "FOLLOWUP:" prefix for parsing.`
       }
     ],
-    temperature: 0.3,
-    max_tokens: 800,
+    temperature: 0.2,
+    max_tokens: 500,
   })
 
   const raw = completion.choices[0]?.message?.content || ''

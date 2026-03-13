@@ -4,16 +4,17 @@ import { runOrchestrator } from '@/lib/ndr-agents/orchestrator'
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { message, context } = body
+        const { message, context, history } = body
         
         console.log('[NDR AI] Message:', message?.substring(0, 100))
+        console.log('[NDR AI] History length:', history?.length || 0)
 
         if (!message || typeof message !== 'string') {
             return NextResponse.json({ error: 'Missing message' }, { status: 400 })
         }
 
         console.log('[NDR AI] Calling orchestrator...')
-        const result = await runOrchestrator(message, context || {})
+        const result = await runOrchestrator(message, context || {}, history || [])
         console.log('[NDR AI] Result:', { answer: result.answer?.substring(0, 100), agents: result.agents, tier: result.metadata.tier })
         return NextResponse.json(result)
     } catch (err: unknown) {

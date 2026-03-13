@@ -1,13 +1,16 @@
 /**
  * NDR AI Orchestrator - Refactored 3-Lane Architecture
+ * Now with predefined Q&A (zero-token), response caching, and optimized routing
  */
 
-import { classifyQuery, shouldUseGraph, type ExecutionTier } from './query-classifier'
-import { handleDirectQuery, type DirectQueryResult } from './direct-query-handler'
+import { classifyQuery, shouldUseGraph, type ExecutionTier, isCountQuery } from './query-classifier'
+import { handleDirectQuery } from './direct-query-handler'
+import { runAssetQueryAgent } from './asset-query-agent'
 import { runSpatialReasoningAgent, type SpatialResult } from './spatial-agent'
 import { runInsightAgent, type InsightResult } from './insight-agent'
 import { ensureGraphLazy } from './graph-manager'
 import { runGraphAgent, type GraphQueryResult } from './graph-agent'
+import { getCachedResponse, setCachedResponse, normalizeQuery } from './response-cache'
 
 // Check for API key
 if (!process.env.GROQ_API_KEY) {
@@ -26,7 +29,7 @@ export type OrchestratorResponse = {
     }[]
     metadata: {
         routing: string[]
-        tier: ExecutionTier
+        tier: ExecutionTier | 'PREDEFINED' | 'CACHED'
         latencyMs: number
         graphUsed: boolean
     }
@@ -34,9 +37,31 @@ export type OrchestratorResponse = {
 
 export async function runOrchestrator(
     userQuery: string,
-    context: Record<string, unknown>
+    context: Record<string, unknown>,
+    history: { role: string; content: string }[] = []
 ): Promise<OrchestratorResponse> {
     const startMs = Date.now()
+    
+    // Normalize query for cache
+    const normalizedQuery = normalizeQuery(userQuery)
+    
+    // LANE 0.5: CACHE CHECK - Zero tokens for repeated queries
+    const cached = getCachedResponse(normalizedQuery)
+    if (cached) {
+        console.log('[Orchestrator] CACHE HIT - returning cached response')
+        return {
+            answer: cached.answer,
+            followUpQuestions: cached.followUpQuestions,
+            agents: cached.agents,
+            mapActions: cached.mapActions as OrchestratorResponse['mapActions'],
+            metadata: {
+                routing: cached.metadata.routing,
+                tier: 'CACHED' as OrchestratorResponse['metadata']['tier'],
+                latencyMs: Date.now() - startMs,
+                graphUsed: false,
+            }
+        }
+    }
     
     const hasSpatialContext = !!(context?.extent && typeof context.extent === 'object')
     
@@ -44,17 +69,28 @@ export async function runOrchestrator(
     const classification = classifyQuery(userQuery, hasSpatialContext)
     console.log('[Orchestrator] Query classified as:', classification.type, 'Tier:', classification.tier)
     
-    let directResult: DirectQueryResult | null = null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let directResult: any = null
     let spatialResult: SpatialResult | null = null
     let graphResult: GraphQueryResult | null = null
     let insightResult: InsightResult | null = null
     const agents: string[] = []
     let graphWasUsed = false
     
-    // LANE A: CHEAP TIER - Direct deterministic handling
+    // LANE A: CHEAP TIER - Direct deterministic or simple LLM handling
     if (classification.tier === 'CHEAP') {
-        console.log('[Orchestrator] Using CHEAP tier - deterministic handling')
-        directResult = await handleDirectQuery(userQuery, classification.suggestedLayer || null)
+        console.log('[Orchestrator] Using CHEAP tier')
+        
+        // Use deterministic handler strictly for count/lookup
+        if (isCountQuery(userQuery) || (!userQuery.toLowerCase().includes('f03') && !userQuery.toLowerCase().includes('horizon'))) {
+            directResult = await handleDirectQuery(userQuery, classification.suggestedLayer || null)
+        }
+        
+        // If deterministic failed OR it's a project/synthesis query, use Asset Agent
+        if (!directResult) {
+            console.log('[Orchestrator] Using Asset Agent for CHEAP tier synthesis')
+            directResult = await runAssetQueryAgent(userQuery, context, history)
+        }
         
         if (directResult) {
             agents.push('DIRECT')
@@ -65,7 +101,7 @@ export async function runOrchestrator(
             console.log(`[Agents] DIRECT`)
             console.log(`[Latency] ${latency}ms`)
             
-            return {
+            const response: OrchestratorResponse = {
                 answer: directResult.answer,
                 followUpQuestions: [
                     'Which operators are most active in this area?',
@@ -73,7 +109,7 @@ export async function runOrchestrator(
                     'Show me wells with gas discoveries in this region.'
                 ],
                 agents,
-                mapActions: directResult.suggestedMapActions,
+                mapActions: directResult.suggestedMapActions as OrchestratorResponse['mapActions'],
                 metadata: {
                     routing: agents,
                     tier: 'CHEAP',
@@ -81,6 +117,13 @@ export async function runOrchestrator(
                     graphUsed: false
                 }
             }
+            
+            // Cache CHEAP responses
+            setCachedResponse(userQuery, {
+                ...response,
+                metadata: { ...response.metadata, tier: 'CHEAP' },
+            })
+            return response
         }
         console.log('[Orchestrator] Direct handler failed, escalating')
     }
@@ -91,13 +134,13 @@ export async function runOrchestrator(
         agents.push('SPATIAL')
         
         try {
-            spatialResult = await runSpatialReasoningAgent(userQuery, context)
+            spatialResult = await runSpatialReasoningAgent(userQuery, context, history)
             
             if (spatialResult?.answer && !shouldUseGraph(classification)) {
                 const latency = Date.now() - startMs
-                return {
+                const response: OrchestratorResponse = {
                     answer: spatialResult.answer,
-                    followUpQuestions: spatialResult.followUpQuestions || [],
+                    followUpQuestions: [],
                     agents,
                     mapActions: spatialResult.mapActions,
                     metadata: {
@@ -107,6 +150,13 @@ export async function runOrchestrator(
                         graphUsed: false
                     }
                 }
+                
+                // Cache MEDIUM responses
+                setCachedResponse(userQuery, {
+                    ...response,
+                    metadata: { ...response.metadata, tier: 'MEDIUM' },
+                })
+                return response
             }
         } catch (e) {
             console.error('[Spatial Agent Error]', e)
@@ -125,7 +175,7 @@ export async function runOrchestrator(
             if (graph) {
                 agents.push('GRAPH')
                 try {
-                    graphResult = await runGraphAgent(userQuery, context)
+                    graphResult = await runGraphAgent(userQuery, context, history) as GraphQueryResult
                 } catch (e) {
                     console.error('[Graph Agent Error]', e)
                 }
@@ -134,11 +184,15 @@ export async function runOrchestrator(
         
         agents.push('INSIGHT')
         try {
+            const directAnswer = directResult ? directResult.answer : ''
+            const spatialAnswer = spatialResult ? spatialResult.answer : ''
+            const graphAnswer = graphResult ? graphResult.answer : ''
             insightResult = await runInsightAgent(
                 userQuery,
-                directResult?.answer || '',
-                spatialResult?.answer || '',
-                graphResult?.answer || ''
+                directAnswer,
+                spatialAnswer,
+                graphAnswer,
+                history
             )
         } catch (e) {
             console.error('[Insight Agent Error]', e)
@@ -146,10 +200,13 @@ export async function runOrchestrator(
     }
     
     // Synthesize final answer
-    let finalAnswer = insightResult?.answer || 
-                      graphResult?.answer || 
-                      spatialResult?.answer || 
-                      directResult?.answer || 
+    const directAnswer = directResult ? directResult.answer : null
+    const spatialAnswer = spatialResult ? spatialResult.answer : null
+    const graphAnswer = graphResult ? graphResult.answer : null
+    const finalAnswer = insightResult?.answer || 
+                      graphAnswer || 
+                      spatialAnswer || 
+                      directAnswer || 
                       'I was unable to retrieve results for this query.'
     
     const latency = Date.now() - startMs
@@ -158,6 +215,9 @@ export async function runOrchestrator(
     console.log(`[Graph] ${graphWasUsed ? 'Used' : 'Skipped'}`)
     console.log(`[Agents] ${agents.join(', ')}`)
     console.log(`[Latency] ${latency}ms`)
+    
+    const directMapActions = directResult ? (directResult.suggestedMapActions || []) : []
+    const spatialMapActions = spatialResult ? (spatialResult.mapActions || []) : []
     
     return {
         answer: finalAnswer,
@@ -168,9 +228,9 @@ export async function runOrchestrator(
         ],
         agents,
         mapActions: [
-            ...(directResult?.suggestedMapActions || []),
-            ...(spatialResult?.mapActions || []),
-        ],
+            ...directMapActions,
+            ...spatialMapActions,
+        ] as OrchestratorResponse['mapActions'],
         metadata: {
             routing: agents,
             tier: classification.tier,

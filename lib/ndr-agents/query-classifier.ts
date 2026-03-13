@@ -30,6 +30,8 @@ const DIRECT_PATTERNS = {
     operator: /\b(operator|company|shell|nam|total|petronas|exxon)\b/i,
     // Status queries
     status: /\b(status|result|type|category)\b/i,
+    // Project/Horizon queries (F03 specific data)
+    project: /\b(project|horizon|reservoir|subsurface data|report|f03)\b/i,
 }
 
 // Spatial query patterns
@@ -126,7 +128,7 @@ export function classifyQuery(query: string, hasSpatialContext: boolean = false)
         }
     }
     
-    // Check for spatial patterns
+    // Check for spatial patterns FIRST before general direct patterns
     const hasSpatialPattern = Object.values(SPATIAL_PATTERNS).some(pattern => pattern.test(q))
     if (hasSpatialPattern || hasSpatialContext) {
         return {
@@ -137,7 +139,7 @@ export function classifyQuery(query: string, hasSpatialContext: boolean = false)
             requiresContext: hasSpatialContext
         }
     }
-    
+
     // Check for direct patterns
     const hasDirectPattern = Object.values(DIRECT_PATTERNS).some(pattern => pattern.test(q))
     if (hasDirectPattern) {
@@ -147,6 +149,7 @@ export function classifyQuery(query: string, hasSpatialContext: boolean = false)
         else if (/\b(fields?|hydrocarbon|gas|oil)\b/i.test(q)) suggestedLayer = 'fields'
         else if (/\b(blocks?|licences?|acreage)\b/i.test(q)) suggestedLayer = 'blocks'
         else if (/\b(seismic|survey|2d|3d)\b/i.test(q)) suggestedLayer = 'seismic'
+        else if (/\b(project|horizon|reservoir|f03)\b/i.test(q)) suggestedLayer = 'gng_projects'
         
         return {
             type: 'DIRECT',
@@ -172,8 +175,9 @@ export function classifyQuery(query: string, hasSpatialContext: boolean = false)
  * Determine if query needs graph based on classification
  */
 export function shouldUseGraph(classification: ClassificationResult): boolean {
-    return classification.type === 'GRAPH_REQUIRED' || 
-           (classification.type === 'INSIGHT' && classification.confidence > 0.7)
+    // Only use graph for explicit relationship/provenance queries
+    // Not for generic insight queries (which wasted tokens on graph loading + LLM)
+    return classification.type === 'GRAPH_REQUIRED'
 }
 
 /**

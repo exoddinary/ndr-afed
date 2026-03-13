@@ -4,37 +4,17 @@ import {
     tool_get_feature_by_id,
     tool_filter_features,
     tool_aggregate_features,
-    tool_compare_feature_properties,
-    tool_intersect_features,
     type LayerName,
 } from './tools/geo-tools'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
+const MODEL = process.env.GROQ_MODEL_SMALL || 'llama-3.1-8b-instant'
 
-const SYSTEM_PROMPT = `You are the Asset Query Agent for the Netherlands National Data Room (NDR).
-Your role: query and analyze structured attribute data from GeoJSON map layers.
+const SYSTEM_PROMPT = `You are the NDR Asset Agent. Summarize structured data from GeoJSON layers about Netherlands oil & gas assets.
 
-Available layers and their key fields:
-- wells: IDENTIFICA (name), OPERATOR, WELL_TYPE, STATUS, WELL_RESUL (result: Gas/Oil/Abandoned), START_DATE, END_DEPTH_, FIELD_NAME
-- fields: FIELD_NAME, FIELD_CD, RESULT (Gas/Oil), STATUS, OPERATOR, DISCOVERY_, LANDSEA (Land/Sea)
-- blocks: BlokNummer, Area_sqkm, Field (blocks don't have direct operator field - use well intersections)
-- seismic2d: line_name, survey_col, delivery_c
-- seismic3d: SURVEY_ID, GRID_ID, YEAR
+Layers: wells (IDENTIFICA, OPERATOR, WELL_TYPE, STATUS, WELL_RESUL, FIELD_NAME), fields (FIELD_NAME, RESULT, STATUS, OPERATOR), blocks (BlokNummer, Area_sqkm), projects (PROJECT_NAME, NO_OF_INTER_HORIZONS, NO_OF_REPORTS, SUMMARY).
 
-You have access to tools to query these layers. Use them to answer questions about:
-- Filtering by operator, status, result type, field name
-- Aggregating by any property (group by, count)
-- Comparing specific named assets
-- Listing or summarizing features
-- Spatial relationships: wells within blocks, fields intersecting blocks
-
-Important notes:
-- Blocks don't have a direct OPERATOR field. To find operators in blocks, check which wells are located within each block.
-- Wells have OPERATOR field and can be spatially associated with blocks.
-
-Always ground your answers in actual data returned from the tools.
-Return structured, concise insights. Use markdown tables where helpful.`
+Rules: Be concise, use data provided, reference feature names. Use markdown tables for lists.`
 
 type AgentContext = Record<string, unknown>
 
@@ -44,7 +24,12 @@ export type AssetQueryResult = {
     suggestedMapActions?: { action: string; layer: string; identifiers: string[] }[]
 }
 
-export async function runAssetQueryAgent(userQuery: string, context: AgentContext): Promise<AssetQueryResult> {
+export async function runAssetQueryAgent(
+    userQuery: string,
+    context?: Record<string, unknown>,
+    history?: { role: string; content: string }[]
+): Promise<AssetQueryResult> {
+    console.log('[Asset Agent] Intercepted CHEAP tier query for deterministic asset summary')
     // Build a data snapshot relevant to the query
     const toolResults: Record<string, unknown> = {}
     console.log('[Asset Agent] Processing query:', userQuery)
@@ -52,11 +37,16 @@ export async function runAssetQueryAgent(userQuery: string, context: AgentContex
     // Try to determine relevant layer from query keywords
     const q = userQuery.toLowerCase()
     const layers: LayerName[] = []
-    if (q.includes('well') || q.includes('borehole') || q.includes('drill')) layers.push('wells')
-    if (q.includes('field') || q.includes('hydrocarbon') || q.includes('gas') || q.includes('oil')) layers.push('fields')
-    if (q.includes('block') || q.includes('offshore block') || q.includes('licence')) layers.push('blocks')
-    if (q.includes('seismic') && q.includes('3d')) layers.push('seismic3d')
-    if (q.includes('seismic') && q.includes('2d')) layers.push('seismic2d')
+    if (q.includes('horizon') || q.includes('project') || q.includes('f03') || q.includes('report') || q.includes('subsurface data') || q.includes('reservoir')) {
+        layers.push('gng_projects')
+    } else {
+        if (q.includes('well') || q.includes('borehole') || q.includes('drill')) layers.push('wells')
+        if (q.includes('field') || q.includes('hydrocarbon') || q.includes('gas') || q.includes('oil')) layers.push('fields')
+        if (q.includes('block') || q.includes('offshore block') || q.includes('licence')) layers.push('blocks')
+        if (q.includes('seismic') && q.includes('3d')) layers.push('seismic3d')
+        if (q.includes('seismic') && q.includes('2d')) layers.push('seismic2d')
+    }
+    
     if (layers.length === 0) layers.push('wells', 'fields', 'blocks')
     
     console.log('[Asset Agent] Selected layers:', layers)
@@ -117,8 +107,24 @@ export async function runAssetQueryAgent(userQuery: string, context: AgentContex
                         .slice(0, 10)
                         .map(([op, count]) => ({ operator: op, well_count: count }))
                 }
-            }
-            else if (operatorMatch) {
+            } else if (layer === 'gng_projects' && q.includes('f03')) {
+                // Specific F03 project logic
+                console.log('[Asset Agent] Processing F03 specific query')
+                const allProjects = await tool_get_layer_features('gng_projects', 50)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const f03Projects = allProjects.filter((p: any) => 
+                    p.PROJECT_NAME && String(p.PROJECT_NAME).trim().toUpperCase().includes('F03')
+                )
+                
+                if (f03Projects.length > 0) {
+                    toolResults['f03_project_data'] = f03Projects
+                } else {
+                    toolResults['f03_project_data_error'] = "No project specifically named F03 was found in GnG projects."
+                }
+            } else if (layer === 'gng_projects') {
+                console.log('[Asset Agent] Processing generic gng_projects query')
+                toolResults[`gng_projects_sample`] = await tool_get_layer_features('gng_projects', 15)
+            } else if (operatorMatch) {
                 const op = operatorMatch[1].trim()
                 const filterKey = layer === 'wells' || layer === 'fields' ? 'OPERATOR' : 'BlokNummer'
                 toolResults[`${layer}_operator_filter`] = await tool_filter_features(layer, { [filterKey]: op }, 30)
@@ -151,21 +157,39 @@ export async function runAssetQueryAgent(userQuery: string, context: AgentContex
         }
     }
 
-    const dataContext = JSON.stringify(toolResults, null, 2).slice(0, 8000)
+    // Strip geometry from results to reduce token usage
+    const strippedResults: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(toolResults)) {
+        if (Array.isArray(value)) {
+            strippedResults[key] = value.slice(0, 15).map((item: unknown) => {
+                if (item && typeof item === 'object') {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { geometry, ...rest } = item as Record<string, unknown>
+                    return rest
+                }
+                return item
+            })
+        } else {
+            strippedResults[key] = value
+        }
+    }
+
+    const dataContext = JSON.stringify(strippedResults, null, 1).slice(0, 3000)
     console.log('[Asset Agent] Data retrieved:', Object.keys(toolResults))
-    console.log('[Asset Agent] Data context size:', dataContext.length, 'chars')
+    console.log('[Asset Agent] Data context size:', dataContext.length, 'chars (trimmed from raw)')
 
     const completion = await groq.chat.completions.create({
         model: MODEL,
         messages: [
             { role: 'system', content: SYSTEM_PROMPT },
+            ...(history || []).filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
             {
                 role: 'user',
-                content: `User query: "${userQuery}"\n\nData retrieved from NDR layers:\n${dataContext}\n\nAnswer the user's question based on this data. Be precise and reference actual feature names.`
+                content: `Query: "${userQuery}"\n\nData:\n${dataContext}\n\nAnswer concisely using the data above.`
             }
         ],
-        temperature: 0.3,
-        max_tokens: 1000,
+        temperature: 0.2,
+        max_tokens: 600,
     })
 
     const answer = completion.choices[0]?.message?.content || 'No response generated.'

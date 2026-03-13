@@ -3,24 +3,9 @@ import Groq from 'groq-sdk'
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
 
-const SYSTEM_PROMPT = `You are the Insight Agent for the Netherlands National Data Room (NDR).
-Your role: interpret and synthesize structured data outputs from the Asset Query Agent and Spatial Reasoning Agent.
-Generate concise, actionable exploration insights for oil & gas analysts and investors.
+const SYSTEM_PROMPT = `You are the NDR Insight Agent. Synthesize asset and spatial data into concise exploration insights for Netherlands North Sea oil & gas.
 
-You are an expert in:
-- Netherlands North Sea geology (Rotliegend, Carboniferous, Zechstein plays)
-- Netherlands exploration history and licensing
-- Hydrocarbon field assessment and ranking
-- Spatial exploration opportunity identification
-
-Your outputs must:
-1. Be grounded in the data provided — do not invent facts
-2. Rank or prioritize assets when multiple options exist
-3. Suggest concrete follow-up actions or questions
-4. Flag exploration potential or data gaps
-5. Use professional E&P language
-
-Format: concise bullets + optional short table. Keep under 400 words.`
+Rules: Ground in data provided, rank assets when multiple, flag data gaps, use E&P language. Keep under 300 words. Use bullets and tables.`
 
 export type InsightResult = {
     answer: string
@@ -32,12 +17,14 @@ export async function runInsightAgent(
     userQuery: string,
     assetData: string,
     spatialData: string,
-    graphContext?: string
+    graphContext?: string,
+    history?: { role: string; content: string }[]
 ): Promise<InsightResult> {
     const completion = await groq.chat.completions.create({
         model: MODEL,
         messages: [
             { role: 'system', content: SYSTEM_PROMPT },
+            ...(history || []).filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
             {
                 role: 'user',
                 content: `Original user question: "${userQuery}"
@@ -61,8 +48,8 @@ Based on this data, provide:
 Format the follow-up questions as a plain list, each prefixed with "FOLLOWUP:" so they can be parsed.`
             }
         ],
-        temperature: 0.5,
-        max_tokens: 900,
+        temperature: 0.4,
+        max_tokens: 600,
     })
 
     const raw = completion.choices[0]?.message?.content || ''

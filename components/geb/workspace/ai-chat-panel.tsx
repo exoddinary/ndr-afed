@@ -127,12 +127,19 @@ export function AIChatPanel({ isOpen, onClose, onMapAction, mapView, initialQues
                 zoom: mapView.zoom
             } : undefined
 
+            // Map previous messages to a simple format for the LLM context
+            const history = messages.map(m => ({
+                role: m.role,
+                content: m.content
+            }))
+
             const res = await fetch('/api/ndr-ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     message: text, 
-                    context: extentContext ? { extent: extentContext } : {}
+                    context: extentContext ? { extent: extentContext } : {},
+                    history: history
                 })
             })
 

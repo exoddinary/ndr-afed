@@ -73,7 +73,7 @@ function detectLayerFromQuery(query: string, fallback: LayerName = 'fields'): La
 
 function detectSpatialRelation(query: string): 'near' | 'inside' | 'between' | 'direction' | 'intersect' | null {
     const q = query.toLowerCase()
-    if (q.includes('inside') || q.includes('within')) return 'inside'
+    if (q.includes('inside') || q.includes('within') || /\\bin\\b/i.test(q)) return 'inside'
     if (q.includes('between')) return 'between'
     if (q.includes('north') || q.includes('south') || q.includes('east') || q.includes('west')) return 'direction'
     if (q.includes('near') || q.includes('close') || q.includes('around')) return 'near'
@@ -108,12 +108,34 @@ async function handleDeterministicContainment(
         const count = intersections.length
         let answer = `I found ${count} ${targetLayer} inside ${originLayer.slice(0, -1)} ${featureName}.`
         
-        if (count > 0 && count <= 5) {
-            const names = intersections.map((f: object) => {
-                const record = f as Record<string, unknown>
-                return String(record.IDENTIFICA || 'Unknown')
-            }).filter(n => n !== 'Unknown')
-            if (names.length > 0) answer += ` They are: ${names.join(', ')}.`
+        if (count > 0) {
+            answer += '\n\n'
+            if (targetLayer === 'wells') {
+                answer += '| Name | Operator | Result | Status |\n|---|---|---|---|\n'
+                intersections.forEach((f: object) => {
+                    const p = (f as { properties: Record<string, unknown> }).properties || {}
+                    answer += `| ${p['IDENTIFICA'] || '-'} | ${p['OPERATOR'] || '-'} | ${p['WELL_RESUL'] || '-'} | ${p['STATUS'] || '-'} |\n`
+                })
+            } else if (targetLayer === 'fields') {
+                answer += '| Field Name | Operator | Result |\n|---|---|---|\n'
+                intersections.forEach((f: object) => {
+                    const p = (f as { properties: Record<string, unknown> }).properties || {}
+                    answer += `| ${p['FIELD_NAME'] || '-'} | ${p['OPERATOR'] || '-'} | ${p['RESULT'] || '-'} |\n`
+                })
+            } else if (targetLayer === 'blocks') {
+                answer += '| Block Number | Area (sqkm) |\n|---|---|\n'
+                intersections.forEach((f: object) => {
+                    const p = (f as { properties: Record<string, unknown> }).properties || {}
+                    answer += `| ${p['BlokNummer'] || '-'} | ${p['Area_sqkm'] ? Number(p['Area_sqkm']).toFixed(2) : '-'} |\n`
+                })
+            } else {
+                answer += '| Identifier |\n|---|\n'
+                intersections.forEach((f: object) => {
+                    const p = (f as { properties: Record<string, unknown> }).properties || {}
+                    const name = p['IDENTIFICA'] || p['FIELD_NAME'] || p['BlokNummer'] || p['licence_nm'] || p['SURVEY_ID'] || 'Unknown'
+                    answer += `| ${name} |\n`
+                })
+            }
         }
         
         return {
@@ -132,7 +154,11 @@ async function handleDeterministicContainment(
 }
 
 // Main spatial agent
-export async function runSpatialReasoningAgent(userQuery: string, _context: AgentContext): Promise<SpatialResult> {
+export async function runSpatialReasoningAgent(
+    userQuery: string, 
+    _context: AgentContext,
+    history?: { role: string; content: string }[]
+): Promise<SpatialResult> {
     const q = userQuery.toLowerCase()
     const mapActions: SpatialResult['mapActions'] = []
 
@@ -143,8 +169,9 @@ export async function runSpatialReasoningAgent(userQuery: string, _context: Agen
     
     // For containment: target=wells, origin=blocks
     if (spatialRelation === 'inside') {
-        targetLayer = detectLayerFromQuery(q.split('inside')[0], 'wells')
-        originLayer = detectLayerFromQuery(q.split('inside')[1] || q, 'blocks')
+        const queryParts = q.split(/\\b(?:inside|within|in)\\b/i)
+        targetLayer = detectLayerFromQuery(queryParts[0], 'wells')
+        originLayer = detectLayerFromQuery(queryParts[1] || q, 'blocks')
     } else {
         targetLayer = detectLayerFromQuery(q, 'wells')
         originLayer = detectLayerFromQuery(q, 'fields')
@@ -162,9 +189,28 @@ export async function runSpatialReasoningAgent(userQuery: string, _context: Agen
         }
     }
 
-    // Fallback: Return processed info
+    // Fallback: Use LLM to generate a natural response instead of a hardcoded string
+    console.log('[Spatial Agent] Falling back to LLM for spatial understanding reasoning')
+    const systemPrompt = `You are the NDR Spatial Agent. Summarize spatial relationships or actions taken based on the user's query and the extracted parameters. Be concise and natural, writing as a helpful assistant that understands geology and geography.`
+    
+    const completion = await groq.chat.completions.create({
+        model: SMALL_MODEL,
+        messages: [
+            { role: 'system', content: systemPrompt },
+            ...(history || []).filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+            {
+                role: 'user',
+                content: `Query: "${userQuery}"\nExtracted Parameters:\n- Target Layer: ${targetLayer}\n- Origin Layer: ${originLayer}\n- Feature Name: ${featureName || 'unspecified'}\n- Spatial Relation: ${spatialRelation || 'unspecified'}\n\nGenerate a concise, natural response acknowledging the spatial intent of this query. Do not say you are an AI. Explain what you are visualizing or processing.`
+            }
+        ],
+        temperature: 0.2,
+        max_tokens: 300,
+    })
+
+    const answer = completion.choices[0]?.message?.content || `Processed ${targetLayer} relative to ${originLayer}${featureName ? ` at ${featureName}` : ''}.`
+
     return {
-        answer: `Processed ${targetLayer} relative to ${originLayer}${featureName ? ` at ${featureName}` : ''}.`,
+        answer,
         spatialData: [],
         mapActions: mapActions.length > 0 ? mapActions : undefined,
     }

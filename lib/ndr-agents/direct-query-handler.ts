@@ -188,18 +188,50 @@ export async function handleFilterQuery(
         } else {
             answer = `Found ${filtered.length} ${layerName.toLowerCase()}${filterDesc ? ` with ${filterDesc}` : ''}. Showing ${results.length}:`
             
-            // Add list of names
-            const names = results.map(f => 
-                f.properties['IDENTIFICA'] || 
-                f.properties['FIELD_NAME'] || 
-                f.properties['BlokNummer'] || 
-                'Unknown'
-            ).filter(n => n !== 'Unknown')
+            const isListRequested = /\\blist\\b/i.test(q)
             
-            if (names.length > 0) {
-                answer += '\n\n' + names.slice(0, 10).join(', ')
-                if (names.length > 10) {
-                    answer += `, and ${names.length - 10} more...`
+            if (isListRequested && results.length > 0) {
+                answer += '\\n\\n'
+                if (layer === 'wells') {
+                    answer += '| Name | Operator | Result | Status |\\n|---|---|---|---|\\n'
+                    results.forEach(f => {
+                        const p = f.properties
+                        answer += `| ${p['IDENTIFICA'] || '-'} | ${p['OPERATOR'] || '-'} | ${p['WELL_RESUL'] || '-'} | ${p['STATUS'] || '-'} |\\n`
+                    })
+                } else if (layer === 'fields') {
+                    answer += '| Field Name | Operator | Result |\\n|---|---|---|\\n'
+                    results.forEach(f => {
+                        const p = f.properties
+                        answer += `| ${p['FIELD_NAME'] || '-'} | ${p['OPERATOR'] || '-'} | ${p['RESULT'] || '-'} |\\n`
+                    })
+                } else if (layer === 'blocks') {
+                    answer += '| Block Number | Area (sqkm) |\\n|---|---|\\n'
+                    results.forEach(f => {
+                        const p = f.properties
+                        answer += `| ${p['BlokNummer'] || '-'} | ${p['Area_sqkm'] ? Number(p['Area_sqkm']).toFixed(2) : '-'} |\\n`
+                    })
+                } else {
+                    answer += '| Identifier |\\n|---|\\n'
+                    results.forEach(f => {
+                        const p = f.properties
+                        const name = p['IDENTIFICA'] || p['FIELD_NAME'] || p['BlokNummer'] || p['licence_nm'] || p['SURVEY_ID'] || 'Unknown'
+                        answer += `| ${name} |\\n`
+                    })
+                }
+            } else {
+                // Add list of names
+                const names = results.map(f => 
+                    f.properties['IDENTIFICA'] || 
+                    f.properties['FIELD_NAME'] || 
+                    f.properties['BlokNummer'] || 
+                    'Unknown'
+                ).filter(n => n !== 'Unknown')
+                
+                if (names.length > 0) {
+                    answer += '\\n\\n' + names.slice(0, 10).join(', ')
+                    if (names.length > 10) {
+                        answer += `, and ${names.length - 10} more...`
+                    }
                 }
             }
         }
