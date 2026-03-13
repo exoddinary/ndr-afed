@@ -4,15 +4,10 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Activity,
-  Asterisk,
-  Bot,
   Zap,
   MessageSquare,
   X,
-  Move,
   Trash2,
-  Plus,
   Send,
   BarChart3
 } from "lucide-react"
@@ -23,7 +18,6 @@ import Point from "@arcgis/core/geometry/Point"
 import Circle from "@arcgis/core/geometry/Circle"
 import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol"
 import SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol"
-import TextSymbol from "@arcgis/core/symbols/TextSymbol"
 import type {
   AnalysisMarker,
   MarkerPosition,
@@ -36,8 +30,7 @@ import type {
 } from "./analysis-marker-types"
 import {
   calculateSpatialContext,
-  calculateMarkerStats,
-  calculateDistance
+  calculateMarkerStats
 } from "./analysis-marker-utils"
 
 interface AnalysisMarkerManagerProps {
@@ -179,17 +172,17 @@ export function AnalysisMarkerManager({
   }, [])
 
   // Create a new marker
-  const createMarker = useCallback((position: MarkerPosition, snapToFeature?: boolean) => {
+  const createMarker = useCallback((position: MarkerPosition) => {
     const newMarker: AnalysisMarker = {
       id: uuidv4(),
-      label: `Marker ${markers.length + 1}`,
+      label: `Spatial Lens ${markers.length + 1}`,
       position,
       radiusKm: 10,
       color: MARKER_COLORS[markers.length % MARKER_COLORS.length],
       createdBy: "user",
       timestamp: Date.now(),
       isExpanded: true,
-      activeMode: null
+      activeMode: "data" // Default to data mode so graph shows immediately
     }
 
     setMarkers(prev => [...prev, newMarker])
@@ -485,13 +478,19 @@ export function AnalysisMarkerManager({
         </>
       )}
 
-      {/* Selected Marker Panel - only show after placement (not during creation) */}
-      {selectedMarkerId && !isCreating && (
+      {/* All Marker Panels - showing graphs persistently */}
+      {!isCreating && markers.map(marker => (
         <AnalysisMarkerPanel
-          marker={markers.find(m => m.id === selectedMarkerId)!}
+          key={marker.id}
+          marker={marker}
+          isSelected={selectedMarkerId === marker.id}
           geoData={geoData}
           onUpdate={updateMarker}
           onDelete={deleteMarker}
+          onSelect={() => {
+            setSelectedMarkerId(marker.id)
+            onMarkerSelect?.(marker)
+          }}
           onClose={() => {
             setSelectedMarkerId(null)
             onMarkerSelect?.(null)
@@ -501,7 +500,7 @@ export function AnalysisMarkerManager({
           onJumpToMainAI={onJumpToMainAI}
           theme={theme}
         />
-      )}
+      ))}
     </>
   )
 }
@@ -518,7 +517,9 @@ interface AnalysisMarkerPanelProps {
   }
   onUpdate: (id: string, updates: Partial<AnalysisMarker>) => void
   onDelete: (id: string) => void
+  onSelect: () => void
   onClose: () => void
+  isSelected: boolean
   view: MapView | SceneView | null
   designConfig: {
     orbitalDistance: number
@@ -554,7 +555,9 @@ function AnalysisMarkerPanel({
   geoData,
   onUpdate,
   onDelete,
+  onSelect,
   onClose,
+  isSelected,
   view,
   designConfig,
   onJumpToMainAI,
@@ -562,14 +565,20 @@ function AnalysisMarkerPanel({
 }: AnalysisMarkerPanelProps) {
   const [spatialContext, setSpatialContext] = useState<SpatialContext | null>(null)
   const [stats, setStats] = useState<MarkerStats | null>(null)
-  const [aiResult, setAiResult] = useState<AIResult | null>(null)
   const [chatMessages, setChatMessages] = useState<AIChatMessage[]>([])
   const [newAIMessage, setNewAIMessage] = useState("")
   const [comments, setComments] = useState<MarkerComment[]>([])
   const [newComment, setNewComment] = useState("")
   const [isLoadingAI, setIsLoadingAI] = useState(false)
-  const [isEditingLabel, setIsEditingLabel] = useState(false)
-  const [editedLabel, setEditedLabel] = useState(marker.label)
+  const [aiResult, setAiResult] = useState<AIResult | null>(null)
+  const [, setTick] = useState(0)
+
+  // Tie UI to map movement (Extent Watcher)
+  useEffect(() => {
+    if (!view) return
+    const handle = view.watch("extent", () => setTick(t => t + 1))
+    return () => handle.remove()
+  }, [view])
 
   // Calculate spatial context when marker changes
   useEffect(() => {
@@ -578,7 +587,7 @@ function AnalysisMarkerPanel({
     setStats(calculateMarkerStats(context))
     // Reset AI result when marker changes
     setAiResult(null)
-  }, [marker.position, marker.radiusKm, geoData])
+  }, [marker.position, marker.radiusKm, geoData, setAiResult])
 
   // Handle radius change
   const handleRadiusChange = (radius: number) => {
@@ -685,37 +694,25 @@ function AnalysisMarkerPanel({
     setNewComment("")
   }
 
-  const [screenPos, setScreenPos] = useState<{ x: number; y: number } | null>(null)
+  // Synchronous snappy calculation for 1:1 tracking
+  const centerPoint = new Point({
+    longitude: marker.position.longitude,
+    latitude: marker.position.latitude
+  })
+  const screenPos = view?.toScreen(centerPoint)
 
-  // Track marker screen position
-  useEffect(() => {
-    if (!view) return
+  if (!view || !screenPos) return null
 
-    const updatePosition = () => {
-      const point = new Point({
-        longitude: marker.position.longitude,
-        latitude: marker.position.latitude
-      })
-      const screen = view.toScreen(point)
-      if (screen) {
-        setScreenPos({ x: screen.x, y: screen.y })
-      }
-    }
-
-    updatePosition()
-    const handle = view.watch("extent", updatePosition)
-    const resizeHandle = () => updatePosition()
-    window.addEventListener("resize", resizeHandle)
-    
-    return () => {
-      handle.remove()
-      window.removeEventListener("resize", resizeHandle)
-    }
-  }, [view, marker.position])
-
-  if (!screenPos) return null
-
-  const radiusInPixels = view ? (marker.radiusKm * 1000) / view.resolution : 100
+  // Geodesic South-edge point for pixel-perfect alignment
+  const latOffset = marker.radiusKm / 111.32 // Approx 111.32km per degree latitude
+  const southPoint = new Point({
+    longitude: marker.position.longitude,
+    latitude: marker.position.latitude - latOffset
+  })
+  const southScreen = view.toScreen(southPoint)
+  const radiusPixels = southScreen 
+    ? Math.sqrt(Math.pow(southScreen.x - screenPos.x, 2) + Math.pow(southScreen.y - screenPos.y, 2))
+    : (marker.radiusKm * 1000) / view.resolution
 
   return (
     <div 
@@ -726,20 +723,24 @@ function AnalysisMarkerPanel({
       }}
     >
       <div className="relative w-0 h-0 pointer-events-auto">
-        {/* Orbital Menu */}
+        {/* Orbital Menu - Only for selected marker */}
         <AnimatePresence>
-          {marker.isExpanded && (
+          {isSelected && marker.isExpanded && (
             <>
               {/* Delete Button - following the bottom radius */}
               <OrbitalButton
                 icon={Trash2}
                 label="Delete"
                 angle={90}
-                distance={Math.max(designConfig.orbitalDistance + 40, radiusInPixels)}
+                distance={radiusPixels}
                 isActive={false}
-                onClick={() => onDelete(marker.id)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(marker.id)
+                }}
                 color="#EF4444"
                 buttonSize={24}
+                className="z-[1005]"
               />
 
               {/* Action Buttons Orbiting - using design config */}
@@ -777,9 +778,9 @@ function AnalysisMarkerPanel({
           )}
         </AnimatePresence>
 
-        {/* Radius Slider - under the marker */}
+        {/* Radius Slider - under the marker - Only for selected marker */}
         <AnimatePresence>
-          {marker.isExpanded && (
+          {isSelected && marker.isExpanded && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8, y: -20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -802,41 +803,42 @@ function AnalysisMarkerPanel({
           )}
         </AnimatePresence>
 
-        {/* Center Point - Pulsing with Label - Draggable */}
+        {/* Center Point - Draggable & Interactive */}
         <div className="absolute left-0 top-0">
           <motion.div 
-            animate={{ 
-              scale: marker.activeMode === "data" ? 0 : [1, 1.2, 1], 
-              opacity: marker.activeMode === "data" ? 0 : [0.8, 1, 0.8] 
+            whileHover={{ 
+              scale: 1.2,
+              boxShadow: "0 0 15px " + marker.color 
             }}
-            transition={{ repeat: Infinity, duration: 2 }}
-            className="w-5 h-5 rounded-full shadow-lg border-2 border-white cursor-grab active:cursor-grabbing -translate-x-1/2 -translate-y-1/2"
+            whileTap={{ scale: 0.9 }}
+            className={`w-5 h-5 rounded-full shadow-lg cursor-grab active:cursor-grabbing -translate-x-1/2 -translate-y-1/2 z-[1006] transition-all duration-200 ${isSelected ? 'border-2 border-white scale-110' : 'border border-white/50 scale-100 opacity-90'}`}
             style={{ backgroundColor: marker.color }}
-            onClick={() => onUpdate(marker.id, { isExpanded: !marker.isExpanded })}
             onMouseDown={(e) => {
               if (!view || !view.container) return
               e.preventDefault()
               e.stopPropagation()
               
-              const rect = view.container.getBoundingClientRect()
               const startX = e.clientX
               const startY = e.clientY
+              let hasMoved = false
               
               // Get current screen position of marker
-              const point = new Point({
+              const center = new Point({
                 longitude: marker.position.longitude,
                 latitude: marker.position.latitude
               })
-              const initialScreenPos = view.toScreen(point)
+              const initialScreenPos = view.toScreen(center)
               if (!initialScreenPos) return
 
               const handleMouseMove = (moveEvent: MouseEvent) => {
-                // Calculate how far the mouse has moved from the start
                 const dx = moveEvent.clientX - startX
                 const dy = moveEvent.clientY - startY
                 
-                // Calculate the new screen position for the marker
-                // relative to the map view container
+                // Set moved flag if dragging beyond a tiny threshold
+                if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                  hasMoved = true
+                }
+                
                 const targetX = initialScreenPos.x + dx
                 const targetY = initialScreenPos.y + dy
                 
@@ -855,6 +857,14 @@ function AnalysisMarkerPanel({
               const handleMouseUp = () => {
                 window.removeEventListener("mousemove", handleMouseMove)
                 window.removeEventListener("mouseup", handleMouseUp)
+                
+                if (!hasMoved) {
+                  if (isSelected) {
+                    onUpdate(marker.id, { isExpanded: !marker.isExpanded })
+                  } else {
+                    onSelect()
+                  }
+                }
               }
               
               window.addEventListener("mousemove", handleMouseMove)
@@ -884,15 +894,15 @@ function AnalysisMarkerPanel({
                 stats={stats} 
                 color={marker.color} 
                 config={designConfig}
-                dynamicRadius={Math.max(designConfig.orbitalDistance + 40, radiusInPixels)}
+                dynamicRadius={Math.max(designConfig.orbitalDistance + 40, radiusPixels)}
               />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Mini-View Wings (Data Display) - only for non-data modes */}
+        {/* Mini-View Wings (Data Display) - only for selected and non-data modes */}
         <AnimatePresence>
-          {marker.activeMode && marker.activeMode !== "data" && (
+          {isSelected && marker.activeMode && marker.activeMode !== "data" && (
             <motion.div
               initial={{ x: 20, opacity: 0, scale: 0.95 }}
               animate={{ 
@@ -955,7 +965,7 @@ interface OrbitalButtonProps {
   angle: number
   distance: number
   isActive: boolean
-  onClick: () => void
+  onClick: (e: React.MouseEvent) => void
   color: string
   className?: string
   buttonSize?: number
@@ -983,7 +993,10 @@ function OrbitalButton({ icon: Icon, label, angle, distance, isActive, onClick, 
       exit={{ scale: 0, opacity: 0, x: 0, y: 0 }}
       whileHover={{ scale: 1.1, zIndex: 1002 }}
       whileTap={{ scale: 0.95 }}
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick(e)
+      }}
       className={`absolute rounded-full flex items-center justify-center transition-all duration-200 border-[3px] ${bgColor} ${textColor} ${borderColor} ${shadowClass} ${className}`}
       style={{
         left: "50%",

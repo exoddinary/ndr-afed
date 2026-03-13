@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 interface GNGProject {
   id: string
   projectName: string
+  rawProjectName: string
   applicationName: string
   interpretationYear: string
   noOfWells: string
@@ -63,6 +64,7 @@ export function GNGProjectFloatingPanel({
         const parsedProjects = data.features.map((f: any) => ({
           id: f.id?.toString() || f.properties?.OBJECTID?.toString() || Math.random().toString(),
           projectName: f.properties?.PROJECT_NAME?.trim() || 'Unknown',
+          rawProjectName: f.properties?.PROJECT_NAME || '',
           applicationName: f.properties?.APPLICATION_NAME?.trim() || '-',
           interpretationYear: f.properties?.INTERPRETATION_YEAR?.toString() || '-',
           noOfWells: f.properties?.NO_OF_WELLS?.toString() || '0',
@@ -101,7 +103,7 @@ export function GNGProjectFloatingPanel({
         theme === 'dark' ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"
       )}>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-purple-500" />
+
           <span className={cn(
             "text-xs font-bold uppercase tracking-wider",
             theme === 'dark' ? "text-slate-400" : "text-slate-500"
@@ -156,7 +158,7 @@ export function GNGProjectFloatingPanel({
               return (
                 <div
                   key={project.id}
-                  onClick={() => onProjectClick?.(project.projectName)}
+                  onClick={() => onProjectClick?.(project.rawProjectName)}
                   className={cn(
                     "px-3 py-3 cursor-pointer transition-colors group",
                     theme === 'dark' 

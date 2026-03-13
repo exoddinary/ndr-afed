@@ -8,7 +8,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 
 // Define types for different panel contexts
-export type PanelContext = "polygon" | "play" | "basin" | "field" | "well" | "license" | "gng-project" | "seismic-2d" | null
+export type PanelContext = "polygon" | "play" | "basin" | "field" | "well" | "license" | "gng-project" | "seismic-2d" | "platform" | "pipeline" | null
 
 export type ContextualData = {
     type: PanelContext
@@ -23,12 +23,11 @@ type ContextualPanelProps = {
     onAddToCompare?: (block: any) => void
     onToggle3D?: () => void
     onViewSubsurface?: (blockId: string) => void
-    onViewGNGData?: () => void
-    onViewF3Horizon?: () => void
-    theme?: 'light' | 'dark'
+    onViewGNGData?: () => void;
+    theme?: 'light' | 'dark';
 }
 
-export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToCompare, onToggle3D, onViewSubsurface, onViewGNGData, onViewF3Horizon, theme = 'light' }: ContextualPanelProps) {
+export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToCompare, onToggle3D, onViewSubsurface, onViewGNGData, theme = 'light' }: ContextualPanelProps) {
     const [isAnimating, setIsAnimating] = useState(false)
     const [showSubsurfaceComingSoon, setShowSubsurfaceComingSoon] = useState(false)
 
@@ -71,6 +70,8 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                         {context.type === "license" && "License Details"}
                         {context.type === "gng-project" && "G&G Project Information"}
                         {context.type === "seismic-2d" && "Seismic Line Information"}
+                        {context.type === "platform" && "Platform Information"}
+                        {context.type === "pipeline" && "Pipeline Information"}
                     </span>
                     <button
                         onClick={handleClose}
@@ -104,8 +105,11 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
                     {context.type === "well" && <WellDetailsContent data={context.data} theme={theme} />}
                     {context.type === "field" && <FieldDetailsContent data={context.data} theme={theme} />}
                     {context.type === "license" && <LicenseDetailsContent data={context.data} theme={theme} />}
-                    {context.type === "gng-project" && <GNGProjectContent data={context.data} onToggle3D={onToggle3D} onViewGNGData={onViewGNGData} onViewF3Horizon={onViewF3Horizon} theme={theme} />}
+                    {context.type === "gng-project" && <GNGProjectContent data={context.data} onToggle3D={onToggle3D}                onViewGNGData={onViewGNGData}
+ theme={theme} />}
                     {context.type === "seismic-2d" && <Seismic2DContent data={context.data} theme={theme} />}
+                    {context.type === "platform" && <PlatformDetailsContent data={context.data} theme={theme} />}
+                    {context.type === "pipeline" && <PipelineDetailsContent data={context.data} theme={theme} />}
                 </div>
 
                 {/* Panel footer - Powered by attribution */}
@@ -677,8 +681,8 @@ function BlockDetailsContent({
                                             },
                                             color: theme === 'dark' ? '#e2e8f0' : '#1e293b',
                                             fontSize: 10,
-                                            margin: 15,
-                                            rotate: 90
+                                            margin: 10,
+                                            rotate: 0
                                         },
                                         axisLine: { 
                                             show: true,
@@ -764,32 +768,33 @@ function BlockDetailsContent({
 
                                         {/* Tornado Chart Container */}
                                         <div className={cn(
-                                            "pt-2 pb-0 relative",
+                                            "pt-10 pb-0 relative",
                                         )}>
                                             {/* Base case center line */}
-                                            <div className="absolute top-[20px] bottom-[60px] w-0 border-l-[1.5px] border-[#dc2626] z-0" 
+                                            <div className="absolute top-[35px] bottom-[50px] w-0 border-l-[1.5px] border-[#dc2626] z-20" 
                                                  style={{ 
                                                      left: `calc(25% + ${((baseCase - 120) / 160) * 50}%)`,
                                                  }} />
                                             
-                                            {/* Baseline Label */}
-                                            <div className="absolute bottom-[50px] z-10 bg-white border border-slate-800 px-2 py-1 text-[9px] text-slate-800 whitespace-nowrap"
+                                            {/* Baseline Label on Top */}
+                                            <div className="absolute top-[5px] z-30 bg-slate-900 text-white px-2 py-1 text-[10px] font-bold rounded shadow-md border border-slate-700 whitespace-nowrap"
                                                  style={{ 
                                                      left: `calc(25% + ${((baseCase - 120) / 160) * 50}%)`,
                                                      transform: 'translateX(-50%)'
                                                  }}>
                                                 Baseline: 191,831,485.26
+                                                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-slate-900"></div>
                                             </div>
 
                                             {/* Custom Legend */}
-                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col gap-6 mr-4">
+                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col gap-4 mr-2">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-5 h-5 bg-[#a51130] border border-slate-900" />
-                                                    <span className={cn("text-[11px]", theme === 'dark' ? "text-slate-300" : "text-slate-800")}>Input Low</span>
+                                                    <div className="w-4 h-4 rounded-sm bg-[#a51130] border border-slate-900/50" />
+                                                    <span className={cn("text-[10px] font-medium", theme === 'dark' ? "text-slate-400" : "text-slate-600")}>Input Low</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-5 h-5 bg-[#cb425e] border border-slate-900" />
-                                                    <span className={cn("text-[11px]", theme === 'dark' ? "text-slate-300" : "text-slate-800")}>Input High</span>
+                                                    <div className="w-4 h-4 rounded-sm bg-[#cb425e] border border-slate-900/50" />
+                                                    <span className={cn("text-[10px] font-medium", theme === 'dark' ? "text-slate-400" : "text-slate-600")}>Input High</span>
                                                 </div>
                                             </div>
                                                  
@@ -799,16 +804,16 @@ function BlockDetailsContent({
                                                 opts={{ renderer: 'svg' }}
                                             />
                                             
-                                            <div className="text-center mt-[-10px] pb-4">
+                                            <div className="text-center mt-[-15px] pb-6 border-t border-slate-100/50 pt-4">
                                                 <div className={cn(
-                                                    "text-[11px] font-bold",
-                                                    theme === 'dark' ? "text-slate-200" : "text-slate-900"
+                                                    "text-[12px] font-bold tracking-tight",
+                                                    theme === 'dark' ? "text-slate-200" : "text-slate-800"
                                                 )}>
                                                     STOIIP (bbl)
                                                 </div>
                                                 <div className={cn(
-                                                    "text-[10px]",
-                                                    theme === 'dark' ? "text-slate-400" : "text-slate-700"
+                                                    "text-[10px] opacity-70",
+                                                    theme === 'dark' ? "text-slate-400" : "text-slate-500"
                                                 )}>
                                                     Values in Millions
                                                 </div>
@@ -1445,7 +1450,23 @@ function AttributeTable({ items, theme = 'light' }: { items: { label: string; va
                     <span className={cn(
                         "flex-1 text-xs break-words whitespace-normal font-medium",
                         theme === 'dark' ? "text-slate-200" : "text-slate-700"
-                    )}>{String(item.value || "-")}</span>
+                    )}>
+                        {String(item.value || "-").startsWith('http') ? (
+                            <a 
+                                href={String(item.value)} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className={cn(
+                                    "underline underline-offset-4 decoration-dotted transition-colors hover:opacity-80",
+                                    theme === 'dark' ? "text-blue-400 decoration-blue-400/40" : "text-blue-600 decoration-blue-600/40"
+                                )}
+                            >
+                                {String(item.value)}
+                            </a>
+                        ) : (
+                            String(item.value || "-")
+                        )}
+                    </span>
                 </div>
             ))}
         </div>
@@ -1465,7 +1486,7 @@ function ExpandableAttributeTable({
     onToggleSection: (section: string) => void
 }) {
     // Define which labels are expandable
-    const expandableLabels = ['No. of Wells', 'No. of Reports', 'No. of Horizons', 'NO_OF_WELLS', 'NO_OF_REPORTS', 'NO_OF_HORIZONS', 'NO_OF_INTER_HORIZONS']
+    const expandableLabels = ['No. of Wells', 'No. of Reports', 'NO_OF_WELLS', 'NO_OF_REPORTS']
     
     // Links data for each section
     const sectionData: Record<string, {name: string, url: string}[]> = {
@@ -1479,9 +1500,6 @@ function ExpandableAttributeTable({
             { name: "F03 Interpretation Report.pdf", url: "https://www.nlog.nl/field-web/rest/field/document/266908169" },
             { name: "F03 Stratigraphy Report.pdf", url: "https://www.nlog.nl/field-web/rest/field/document/2176423597" },
             { name: "F03 Summary.pdf", url: "https://dgbes.com/images/PDF/stratigrahic_surfaces_london2007.pdf" }
-        ],
-        'horizons': [
-            { name: "F3 Shallow Horizon Data", url: "https://terranubis.com/datainfo/F3-Demo-2023" }
         ]
     }
     
@@ -1490,7 +1508,6 @@ function ExpandableAttributeTable({
         const lowerLabel = label.toLowerCase()
         if (lowerLabel.includes('well')) return 'wells'
         if (lowerLabel.includes('report')) return 'reports'
-        if (lowerLabel.includes('horizon')) return 'horizons'
         return null
     }
     
@@ -1499,7 +1516,6 @@ function ExpandableAttributeTable({
         switch(section) {
             case 'wells': return theme === 'dark' ? "text-blue-400" : "text-blue-600"
             case 'reports': return theme === 'dark' ? "text-green-400" : "text-green-600"
-            case 'horizons': return theme === 'dark' ? "text-amber-400" : "text-amber-600"
             default: return theme === 'dark' ? "text-slate-400" : "text-slate-500"
         }
     }
@@ -1549,7 +1565,24 @@ function ExpandableAttributeTable({
                                 <span className={cn(
                                     "text-xs break-words whitespace-normal font-medium",
                                     theme === 'dark' ? "text-slate-200" : "text-slate-700"
-                                )}>{String(item.value || "-")}</span>
+                                )}>
+                                    {String(item.value || "-").startsWith('http') ? (
+                                        <a 
+                                            href={String(item.value)} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className={cn(
+                                                "underline underline-offset-4 decoration-dotted transition-colors hover:opacity-80",
+                                                theme === 'dark' ? "text-blue-400 decoration-blue-400/40" : "text-blue-600 decoration-blue-600/40"
+                                            )}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            {String(item.value)}
+                                        </a>
+                                    ) : (
+                                        String(item.value || "-")
+                                    )}
+                                </span>
                                 {isExpandable && (
                                     <span className={cn(
                                         "text-[10px] px-1.5 py-0.5 rounded ml-2",
@@ -2279,15 +2312,14 @@ function LicenseDetailsContent({ data, theme = 'light' }: { data: any, theme?: '
 }
 
 // G&G Project-specific content - no tabs, prominent app card
-function GNGProjectContent({ data, onToggle3D, onViewGNGData, onViewF3Horizon, theme = 'light' }: { data: any, onToggle3D?: () => void, onViewGNGData?: () => void, onViewF3Horizon?: () => void, theme?: 'light' | 'dark' }) {
+function GNGProjectContent({ data, onToggle3D, onViewGNGData, theme = 'light' }: { data: any, onToggle3D?: () => void, onViewGNGData?: () => void, theme?: 'light' | 'dark' }) {
     // Handle both direct properties and nested properties (GeoJSON format)
     const props = data?.properties || data || {};
     
     // State for expandable sections
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
         wells: false,
-        reports: false,
-        horizons: false
+        reports: false
     });
     
     const toggleSection = (section: string) => {
@@ -2445,41 +2477,6 @@ function GNGProjectContent({ data, onToggle3D, onViewGNGData, onViewF3Horizon, t
                 </button>
             )}
 
-            {/* View Horizon Card - Only for F03 projects */}
-            {isF03Project && (
-                <div className={cn(
-                    "rounded-lg border p-4",
-                    theme === 'dark' 
-                        ? "bg-gradient-to-r from-amber-950/20 to-orange-950/20 border-amber-900/50" 
-                        : "bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200"
-                )}>
-                    <div className="flex items-start gap-3">
-                        <div className={cn(
-                            "w-10 h-10 rounded flex items-center justify-center shrink-0",
-                            theme === 'dark' ? "bg-amber-900/30" : "bg-amber-100"
-                        )}>
-                            <Layers className={cn(
-                                "w-5 h-5",
-                                theme === 'dark' ? "text-amber-500" : "text-amber-600"
-                            )} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h4 className={cn(
-                                "text-sm font-bold mb-1",
-                                theme === 'dark' ? "text-slate-200" : "text-slate-800"
-                            )}>F3 Shallow Horizon</h4>
-                            <p className="text-xs text-slate-500 mb-3">Georeferenced horizon data available for F03 block</p>
-                            <button
-                                onClick={() => onViewF3Horizon?.()}
-                                className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-md transition-colors flex items-center justify-center gap-1.5"
-                            >
-                                <Layers className="w-3.5 h-3.5" />
-                                View Horizon on Map
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <div className={cn("h-px", theme === 'dark' ? "bg-slate-800" : "bg-slate-100")} />
 
@@ -2575,4 +2572,129 @@ function Seismic2DContent({ data, theme = 'light' }: { data: any, theme?: 'light
             <SeismicViewer />
         </div>
     );
+}
+
+// Platform-specific content
+function PlatformDetailsContent({ data, theme = 'light' }: { data: any, theme?: 'light' | 'dark' }) {
+    return (
+        <div className="space-y-6">
+            <div className="mb-4">
+                <h3 className={cn(
+                    "text-xl font-bold leading-tight mb-2",
+                    theme === 'dark' ? "text-slate-100" : "text-slate-700"
+                )}>{data.name}</h3>
+                <div className="flex items-center gap-3">
+                    <span className={cn(
+                        "px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-sm",
+                        theme === 'dark' ? "bg-red-950/30 text-red-400 border border-red-900/50" : "bg-red-100 text-red-700"
+                    )}>
+                        Platform
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">{data.operator}</span>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className={cn(
+                    "p-3 border rounded-sm",
+                    theme === 'dark' ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200"
+                )}>
+                    <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Status</div>
+                    <div className={cn(
+                        "text-sm font-semibold",
+                        theme === 'dark' ? "text-slate-200" : "text-slate-700"
+                    )}>{data.status}</div>
+                </div>
+                <div className={cn(
+                    "p-3 border rounded-sm",
+                    theme === 'dark' ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200"
+                )}>
+                    <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Location</div>
+                    <div className={cn(
+                        "text-sm font-semibold",
+                        theme === 'dark' ? "text-slate-200" : "text-slate-700"
+                    )}>{data.location}</div>
+                </div>
+            </div>
+
+            <div className={cn(
+                "p-4 border rounded-sm space-y-3",
+                theme === 'dark' ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-100"
+            )}>
+                <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">Water Depth</span>
+                    <span className={cn("font-medium", theme === 'dark' ? "text-slate-300" : "text-slate-700")}>75m</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">Commission Date</span>
+                    <span className={cn("font-medium", theme === 'dark' ? "text-slate-300" : "text-slate-700")}>2014-05-12</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">Facilities</span>
+                    <span className={cn("font-medium", theme === 'dark' ? "text-slate-300" : "text-slate-700")}>GOP, Living Quarters</span>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// Pipeline-specific content
+function PipelineDetailsContent({ data, theme = 'light' }: { data: any, theme?: 'light' | 'dark' }) {
+    return (
+        <div className="space-y-6">
+            <div className="mb-4">
+                <h3 className={cn(
+                    "text-xl font-bold leading-tight mb-2",
+                    theme === 'dark' ? "text-slate-100" : "text-slate-700"
+                )}>{data.name}</h3>
+                <div className="flex items-center gap-3">
+                    <span className={cn(
+                        "px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-sm",
+                        theme === 'dark' ? "bg-orange-950/30 text-orange-400 border border-orange-900/50" : "bg-orange-100 text-orange-700"
+                    )}>
+                        Pipeline
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">{data.category}</span>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className={cn(
+                    "p-3 border rounded-sm",
+                    theme === 'dark' ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200"
+                )}>
+                    <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Diameter</div>
+                    <div className={cn(
+                        "text-sm font-semibold",
+                        theme === 'dark' ? "text-slate-200" : "text-slate-700"
+                    )}>{data.diameter}"</div>
+                </div>
+                <div className={cn(
+                    "p-3 border rounded-sm",
+                    theme === 'dark' ? "bg-slate-800 border-slate-700" : "bg-white border-slate-200"
+                )}>
+                    <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Length</div>
+                    <div className={cn(
+                        "text-sm font-semibold",
+                        theme === 'dark' ? "text-slate-200" : "text-slate-700"
+                    )}>{parseFloat(data.length).toFixed(2)} km</div>
+                </div>
+            </div>
+
+            <div className={cn(
+                "p-4 border rounded-sm space-y-3",
+                theme === 'dark' ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-100"
+            )}>
+                <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">Fluid Type</span>
+                    <span className={cn("font-medium", theme === 'dark' ? "text-slate-300" : "text-slate-700")}>Natural Gas</span>
+                </div>
+                <div className={cn("h-px", theme === 'dark' ? "bg-slate-700" : "bg-slate-200")} />
+                <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">Max Pressure</span>
+                    <span className={cn("font-medium", theme === 'dark' ? "text-slate-300" : "text-slate-700")}>1440 psi</span>
+                </div>
+            </div>
+        </div>
+    )
 }

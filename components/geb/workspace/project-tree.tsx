@@ -16,34 +16,35 @@ type TreeNode = {
 
 const INITIAL_TREE: TreeNode[] = [
   {
-    id: 'wells-folder',
-    label: 'Wells:',
+    id: 'blocks-folder',
+    label: 'Block Boundaries',
     type: 'folder',
     children: [
-      { id: 'wells', label: 'Well Locations', type: 'layer' },
-      { id: 'well-trajectories', label: 'Well Trajectories', type: 'layer' },
+      { id: 'licenses', label: 'Awarded Blocks', type: 'layer' },
+      { id: 'offshore-blocks-detailed', label: 'Open Blocks', type: 'layer', style: 'text-slate-600 text-xs' },
     ]
   },
   {
     id: 'seismic',
-    label: 'Seismic Data',
+    label: 'Seismic',
     type: 'folder',
     children: [
-      { id: 'seismic-2d', label: 'Seismic 2D (Lines)', type: 'layer' },
-      { id: 'seismic-3d', label: 'Seismic 3D (Polygon)', type: 'layer' },
+      { id: 'seismic-2d', label: '2D Seismic', type: 'layer' },
+      { id: 'seismic-3d', label: '3D Seismic', type: 'layer' },
+    ]
+  },
+  {
+    id: 'wells-folder',
+    label: 'Wells',
+    type: 'folder',
+    children: [
+      { id: 'wells', label: 'Well Location', type: 'layer' },
+      { id: 'well-trajectories', label: 'Well Trajectories', type: 'layer' },
     ]
   },
   { id: 'hc-fields', label: 'Hydrocarbon Fields', type: 'layer' },
-  {
-    id: 'blocks-folder',
-    label: 'Blocks',
-    type: 'folder',
-    children: [
-      { id: 'licenses', label: 'Awarded Blocks', type: 'layer' },
-      { id: 'offshore-blocks-detailed', label: 'Open Blocks (Offshore)', type: 'layer', style: 'text-slate-600 text-xs' },
-    ]
-  },
-  { id: 'gng-projects', label: 'G&G Project Data Outlines', type: 'layer' },
+  { id: 'infrastructure', label: 'Oil & Gas Infrastructure', type: 'layer' },
+  { id: 'gng-projects', label: 'G&G Project Data', type: 'layer' },
 ]
 
 interface ProjectTreeProps {

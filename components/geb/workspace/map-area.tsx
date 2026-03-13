@@ -54,7 +54,8 @@ const AI_TO_REF: Record<string, string> = {
    seismic3d: 'seismic-3d',
    trajectories: 'well-trajectories',
    gng_projects: 'gng-projects',
-   licenses: 'licenses'
+   licenses: 'licenses',
+   infrastructure: 'infrastructure'
 }
 
 // Name field used in definitionExpression for each layersRef key
@@ -66,7 +67,8 @@ const REF_NAME_FIELD: Record<string, string> = {
    'seismic-3d': 'SURVEY_ID',
    'well-trajectories': 'SHORT_NM',
    'gng-projects': 'PROJECT_NAME',
-   'licenses': 'licence_nm'
+   'licenses': 'licence_nm',
+   'infrastructure': 'namobj'
 }
 
 export function MapArea({
@@ -93,7 +95,6 @@ export function MapArea({
    const viewRef = useRef<MapView | SceneView | null>(null)
    const mapRef = useRef<Map | null>(null)
    const layersRef = useRef<Record<string, __esri.Layer>>({})
-   const f3HorizonGraphicsLayerRef = useRef<__esri.GraphicsLayer | null>(null)
    const [mounted, setMounted] = useState(false)
    const [internalBasemapStyle, setInternalBasemapStyle] = useState<'oceans' | 'light-gray'>(basemapStyle)
    
@@ -538,17 +539,26 @@ export function MapArea({
       map.add(licensesLayer)
       layersRef.current['licenses'] = licensesLayer
 
-      // --- F3 Shallow Horizon - Client-side GeoTIFF rendering ---
-      const f3HorizonLayer = new GraphicsLayer({
-         title: 'F3 Shallow Horizon',
-         visible: false,
-         opacity: 0.8
+      // --- Oil & Gas Infrastructure (Pipelines GeoJSON) ---
+      const infraLayer = new GeoJSONLayer({
+         url: '/data/pipeline/pipe_infrastructure.geojson',
+         copyright: "MIGAS Indonesia",
+         renderer: {
+            type: "simple",
+            symbol: {
+               type: "simple-line",
+               color: [255, 165, 0, 0.8], // Orange for pipelines
+               width: 2
+            } as any
+         },
+         outFields: ["*"],
+         popupEnabled: false,
+         visible: activeLayers.includes('infrastructure'),
+         elevationInfo: { mode: "on-the-ground" }
       })
-      map.add(f3HorizonLayer)
-      layersRef.current['f3-horizon'] = f3HorizonLayer
-      
-      // Store layer reference for later GeoTIFF rendering
-      f3HorizonGraphicsLayerRef.current = f3HorizonLayer
+      map.add(infraLayer)
+      layersRef.current['infrastructure'] = infraLayer
+
 
       // --- Well Trajectories (Local GeoJSON) --- [Second from top]
       const wellTrajLayer = new GeoJSONLayer({
@@ -714,7 +724,7 @@ export function MapArea({
             container: mapDiv.current,
             map: map,
             center: currentCenter as [number, number],
-            zoom: currentZoom,
+            scale: 4500000,
             ui: {
                components: ["zoom", "attribution", "compass"]
             }
@@ -799,14 +809,16 @@ export function MapArea({
                   blockLabelsLayer.visible = false
                   blockLabelsLayer.visible = true
                }
-               
-               // Watch scale changes and update label sizes
-               view.watch('scale', (newScale: number) => {
-                  updateLabelSizes(newScale)
-               })
-               
-               // Initial size update
-               updateLabelSizes(view.scale)
+                              // Watch scale changes and update label sizes/visibility
+                view.watch('scale', (newScale: number) => {
+                   updateLabelSizes(newScale)
+                   // Hide labels above 1:4.5M scale
+                   blockLabelsLayer.visible = activeLayers.includes('offshore-blocks-detailed') && newScale <= 4500000
+                })
+                
+                // Initial size and visibility update
+                updateLabelSizes(view.scale)
+                blockLabelsLayer.visible = activeLayers.includes('offshore-blocks-detailed') && view.scale <= 4500000
                
             }).catch((err: Error) => {
                console.warn('Could not create block labels:', err)
@@ -1060,6 +1072,40 @@ export function MapArea({
             console.log("📈 Seismic 2D Clicked:", attr)
             onElementClick?.("seismic-2d", attr)
             setIsRightPanelOpen(true)
+            return
+         }
+
+         // 7. Check for Infrastructure
+         const infraResults = response.results.filter((result: any) =>
+            result.type === "graphic" &&
+            result.graphic?.layer === layersRef.current['infrastructure']
+         )
+
+         if (infraResults.length > 0) {
+            const graphic = (infraResults[0] as any).graphic
+            const attr = graphic.attributes
+
+            // Highlight
+            if (graphic.geometry) {
+               const highlightGraphic = new Graphic({
+                  geometry: graphic.geometry,
+                  symbol: {
+                     type: "simple-line",
+                     color: [255, 255, 0, 1],
+                     width: 5
+                  } as any
+               })
+               view.graphics.add(highlightGraphic)
+            }
+
+            console.log("🛤️ Infrastructure Clicked:", attr)
+            onElementClick?.("pipeline", {
+               name: attr.namobj || "Unknown Pipeline",
+               category: attr.kategori || "N/A",
+               diameter: attr.dimmtr || "N/A",
+               length: attr["st_length(shape)"]
+            })
+            setIsRightPanelOpen(true)
          }
       })
 
@@ -1086,71 +1132,20 @@ export function MapArea({
    }, [basemapStyle, mounted, theme])
 
    // Separate effect just for toggling visibility (lightweight)
-   useEffect(() => {
-      Object.entries(layersRef.current).forEach(([key, layer]) => {
-         if (layer) {
-            if (activeLayers.includes(key)) layer.visible = true
-            else layer.visible = false
-         }
-      })
-   }, [activeLayers])
+    useEffect(() => {
+       Object.entries(layersRef.current).forEach(([key, layer]) => {
+          if (layer) {
+             if (activeLayers.includes(key)) layer.visible = true
+             else layer.visible = false
+          }
+       })
+       // Also sync block labels visibility with blocks layer
+       const blockLabels = viewRef.current?.map.findLayerById('block-labels')
+       if (blockLabels && viewRef.current) {
+          blockLabels.visible = activeLayers.includes('offshore-blocks-detailed') && viewRef.current.scale <= 4500000
+       }
+    }, [activeLayers])
 
-   // GeoTIFF rendering effect for F3 Horizon - simplified (file is JPEG without georeferencing)
-   useEffect(() => {
-      if (!mounted || !viewRef.current) return
-      
-      const isVisible = activeLayers.includes('f3-horizon')
-      const graphicsLayer = f3HorizonGraphicsLayerRef.current
-      
-      if (!graphicsLayer) return
-      
-      // Clear existing graphics if turning off
-      if (!isVisible) {
-         graphicsLayer.removeAll()
-         return
-      }
-      
-      // If already has graphics, just make visible
-      if (graphicsLayer.graphics.length > 0) {
-         graphicsLayer.visible = true
-         return
-      }
-      
-      // Show a placeholder extent marker for F03 block area
-      // Note: Actual horizon image is a JPEG without georeferencing
-      const f03Extent = new Extent({
-         xmin: 4.8,
-         ymin: 53.0,
-         xmax: 5.4,
-         ymax: 53.4,
-         spatialReference: { wkid: 4326 }
-      })
-      
-      const graphic = new Graphic({
-         geometry: f03Extent,
-         symbol: {
-            type: "simple-fill",
-            color: [255, 200, 100, 0.2],
-            outline: {
-               color: [255, 160, 50, 0.8],
-               width: 2,
-               style: "dash"
-            }
-         } as any,
-         attributes: {
-            name: "F3 Shallow Horizon Area",
-            note: "Horizon data available (unreferenced)"
-         }
-      })
-      
-      graphicsLayer.add(graphic)
-      
-      // Zoom to the extent
-      viewRef.current?.goTo(f03Extent.expand(1.2))
-      
-      console.log('🗺️ F3 Shallow Horizon area marker shown (no georeferenced image available)')
-      
-   }, [activeLayers, mounted])
 
    // Focus mode: highlight AI-identified features, hide others
    useEffect(() => {

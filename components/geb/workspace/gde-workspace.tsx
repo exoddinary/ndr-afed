@@ -194,16 +194,6 @@ export function GDEWorkspace() {
     setIsGNGPanelExpanded(true)
   }, [])
 
-  const handleViewF3Horizon = useCallback(() => {
-    // Toggle the F3 Shallow Horizon layer visibility
-    setActiveLayers(prev => {
-      if (prev.includes('f3-horizon')) {
-        return prev.filter(id => id !== 'f3-horizon')
-      } else {
-        return [...prev, 'f3-horizon']
-      }
-    })
-  }, [])
 
   const handleThemeChange = useCallback(() => {
     setTheme(prev => {
@@ -322,7 +312,6 @@ export function GDEWorkspace() {
             onToggle3D={handleToggle3D}
             onViewSubsurface={handleViewSubsurface}
             onViewGNGData={handleViewGNGData}
-            onViewF3Horizon={handleViewF3Horizon}
             theme={theme}
           />
         )}
