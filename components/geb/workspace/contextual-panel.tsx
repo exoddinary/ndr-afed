@@ -169,19 +169,7 @@ export function ContextualPanel({ isOpen, context, onClose, onNavigate, onAddToC
 
 // Helper component for Seismic Viewer
 function SeismicViewer() {
-    return (
-        <div>
-            <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-2">Seismic Viewer</h4>
-            <div className="w-full h-[250px] border border-slate-200 rounded overflow-hidden bg-slate-100 relative">
-                <iframe
-                    src="http://167.172.87.156:5174/seismic_multiview?filepath=Seismic_F03.sgy"
-                    className="w-full h-full"
-                    title="Seismic Viewer"
-                    allowFullScreen
-                />
-            </div>
-        </div>
-    )
+    return null;
 }
 
 import { MOCK_BLOCKS, type BlockCommercialData } from "@/data/investor-data"
